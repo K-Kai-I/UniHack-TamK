@@ -13,6 +13,7 @@ Cuộc thi: Team1 Vietnam UniHack (Avalanche). Khóa sản phẩm 23:59 ngày 18
 | Việc bạn làm | Đọc file |
 | --- | --- |
 | Bất kỳ thứ gì trong `contracts/` | `docs/contract-spec.md` |
+| Màn hình, thứ tự bước, nhánh A–H, hàm/API nào dùng ở bước nào | `docs/user-flow.md` (tóm tắt doc User flow 12/11; lệch thì 3 file spec thắng) |
 | API trong `web/app/api/` hoặc gọi API từ frontend | `docs/api-contract.md` |
 | Hash, JSON lưu ngoài chuỗi, database, biến môi trường, module AI | `docs/data-contract.md` |
 | Kiểu TypeScript dùng chung | `web/lib/types.ts` (đã viết theo 3 file trên) |

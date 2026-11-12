@@ -46,6 +46,7 @@ ket-coc-tro/
   AGENTS.md            luật cho AI
   DEVELOPER.md         file này
   docs/                3 hợp đồng: contract, API, dữ liệu (nguồn sự thật)
+                       + user-flow.md: luồng, màn hình, nhánh A–H
   contracts/           Foundry: src/, test/, script/
   web/                 Next.js: màn hình + API + lib/ai
     app/api/v1/        API (Khải)

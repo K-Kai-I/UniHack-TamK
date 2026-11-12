@@ -35,7 +35,7 @@ AI chỉ đề xuất và ký con dấu. AI không có ví và không chuyển �
 | `web/app/api/v1/` | Next.js Route Handlers | Lưu ảnh và điều khoản ngoài chuỗi, tính hash, gọi AI, ký con dấu, bot keeper |
 | `web/lib/ai/` | Mô hình AI đọc ảnh | So ảnh, trả kết luận có cấu trúc |
 
-Đặc tả đầy đủ trong [`docs/`](docs/): [contract](docs/contract-spec.md), [API](docs/api-contract.md), [dữ liệu](docs/data-contract.md).
+Đặc tả đầy đủ trong [`docs/`](docs/): [contract](docs/contract-spec.md), [API](docs/api-contract.md), [dữ liệu](docs/data-contract.md), [luồng người dùng](docs/user-flow.md).
 
 ## Contract đã deploy (Avalanche Fuji, chain ID 43113)
 
