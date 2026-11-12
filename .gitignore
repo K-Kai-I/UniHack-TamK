@@ -1,0 +1,40 @@
+# Root .gitignore. web/ has its own web/.gitignore (Next.js) on top of this one.
+
+# Dependencies
+node_modules/
+
+# Env & secrets (AGENTS.md rule 7): never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Foundry (contracts/)
+contracts/out/
+contracts/cache/
+contracts/lib/
+contracts/broadcast/*/31337/
+contracts/broadcast/**/dry-run/
+
+# Next.js / Vercel
+.next/
+out/
+.vercel/
+*.tsbuildinfo
+
+# Personal AI/planning notes: keep local, don't push
+.planning/
+CLAUDE.local.md
+.claude/settings.local.json
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.swp
+
+# Logs
+npm-debug.log*
+*.log
