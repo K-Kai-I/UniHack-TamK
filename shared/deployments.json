@@ -1,0 +1,13 @@
+{
+  "chainId": 43113,
+  "abiVersion": 1,
+  "deployedAt": null,
+  "deployBlock": 0,
+  "contracts": {
+    "DepositEscrow": "0x0000000000000000000000000000000000000000",
+    "MockUSDC": "0x0000000000000000000000000000000000000000",
+    "MockVault": null
+  },
+  "aiSigner": "0x0000000000000000000000000000000000000000",
+  "feeRecipient": "0x0000000000000000000000000000000000000000"
+}

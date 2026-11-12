@@ -1,0 +1,12 @@
+{
+  "schema": "kct.report.mismatch/1",
+  "dealId": 1,
+  "termsHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "evidenceHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "model": "mock",
+  "promptVersion": "listing-v0",
+  "createdAt": "2026-11-20T02:20:00Z",
+  "verdict": "MISMATCH",
+  "confidence": 0.91,
+  "reasons": ["Ảnh đăng tin có cửa sổ lớn, phòng thực tế không có cửa sổ"]
+}

@@ -1,0 +1,22 @@
+[profile.default]
+src = "src"
+test = "test"
+script = "script"
+out = "out"
+libs = ["node_modules", "lib"]
+solc_version = "0.8.24"
+optimizer = true
+optimizer_runs = 200
+remappings = [
+  "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
+  "forge-std/=lib/forge-std/src/",
+]
+
+[rpc_endpoints]
+fuji = "${FUJI_RPC_URL}"
+
+[etherscan]
+fuji = { key = "verifyContract", chain = 43113, url = "https://api.routescan.io/v2/network/testnet/evm/43113/etherscan" }
+
+[fmt]
+line_length = 120

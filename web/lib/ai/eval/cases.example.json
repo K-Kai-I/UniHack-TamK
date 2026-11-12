@@ -1,0 +1,20 @@
+[
+  {
+    "name": "vết bẩn tường",
+    "positionId": "p1",
+    "positionName": "Tường đầu giường",
+    "before": "images/01-before.jpg",
+    "after": "images/01-after.jpg",
+    "expectVerdict": "NEW_DAMAGE",
+    "expectPriceItemId": "i1"
+  },
+  {
+    "name": "cửa bạc màu tự nhiên",
+    "positionId": "p2",
+    "positionName": "Cửa ra vào",
+    "before": "images/02-before.jpg",
+    "after": "images/02-after.jpg",
+    "expectVerdict": "WEAR",
+    "expectPriceItemId": null
+  }
+]

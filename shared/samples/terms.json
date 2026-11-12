@@ -1,0 +1,36 @@
+{
+  "schema": "kct.terms/1",
+  "createdAt": "2026-11-14T03:00:00Z",
+  "landlord": "0x1111111111111111111111111111111111111111",
+  "room": {
+    "title": "Phòng 20m2 gần ĐH Bách Khoa",
+    "address": "268 Lý Thường Kiệt, Quận 10, TP.HCM",
+    "rentVnd": 3000000,
+    "amenities": ["máy lạnh", "tủ lạnh"]
+  },
+  "listingPhotos": [
+    { "photoId": "ph_listing_01", "sha256": "0x0101010101010101010101010101010101010101010101010101010101010101" }
+  ],
+  "money": {
+    "token": "0x0000000000000000000000000000000000000000",
+    "decimals": 6,
+    "depositAmount": "240000000",
+    "reserveFeeAmount": "20000000",
+    "vndPerToken": 25000
+  },
+  "dates": { "moveInDate": "2026-11-20T02:00:00Z", "leaseEnd": "2027-05-20T02:00:00Z" },
+  "positions": [
+    { "id": "p1", "name": "Tường đầu giường", "instruction": "Đứng ở cửa, chụp ngang",
+      "examplePhoto": { "photoId": "ph_example_01", "sha256": "0x0202020202020202020202020202020202020202020202020202020202020202" } },
+    { "id": "p2", "name": "Cửa ra vào", "instruction": "Đứng giữa phòng, chụp thẳng cửa",
+      "examplePhoto": { "photoId": "ph_example_02", "sha256": "0x0303030303030303030303030303030303030303030303030303030303030303" } },
+    { "id": "p3", "name": "Sàn nhà", "instruction": "Đứng ở cửa, chụp chéo xuống sàn",
+      "examplePhoto": { "photoId": "ph_example_03", "sha256": "0x0404040404040404040404040404040404040404040404040404040404040404" } }
+  ],
+  "priceList": [
+    { "id": "i1", "item": "Sơn lại 1 mảng tường", "unit": "mảng", "priceAmount": "16000000" },
+    { "id": "i2", "item": "Thay ổ khóa cửa", "unit": "cái", "priceAmount": "12000000" },
+    { "id": "i3", "item": "Thay 1 viên gạch sàn", "unit": "viên", "priceAmount": "4000000" }
+  ],
+  "yieldEnabled": false
+}

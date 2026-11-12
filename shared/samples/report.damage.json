@@ -1,0 +1,22 @@
+{
+  "schema": "kct.report.damage/1",
+  "dealId": 1,
+  "checkInHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "checkOutHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "model": "mock",
+  "promptVersion": "damage-v0",
+  "createdAt": "2027-05-20T03:00:00Z",
+  "positions": [
+    { "positionId": "p1", "verdict": "NEW_DAMAGE", "confidence": 0.86,
+      "description": "Vết bẩn lớn màu nâu ở góc phải, không có trong ảnh nhận phòng",
+      "priceItemId": "i1", "quantity": 1, "outsidePriceList": false, "amount": "16000000" },
+    { "positionId": "p2", "verdict": "WEAR", "confidence": 0.74,
+      "description": "Sơn cửa bạc màu đều", "priceItemId": null, "quantity": 0,
+      "outsidePriceList": false, "amount": "0" },
+    { "positionId": "p3", "verdict": "NO_CHANGE", "confidence": 0.92,
+      "description": "Sàn không thay đổi", "priceItemId": null, "quantity": 0,
+      "outsidePriceList": false, "amount": "0" }
+  ],
+  "totalAmount": "16000000",
+  "sealedAmount": "16000000"
+}
