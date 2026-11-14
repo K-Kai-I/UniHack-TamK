@@ -18,7 +18,9 @@ contract Deploy is Script {
         bool demo = vm.envOr("DEMO_TIMEOUTS", true);
 
         IDepositEscrow.Timeouts memory t = demo
-            ? IDepositEscrow.Timeouts(3 minutes, 2 minutes, 2 minutes, 2 minutes, 2 minutes, 3 minutes, 3 minutes, 5 minutes)
+            ? IDepositEscrow.Timeouts(
+                3 minutes, 2 minutes, 2 minutes, 2 minutes, 2 minutes, 3 minutes, 3 minutes, 5 minutes
+            )
             : IDepositEscrow.Timeouts(1 days, 2 days, 24 hours, 2 days, 1 days, 1 days, 1 days, 1 days);
 
         vm.startBroadcast(pk);

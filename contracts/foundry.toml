@@ -20,3 +20,7 @@ fuji = { key = "verifyContract", chain = 43113, url = "https://api.routescan.io/
 
 [fmt]
 line_length = 120
+
+[lint]
+# Hạn chót tính bằng phút/ngày; validator lệch vài giây không ảnh hưởng.
+exclude_lints = ["block-timestamp"]
