@@ -18,6 +18,8 @@ const nextConfig: NextConfig = {
       "@abstract-foundation/agw-client": false,
       "@farcaster/mini-app-solana": false,
       permissionless: false,
+      // @metamask/sdk (qua connector MetaMask của wagmi) import tùy chọn bản React Native.
+      "@react-native-async-storage/async-storage": false,
     };
     return config;
   },
