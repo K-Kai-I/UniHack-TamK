@@ -29,3 +29,17 @@ export function formatToken(amount: Amount | bigint, symbol = "mUSDC"): string {
 export function shortAddress(addr: string, head = 6, tail = 4): string {
   return addr.length <= head + tail ? addr : `${addr.slice(0, head)}…${addr.slice(-tail)}`;
 }
+
+/** Chuỗi người dùng gõ ("3.000.000", "3 000 000") → số nguyên VND; rỗng hoặc có chữ lạ → null. */
+export function parseVndInput(text: string): bigint | null {
+  const digits = text.replace(/[\s.,]/g, "");
+  return /^\d+$/.test(digits) ? BigInt(digits) : null;
+}
+
+/**
+ * VND → Amount (chuỗi, 6 số lẻ), làm tròn xuống. Chủ trọ nhập VND, chuỗi lưu mUSDC theo vndPerToken.
+ * Dùng bigint hoàn toàn (AGENTS.md luật 8), không qua number.
+ */
+export function vndToAmount(vnd: bigint, vndPerToken: number): string {
+  return ((vnd * UNIT) / BigInt(Math.round(vndPerToken))).toString();
+}

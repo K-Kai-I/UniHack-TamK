@@ -1,14 +1,15 @@
 "use client";
 // Màn "Chi tiết phòng + Gửi cọc" (docs/user-flow.md GĐ2, P0). Dữ liệu giả từ lib/client/rooms-data.ts.
-// Nút "Gửi cọc" CHƯA gọi contract: depositWithPermit làm ở bước sau (xem TODO bên dưới).
+// Nút "Gửi cọc" mở DepositSheet: ký permit + depositWithPermit (một lần xác nhận trong ví).
+import { useState } from "react";
 import Link from "next/link";
 import { usePrivy } from "@privy-io/react-auth";
 import { useAccount } from "wagmi";
 import { useQuery } from "@tanstack/react-query";
-import { toast } from "sonner";
 import { Camera, SearchX, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DepositSheet } from "@/components/deposit-sheet";
 import { DealStatusBadge } from "@/components/deal-status-badge";
 import { NetworkBanner } from "@/components/network-banner";
 import { PageHeader } from "@/components/page-header";
@@ -200,6 +201,7 @@ function DepositBar({ deal }: { deal: DealDetail }) {
   const { ready, authenticated, login } = usePrivy();
   const { address } = useAccount();
   const { onchain, terms } = deal;
+  const [open, setOpen] = useState(false);
 
   let content: React.ReactNode;
   if (onchain.state !== "OPEN") {
@@ -223,15 +225,7 @@ function DepositBar({ deal }: { deal: DealDetail }) {
     );
   } else {
     content = (
-      <Button
-        size="lg"
-        className="h-14 w-full text-base"
-        onClick={() =>
-          // TODO(spec): nối depositWithPermit(id, wantYield, permitDeadline, v, r, s) bằng useTx (lib/client/use-tx.ts).
-          // Cần chữ ký permit ERC-2612 của MockUSDC và địa chỉ contract đã deploy.
-          toast.info("Gửi cọc sẽ nối với contract ở bước sau. Đây là dữ liệu giả.")
-        }
-      >
+      <Button size="lg" className="h-14 w-full text-base" onClick={() => setOpen(true)}>
         Gửi cọc {vnd(terms.money.depositAmount)}
       </Button>
     );
@@ -240,6 +234,7 @@ function DepositBar({ deal }: { deal: DealDetail }) {
   return (
     <div className="fixed inset-x-0 bottom-0 z-30 border-t bg-background/95 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="mx-auto max-w-md px-5 pt-3">{content}</div>
+      <DepositSheet deal={deal} open={open} onOpenChange={setOpen} />
     </div>
   );
 }
