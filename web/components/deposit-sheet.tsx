@@ -1,6 +1,7 @@
 "use client";
 // Hộp xác nhận "Gửi cọc" (docs/user-flow.md GĐ2 bước 2). Một lần xác nhận trong ví (permit + depositWithPermit).
 import { useState } from "react";
+import Link from "next/link";
 import { useAccount, useReadContract } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
 import { isAddressEqual, zeroAddress } from "viem";
@@ -77,8 +78,8 @@ export function DepositSheet({
                 phòng trong app.
               </DrawerDescription>
               <TxStatus state={state} doneText="Gửi cọc thành công" />
-              <Button size="lg" className="h-14 w-full text-base" onClick={() => onOpenChange(false)}>
-                Xong
+              <Button asChild size="lg" className="h-14 w-full text-base">
+                <Link href={`/deals/${deal.dealId}`}>Xem hợp đồng</Link>
               </Button>
             </div>
           ) : (
