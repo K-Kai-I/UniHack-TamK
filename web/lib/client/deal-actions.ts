@@ -1,0 +1,161 @@
+// Bảng "Nút trên app theo trạng thái" (docs/contract-spec.md) viết thành code, để màn Chi tiết hợp đồng
+// chỉ hiện nút khi contract đang ở đúng trạng thái. Nút "Xử lý quá hạn" (poke) không nằm ở đây vì nó hiện
+// cho MỌI người khi canPoke = true.
+import type { DealState } from "@/lib/types";
+import type { DealView } from "./deals-data";
+
+export type Role = "tenant" | "landlord" | "viewer";
+
+export type ActionId =
+  | "deposit"
+  | "cancel"
+  | "checkin"
+  | "mismatch"
+  | "contestCheckIn"
+  | "contestMismatch"
+  | "checkout"
+  | "reportAbandon"
+  | "checkoutForTenant"
+  | "contestAbandon"
+  | "viewReport"
+  | "propose"
+  | "respond"
+  | "receipt";
+
+export interface DealAction {
+  id: ActionId;
+  label: string;
+  /** primary = nút chính to ở đáy màn; secondary = nút viền; danger = nút đỏ. */
+  variant: "primary" | "secondary" | "danger";
+  /** Mức trong AGENTS.md > Phạm vi, để biết nút nào làm trước. */
+  level: "P0" | "P1" | "P2";
+}
+
+const act = (id: ActionId, label: string, variant: DealAction["variant"], level: DealAction["level"]): DealAction => ({
+  id,
+  label,
+  variant,
+  level,
+});
+
+/** Vai trò của ví đang xem: so địa chỉ ví với landlord / tenant đọc từ contract. */
+export function roleOf(deal: DealView, wallet: string | undefined): Role {
+  if (!wallet) return "viewer";
+  const w = wallet.toLowerCase();
+  if (w === deal.onchain.landlord.toLowerCase()) return "landlord";
+  if (deal.onchain.tenant && w === deal.onchain.tenant.toLowerCase()) return "tenant";
+  return "viewer";
+}
+
+/**
+ * Nút theo trạng thái và vai trò. `now` dùng cho nút chỉ hiện sau một mốc giờ (Trả phòng thay).
+ * Người xem không phải hai bên (bồi thẩm, người lạ) không có nút nào ở đây.
+ */
+export function actionsFor(deal: DealView, role: Role, now: number): DealAction[] {
+  const s = deal.onchain.state;
+  const hasCheckIn = deal.photoSets.checkin !== null;
+
+  if (role === "tenant") {
+    switch (s) {
+      case "RESERVED":
+        return hasCheckIn
+          ? []
+          : [act("checkin", "Chụp ảnh nhận phòng", "primary", "P0"), act("mismatch", "Phòng không đúng mô tả", "secondary", "P1")];
+      case "ACTIVE":
+        return [act("checkout", "Trả phòng", "primary", "P0")];
+      case "ABANDON_REPORTED":
+        return [act("contestAbandon", "Tôi vẫn đang ở", "primary", "P1")];
+      case "CHECKED_OUT":
+        return [act("viewReport", "Xem báo cáo AI", "secondary", "P0")];
+      case "PROPOSED":
+        return [act("respond", "Xem đề xuất và trả lời", "primary", "P0")];
+      case "SETTLED":
+      case "REFUNDED":
+        return [act("receipt", "Xem biên nhận", "secondary", "P0")];
+      default:
+        return [];
+    }
+  }
+
+  if (role === "landlord") {
+    switch (s) {
+      case "OPEN":
+        return [act("cancel", "Gỡ phòng", "danger", "P0")];
+      case "RESERVED":
+        return hasCheckIn ? [act("contestCheckIn", "Phản đối ảnh nhận phòng", "secondary", "P2")] : [];
+      case "MISMATCH_REPORTED":
+        return [act("contestMismatch", "Phản đối", "primary", "P1")];
+      case "ACTIVE": {
+        const list = [act("reportAbandon", "Báo người thuê bỏ đi", "secondary", "P1")];
+        // TODO(spec): đúng ra là sau leaseEnd + checkOutGrace (lấy từ GET /config). Tạm so với leaseEnd.
+        if (now > Date.parse(deal.terms.dates.leaseEnd)) list.unshift(act("checkoutForTenant", "Trả phòng thay", "primary", "P1"));
+        return list;
+      }
+      case "CHECKED_OUT":
+        return [act("propose", "Đề xuất mức trừ", "primary", "P0"), act("viewReport", "Xem báo cáo AI", "secondary", "P0")];
+      case "SETTLED":
+      case "REFUNDED":
+        return [act("receipt", "Xem biên nhận", "secondary", "P0")];
+      default:
+        return [];
+    }
+  }
+
+  return [];
+}
+
+/**
+ * Hạn chót đang đếm ngược: ai đang phải làm gì, và hết hạn thì `poke` làm gì
+ * (bảng Tham số thời gian trong contract-spec). null khi bước hiện tại không có hạn.
+ */
+export function deadlineInfo(state: DealState, hasCheckIn: boolean): { waiting: string; onTimeout: string } | null {
+  switch (state) {
+    case "RESERVED":
+      return hasCheckIn
+        ? { waiting: "Thời gian chủ trọ xem ảnh nhận phòng", onTimeout: "Hợp đồng chuyển sang Đang ở." }
+        : {
+            waiting: "Hạn người thuê gửi ảnh nhận phòng",
+            onTimeout: "Người thuê được hoàn cọc, trừ phí giữ chỗ cho chủ trọ.",
+          };
+    case "MISMATCH_REPORTED":
+      return { waiting: "Hạn chủ trọ phản đối", onTimeout: "Người thuê được hoàn đủ tiền cọc." };
+    case "ABANDON_REPORTED":
+      return { waiting: "Hạn người thuê xác nhận còn ở", onTimeout: "Chủ trọ nhận tiền cọc." };
+    case "CHECKED_OUT":
+      return { waiting: "Hạn chủ trọ đề xuất mức trừ", onTimeout: "Chia tiền với mức trừ 0: người thuê nhận lại đủ cọc." };
+    case "PROPOSED":
+      return { waiting: "Hạn người thuê trả lời", onTimeout: "Chia tiền theo mức chủ trọ đề xuất." };
+    case "DISPUTED":
+      return { waiting: "Hạn bồi thẩm bỏ phiếu", onTimeout: "Phân xử theo quy tắc hết hạn của tranh chấp." };
+    default:
+      return null;
+  }
+}
+
+/** 5 bước hiển thị trên thanh tiến trình. */
+export const STEPS = ["Gửi cọc", "Nhận phòng", "Đang ở", "Trả phòng", "Chia tiền"] as const;
+
+/** Bước đang làm (0–4); 5 = xong hết; null = không vẽ thanh (đã gỡ tin). */
+export function stepIndex(deal: DealView): number | null {
+  const s: DealState = deal.onchain.state;
+  switch (s) {
+    case "OPEN":
+      return 0;
+    case "RESERVED":
+    case "MISMATCH_REPORTED":
+      return 1;
+    case "ACTIVE":
+    case "ABANDON_REPORTED":
+      return 2;
+    case "CHECKED_OUT":
+    case "PROPOSED":
+      return 3;
+    case "DISPUTED":
+      return deal.onchain.disputeKind === "MISMATCH" ? 1 : 3;
+    case "SETTLED":
+    case "REFUNDED":
+      return 5;
+    case "CANCELLED":
+      return null;
+  }
+}

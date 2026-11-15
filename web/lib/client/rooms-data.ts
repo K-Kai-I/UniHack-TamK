@@ -37,7 +37,7 @@ const A = (n: string) => `0x${n.repeat(40).slice(0, 40)}` as Address;
 const H = (n: string) => `0x${n.repeat(64).slice(0, 64)}` as `0x${string}`;
 const ph = (id: string) => ({ photoId: id, sha256: H("1") });
 
-const WALL_SAMPLE_TERMS: Terms = {
+export const WALL_SAMPLE_TERMS: Terms = {
   schema: "kct.terms/1",
   createdAt: "2026-11-14T03:00:00Z",
   landlord: A("1"),
