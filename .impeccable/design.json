@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-15T00:00:00+07:00",
+  "title": "Design System: Két Cọc Trọ",
+  "extensions": {
+    "colorMeta": {
+      "vault-navy": { "role": "primary", "displayName": "Vault Navy", "canonical": "#0b2545", "tonalRamp": ["#06152a", "#0b2545", "#1d3a63", "#355684", "#5675a3", "#87a0c4", "#bccbe0", "#e8eef6"] },
+      "navy-mist": { "role": "primary", "displayName": "Navy Mist", "canonical": "#e8eef6" },
+      "safe-emerald": { "role": "secondary", "displayName": "Safe Emerald", "canonical": "#10b981", "tonalRamp": ["#022c22", "#064e3b", "#065f46", "#047857", "#10b981", "#6ee7b7", "#a7f3d0", "#e7f8f1"] },
+      "emerald-wash": { "role": "secondary", "displayName": "Emerald Wash", "canonical": "#e7f8f1" },
+      "emerald-ink": { "role": "secondary", "displayName": "Emerald Ink", "canonical": "#065f46" },
+      "deadline-amber": { "role": "tertiary", "displayName": "Deadline Amber", "canonical": "#f59e0b", "tonalRamp": ["#451a03", "#78350f", "#b45309", "#d97706", "#f59e0b", "#fcd34d", "#fde68a", "#fef3c7"] },
+      "deadline-amber-ink": { "role": "tertiary", "displayName": "Deadline Amber Ink", "canonical": "#451a03" },
+      "pending-blue": { "role": "tertiary", "displayName": "Pending Blue", "canonical": "#3b82f6", "tonalRamp": ["#172554", "#1e3a8a", "#1d4ed8", "#2563eb", "#3b82f6", "#93c5fd", "#bfdbfe", "#eff6ff"] },
+      "dispute-red": { "role": "tertiary", "displayName": "Dispute Red", "canonical": "#dc2626", "tonalRamp": ["#450a0a", "#7f1d1d", "#991b1b", "#b91c1c", "#dc2626", "#fca5a5", "#fecaca", "#fef2f2"] },
+      "ledger-paper": { "role": "neutral", "displayName": "Ledger Paper", "canonical": "#f7f9fc" },
+      "card-white": { "role": "neutral", "displayName": "Card White", "canonical": "#ffffff" },
+      "slate-ink": { "role": "neutral", "displayName": "Slate Ink", "canonical": "#0f172a", "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#64748b", "#94a3b8", "#e2e8f0", "#f8fafc"] },
+      "slate-muted": { "role": "neutral", "displayName": "Slate Muted", "canonical": "#64748b" },
+      "muted-fill": { "role": "neutral", "displayName": "Muted Fill", "canonical": "#eef2f7" },
+      "hairline": { "role": "neutral", "displayName": "Hairline", "canonical": "#e2e8f0" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Đồng hồ đếm ngược hạn chót, con số lớn nhất trên màn." },
+      "headline": { "displayName": "Headline", "purpose": "Tên phòng / tiêu đề màn, màu navy." },
+      "title": { "displayName": "Title", "purpose": "Tiêu đề từng khối." },
+      "body": { "displayName": "Body", "purpose": "Nội dung và chữ nút chính." },
+      "body-sm": { "displayName": "Body small", "purpose": "Nhãn dòng, chú thích, thông báo giao dịch." },
+      "label": { "displayName": "Label", "purpose": "Nhãn bước tiến trình, nhãn trạng thái." },
+      "mono": { "displayName": "Mono", "purpose": "Địa chỉ ví, hash, link Snowtrace." }
+    },
+    "shadows": [
+      { "name": "chip", "value": "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)", "purpose": "Chip ví và thẻ chọn vai ở onboarding. Không dùng cho thẻ biên bản." },
+      { "name": "logo", "value": "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)", "purpose": "Chỉ logo ở onboarding." }
+    ],
+    "motion": [
+      { "name": "state-transition", "value": "150ms cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Mặc định Tailwind cho hover/focus của nút và chip." },
+      { "name": "press", "value": "translateY(1px)", "purpose": "Nút khi nhấn; thẻ chọn vai thu nhỏ còn 0.98." },
+      { "name": "border-beam", "value": "8s linear infinite", "purpose": "Chỉ cho onboarding." }
+    ],
+    "breakpoints": [
+      { "name": "column", "value": "448px", "purpose": "Cột nội dung tối đa; app không đổi bố cục theo breakpoint." },
+      { "name": "md", "value": "768px", "purpose": "Ô nhập giảm từ 16px xuống 14px." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Hành động chính của màn, 56px, full width trong thanh đáy.",
+      "html": "<button class=\"ds-btn-primary\">Gửi cọc</button>",
+      "css": ".ds-btn-primary { display:inline-flex; align-items:center; justify-content:center; width:100%; height:56px; padding:0 10px; background:var(--primary,#0b2545); color:#fff; border:1px solid transparent; border-radius:14px; font-family:'Be Vietnam Pro',system-ui,sans-serif; font-size:16px; font-weight:500; cursor:pointer; transition:all .15s cubic-bezier(.4,0,.2,1); } .ds-btn-primary:hover { background:color-mix(in srgb,#0b2545 80%,transparent); } .ds-btn-primary:focus-visible { outline:none; border-color:#10b981; box-shadow:0 0 0 3px rgb(16 185 129 / .5); } .ds-btn-primary:active { transform:translateY(1px); }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Nút Quay lại trong wizard, cạnh nút chính.",
+      "html": "<button class=\"ds-btn-outline\">Quay lại</button>",
+      "css": ".ds-btn-outline { display:inline-flex; align-items:center; justify-content:center; height:56px; padding:0 24px; background:#f7f9fc; color:#0f172a; border:1px solid #e2e8f0; border-radius:14px; font-family:'Be Vietnam Pro',system-ui,sans-serif; font-size:16px; font-weight:500; cursor:pointer; transition:all .15s; } .ds-btn-outline:hover { background:#eef2f7; } .ds-btn-outline:focus-visible { outline:none; border-color:#10b981; box-shadow:0 0 0 3px rgb(16 185 129 / .5); } .ds-btn-outline:active { transform:translateY(1px); }"
+    },
+    {
+      "name": "Destructive Button",
+      "kind": "button",
+      "refersTo": "button-destructive",
+      "description": "Kháng nghị, báo sai mô tả. Nền đỏ 10%, không bao giờ đỏ đặc.",
+      "html": "<button class=\"ds-btn-destructive\">Kháng nghị</button>",
+      "css": ".ds-btn-destructive { display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 16px; background:rgb(220 38 38 / .1); color:#dc2626; border:1px solid transparent; border-radius:14px; font-family:'Be Vietnam Pro',system-ui,sans-serif; font-size:16px; font-weight:500; cursor:pointer; transition:all .15s; } .ds-btn-destructive:hover { background:rgb(220 38 38 / .2); } .ds-btn-destructive:focus-visible { outline:none; border-color:rgb(220 38 38 / .4); box-shadow:0 0 0 3px rgb(220 38 38 / .2); }"
+    },
+    {
+      "name": "Ledger Card",
+      "kind": "card",
+      "refersTo": "card-ledger",
+      "description": "Thẻ biên bản: nhãn trái, giá trị phải, VND đậm và token nhỏ bên dưới.",
+      "html": "<dl class=\"ds-ledger\"><div class=\"ds-ledger-row\"><dt>Tiền cọc</dt><dd><strong>3.000.000 ₫</strong><small>120 USDC</small></dd></div><div class=\"ds-ledger-row\"><dt>Dọn vào</dt><dd>01/12/2026</dd></div></dl>",
+      "css": ".ds-ledger { margin:0; background:#fff; border-radius:25.2px; box-shadow:0 0 0 1px rgb(15 23 42 / .1); font-family:'Be Vietnam Pro',system-ui,sans-serif; color:#0f172a; } .ds-ledger-row { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; padding:12px 16px; } .ds-ledger-row + .ds-ledger-row { border-top:1px solid #e2e8f0; } .ds-ledger dt { color:#64748b; font-size:16px; } .ds-ledger dd { margin:0; text-align:right; font-variant-numeric:tabular-nums; } .ds-ledger strong { display:block; font-weight:700; } .ds-ledger small { display:block; font-size:12px; color:#64748b; }"
+    },
+    {
+      "name": "Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Ô nhập viền mảnh, focus emerald.",
+      "html": "<input class=\"ds-input\" placeholder=\"Tiền cọc (VND)\">",
+      "css": ".ds-input { width:100%; height:48px; padding:4px 10px; background:transparent; color:#0f172a; border:1px solid #e2e8f0; border-radius:14px; font-family:'Be Vietnam Pro',system-ui,sans-serif; font-size:16px; outline:none; transition:color .15s, border-color .15s, box-shadow .15s; } .ds-input::placeholder { color:#64748b; } .ds-input:focus-visible { border-color:#10b981; box-shadow:0 0 0 3px rgb(16 185 129 / .5); }"
+    },
+    {
+      "name": "Status Badge",
+      "kind": "chip",
+      "refersTo": "status-badge",
+      "description": "Nhãn trạng thái hợp đồng theo bảng tone.",
+      "html": "<span class=\"ds-badge ds-badge-success\">Đã chia tiền</span> <span class=\"ds-badge ds-badge-warning\">Chờ người thuê</span> <span class=\"ds-badge ds-badge-danger\">Đang phân xử</span>",
+      "css": ".ds-badge { display:inline-flex; align-items:center; height:20px; padding:2px 8px; border:1px solid transparent; border-radius:9999px; font-family:'Be Vietnam Pro',system-ui,sans-serif; font-size:12px; font-weight:600; white-space:nowrap; } .ds-badge-success { background:rgb(16 185 129 / .1); color:#047857; border-color:rgb(16 185 129 / .25); } .ds-badge-warning { background:rgb(245 158 11 / .15); color:#451a03; border-color:rgb(245 158 11 / .3); } .ds-badge-danger { background:rgb(220 38 38 / .1); color:#dc2626; border-color:rgb(220 38 38 / .2); }"
+    },
+    {
+      "name": "Transaction Status",
+      "kind": "custom",
+      "description": "Ba trạng thái giao dịch: chờ, xong (kèm hash), lỗi.",
+      "html": "<div class=\"ds-tx ds-tx-success\" role=\"status\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21.801 10A10 10 0 1 1 17 3.335\"/><path d=\"m9 11 3 3L22 4\"/></svg><div><p class=\"ds-tx-title\">Đã khóa tiền cọc</p><a class=\"ds-tx-hash\" href=\"#\">0x8f3a1c…9e21b4 ↗</a></div></div>",
+      "css": ".ds-tx { display:flex; align-items:flex-start; gap:12px; padding:12px; border-radius:19.6px; font-family:'Be Vietnam Pro',system-ui,sans-serif; font-size:14px; } .ds-tx svg { flex-shrink:0; margin-top:2px; } .ds-tx-success { background:rgb(16 185 129 / .1); color:#10b981; } .ds-tx-title { margin:0 0 2px; font-weight:600; } .ds-tx-hash { font-family:'JetBrains Mono',ui-monospace,monospace; font-size:12px; color:inherit; text-decoration:underline; text-underline-offset:2px; } .ds-tx-hash:hover { opacity:.8; } .ds-tx-hash:focus-visible { outline:2px solid #10b981; outline-offset:2px; }"
+    },
+    {
+      "name": "Wallet Chip",
+      "kind": "chip",
+      "refersTo": "wallet-chip",
+      "description": "Địa chỉ ví rút gọn, mono, ở vị trí phụ.",
+      "html": "<button class=\"ds-wallet\">0x12ab…cd34</button>",
+      "css": ".ds-wallet { display:inline-flex; align-items:center; gap:8px; padding:6px 12px; background:#fff; color:#0f172a; border:1px solid #e2e8f0; border-radius:9999px; box-shadow:0 1px 3px 0 rgb(0 0 0 / .1), 0 1px 2px -1px rgb(0 0 0 / .1); font-family:'JetBrains Mono',ui-monospace,monospace; font-size:14px; cursor:pointer; transition:background .15s; } .ds-wallet:hover { background:#e7f8f1; } .ds-wallet:focus-visible { outline:none; box-shadow:0 0 0 3px rgb(16 185 129 / .5); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Két sắt công chứng",
+    "overview": "Chắc như một cái két, minh bạch như một bảng niêm yết công khai. Cửa két màu navy đậm làm nút chính, đầu trang và tiêu đề. Màu emerald chỉ xuất hiện khi tiền đang an toàn hoặc đã về đúng chỗ. Mỗi con số được trình bày như một dòng biên bản: nhãn bên trái, giá trị bên phải, số thẳng cột. Giao diện không nghiêng về bên nào. Nó chỉ cho biết tiền đang nằm đâu, ai phải làm gì và còn bao lâu.\n\nMật độ thấp, một cột, mobile-first. Màn hình được viết cho người đứng trong phòng trọ và bấm bằng một tay. Mỗi màn có một hành động chính, nằm trong thanh đáy dính chân màn và cao 56px. Bề mặt phẳng: tách lớp bằng nền xanh rất nhạt so với thẻ trắng và viền mảnh, không dùng bóng đổ. Chuyển động chỉ để báo trạng thái (đang ký, đang chờ chuỗi). Hiệu ứng lấp lánh chỉ có ở màn chào đầu tiên.\n\nChỉ có giao diện sáng. Thuật ngữ crypto (hash, địa chỉ ví, Snowtrace) hiện bằng font mono, nhỏ, ở vị trí phụ, cho ai muốn kiểm chứng.",
+    "keyCharacteristics": [
+      "Một cột rộng tối đa 448px, lề 20px, các khối cách nhau 28px.",
+      "Nút chính 56px full width, dính đáy, có lớp nền mờ và khoảng an toàn dưới (safe-area).",
+      "Thẻ kiểu biên bản: nền trắng, viền 1px màu `slate-ink` ở 10% độ đậm, bo 25px, các dòng chia bằng vạch mảnh.",
+      "Tiền hiển thị VND to và đậm; số token nhỏ và mờ ngay bên dưới.",
+      "Màu trạng thái lấy từ một bảng tone duy nhất (`web/lib/client/deal-status.ts`)."
+    ],
+    "rules": [
+      { "name": "The Earned Emerald Rule", "body": "Emerald chỉ xuất hiện khi tiền thật sự an toàn hoặc một bước thật sự đã xong. Không dùng emerald cho trang trí hay cho nút kêu gọi hành động.", "section": "colors" },
+      { "name": "The Tone Table Rule", "body": "Màu trạng thái của hợp đồng chỉ lấy từ `TONE_CLASS` (nền ở 10–15%, viền ở 20–30%, chữ đậm cùng hue). Không viết mã màu thẳng trong component. Đổi màu thì sửa `app/globals.css`.", "section": "colors" },
+      { "name": "The Ledger Number Rule", "body": "Mọi con số thay đổi theo thời gian hoặc xếp thành cột (tiền, đếm ngược) dùng `tabular-nums`. Số VND đậm (600–800) và đặt trước; số token nhỏ, màu `slate-muted`, nằm dưới.", "section": "typography" },
+      { "name": "The Vietnamese Subset Rule", "body": "Mọi font nạp phải có subset `vietnamese`. Nếu một font không có, không dùng font đó.", "section": "typography" },
+      { "name": "The One Thumb Rule", "body": "Hành động chính của màn luôn nằm trong thanh đáy, trong tầm ngón cái. Không đặt hành động chính ở đầu trang.", "section": "layout" },
+      { "name": "The Flat Ledger Rule", "body": "Thẻ và dòng biên bản không có bóng. Muốn tách lớp thì đổi nền (`card-white` / `muted-fill`) hoặc thêm vạch chia, không thêm bóng.", "section": "elevation" }
+    ],
+    "dos": [
+      "**Do** đặt hành động chính trong thanh đáy dính chân màn, cao 56px, full width, chữ 16px.",
+      "**Do** hiển thị tiền bằng VND đậm với `tabular-nums`, kèm số token nhỏ màu `slate-muted` bên dưới.",
+      "**Do** lấy màu trạng thái từ `TONE_CLASS` và token trong `app/globals.css`.",
+      "**Do** giữ vùng chạm tối thiểu 44px cho mọi nút icon.",
+      "**Do** dùng font mono cho địa chỉ ví, hash và mã giao dịch, và đặt chúng ở vị trí phụ.",
+      "**Do** cho mọi giao dịch đi qua khối Transaction Status với đủ ba trạng thái."
+    ],
+    "donts": [
+      "**Don't** dùng ShimmerButton, BorderBeam hay hiệu ứng lấp lánh ngoài màn chào đầu tiên. Không lấp lánh khi đang nói về tiền.",
+      "**Don't** dùng emerald cho trang trí hoặc cho nút kêu gọi hành động. Nút chính là navy.",
+      "**Don't** thêm bóng đổ vào thẻ hay dòng biên bản.",
+      "**Don't** viết mã màu hex thẳng trong component.",
+      "**Don't** thêm giao diện tối (hệ thống chỉ có giao diện sáng).",
+      "**Don't** đặt nền đỏ đặc cho nút. Hành động tiêu cực dùng nền đỏ 10% kèm chữ đỏ."
+    ]
+  }
+}
