@@ -1,0 +1,5 @@
+[
+  { "id": "i1", "item": "Sơn lại 1 mảng tường", "unit": "mảng", "priceAmount": "16000000" },
+  { "id": "i2", "item": "Thay ổ khóa cửa", "unit": "cái", "priceAmount": "12000000" },
+  { "id": "i3", "item": "Thay 1 viên gạch sàn", "unit": "viên", "priceAmount": "4000000" }
+]
