@@ -23,7 +23,8 @@ const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export interface UploadInput {
   blob: Blob;
-  purpose: "listing" | "example";
+  // checkin/checkout: ảnh nhận và trả phòng (lib/client/photo-sets-api.ts). positionKey = positionId (p1, p2…).
+  purpose: "listing" | "example" | "checkin" | "checkout";
   capturedAt: string;
   positionKey?: string;
 }

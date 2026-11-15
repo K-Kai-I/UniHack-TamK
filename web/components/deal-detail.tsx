@@ -71,7 +71,7 @@ export function DealDetail({ dealId, previewAs }: { dealId: string; previewAs?: 
         )}
         {data && role && <DetailBody deal={data} role={role} onExpire={() => refetch()} />}
       </main>
-      {data && role && <ActionBar deal={data} role={role} />}
+      {data && role && <ActionBar deal={data} role={role} previewAs={previewAs} />}
     </>
   );
 }
@@ -282,9 +282,17 @@ function PhotoSetSection({ title, set, deal }: { title: string; set: PhotoSetVie
 // ------------------------------------------------------------------ nút hành động
 
 // Nút đã có màn/giao dịch thật. Nút còn lại hiện mờ kèm "Sắp có" cho tới khi làm xong màn tương ứng.
-const READY: ActionId[] = ["deposit", "cancel"];
+const READY: ActionId[] = ["deposit", "cancel", "checkin", "checkout", "checkoutForTenant"];
 
-function ActionBar({ deal, role }: { deal: DealView; role: Role }) {
+/** Nút mở màn khác (thay vì mở hộp thoại giao dịch tại chỗ). */
+function hrefFor(id: ActionId, dealId: number, previewAs?: Role): string | null {
+  const as = DEALS_MOCK && previewAs ? `&as=${previewAs}` : "";
+  if (id === "checkin") return `/deals/${dealId}/photos?kind=checkin${as}`;
+  if (id === "checkout" || id === "checkoutForTenant") return `/deals/${dealId}/photos?kind=checkout${as}`;
+  return null;
+}
+
+function ActionBar({ deal, role, previewAs }: { deal: DealView; role: Role; previewAs?: Role }) {
   const { ready, authenticated, login } = usePrivy();
   const [txKind, setTxKind] = useState<"poke" | "cancel" | null>(null);
   const { now } = useCountdown(null);
@@ -319,7 +327,13 @@ function ActionBar({ deal, role }: { deal: DealView; role: Role }) {
           </Button>
         )}
         {actions.map((a) => (
-          <ActionButton key={a.id} action={a} secondary={onchain.canPoke} onCancel={() => setTxKind("cancel")} />
+          <ActionButton
+            key={a.id}
+            action={a}
+            href={hrefFor(a.id, deal.dealId, previewAs)}
+            secondary={onchain.canPoke}
+            onCancel={() => setTxKind("cancel")}
+          />
         ))}
       </div>
     );
@@ -335,10 +349,12 @@ function ActionBar({ deal, role }: { deal: DealView; role: Role }) {
 
 function ActionButton({
   action,
+  href,
   secondary,
   onCancel,
 }: {
   action: DealAction;
+  href: string | null;
   /** true khi đã có nút "Xử lý quá hạn" ở trên: các nút khác lùi xuống nút viền. */
   secondary: boolean;
   onCancel: () => void;
@@ -347,6 +363,19 @@ function ActionButton({
   const variant =
     action.variant === "danger" ? "outline" : action.variant === "secondary" || secondary ? "outline" : "default";
   const big = action.variant === "primary" && !secondary;
+  const cls = cn(
+    "w-full text-base",
+    big ? "h-14" : "h-12",
+    action.variant === "danger" && "border-destructive/30 text-destructive hover:bg-destructive/5",
+  );
+
+  if (ready && href) {
+    return (
+      <Button asChild size="lg" variant={variant} className={cls}>
+        <Link href={href}>{action.label}</Link>
+      </Button>
+    );
+  }
 
   return (
     <Button
@@ -354,11 +383,7 @@ function ActionButton({
       variant={variant}
       disabled={!ready}
       onClick={action.id === "cancel" ? onCancel : undefined}
-      className={cn(
-        "w-full text-base",
-        big ? "h-14" : "h-12",
-        action.variant === "danger" && "border-destructive/30 text-destructive hover:bg-destructive/5",
-      )}
+      className={cls}
     >
       {action.label}
       {!ready && <span className="ml-1 text-xs font-normal opacity-80">· Sắp có</span>}
