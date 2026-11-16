@@ -16,6 +16,8 @@ contract Deploy is Script {
         address aiSigner = vm.envAddress("AI_SIGNER_ADDRESS");
         address feeRecipient = vm.envAddress("FEE_RECIPIENT_ADDRESS");
         bool demo = vm.envOr("DEMO_TIMEOUTS", true);
+        // Ví bồi thẩm, cách nhau bằng dấu phẩy (contracts/.env: JUROR_ADDRESSES=0x...,0x...). Không có thì bỏ qua.
+        address[] memory jurors = vm.envOr("JUROR_ADDRESSES", ",", new address[](0));
 
         IDepositEscrow.Timeouts memory t = demo
             ? IDepositEscrow.Timeouts(
@@ -27,9 +29,15 @@ contract Deploy is Script {
         MockUSDC usdc = new MockUSDC();
         DepositEscrow escrow =
             new DepositEscrow(IERC20(address(usdc)), aiSigner, feeRecipient, 1000, IERC4626(address(0)), t);
+        for (uint256 i = 0; i < jurors.length; i++) {
+            escrow.addJuror(jurors[i]);
+        }
         vm.stopBroadcast();
 
         console.log("MockUSDC     ", address(usdc));
         console.log("DepositEscrow", address(escrow));
+        for (uint256 i = 0; i < jurors.length; i++) {
+            console.log("Juror        ", jurors[i]);
+        }
     }
 }
