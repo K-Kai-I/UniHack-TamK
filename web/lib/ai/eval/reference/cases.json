@@ -1,0 +1,122 @@
+[
+  {
+    "name": "01 - Gạch nứt",
+    "positionId": "p3",
+    "positionName": "Gạch sàn",
+    "before": "images/01-before.png",
+    "after": "images/01-after.png",
+    "expectVerdict": "NEW_DAMAGE",
+    "expectPriceItemId": "i3",
+    "task": "damage",
+    "labelStatus": "provisional",
+    "source": "Xem nhan-va-nguon.csv; nhãn proxy chưa phải đáp án chuẩn cho ảnh cùng vật trước/sau"
+  },
+  {
+    "name": "02 - Gạch có vết nứt dạng khác",
+    "positionId": "p3",
+    "positionName": "Gạch sàn",
+    "before": "images/02-before.png",
+    "after": "images/02-after.png",
+    "expectVerdict": "NEW_DAMAGE",
+    "expectPriceItemId": "i3",
+    "task": "damage",
+    "labelStatus": "provisional",
+    "source": "Xem nhan-va-nguon.csv; nhãn proxy chưa phải đáp án chuẩn cho ảnh cùng vật trước/sau"
+  },
+  {
+    "name": "03 - Gỗ bị xước",
+    "positionId": "p-wood",
+    "positionName": "Bề mặt gỗ",
+    "before": "images/03-before.png",
+    "after": "images/03-after.png",
+    "expectVerdict": "NEW_DAMAGE",
+    "expectPriceItemId": null,
+    "task": "damage",
+    "labelStatus": "provisional",
+    "source": "Xem nhan-va-nguon.csv; nhãn proxy chưa phải đáp án chuẩn cho ảnh cùng vật trước/sau"
+  },
+  {
+    "name": "04 - Gỗ có lỗ",
+    "positionId": "p-wood",
+    "positionName": "Bề mặt gỗ",
+    "before": "images/04-before.png",
+    "after": "images/04-after.png",
+    "expectVerdict": "NEW_DAMAGE",
+    "expectPriceItemId": null,
+    "task": "damage",
+    "labelStatus": "provisional",
+    "source": "Xem nhan-va-nguon.csv; nhãn proxy chưa phải đáp án chuẩn cho ảnh cùng vật trước/sau"
+  },
+  {
+    "name": "05 - Răng đĩa xe đạp đã mòn",
+    "positionId": "p-chain",
+    "positionName": "Răng đĩa xe đạp",
+    "before": "images/05-before.jpg",
+    "after": "images/05-after.jpg",
+    "expectVerdict": "WEAR",
+    "expectPriceItemId": null,
+    "task": "damage",
+    "labelStatus": "provisional",
+    "source": "Xem nhan-va-nguon.csv; nhãn proxy chưa phải đáp án chuẩn cho ảnh cùng vật trước/sau"
+  },
+  {
+    "name": "06 - Đầu vít bake mòn",
+    "positionId": "p-bit",
+    "positionName": "Đầu vít bake",
+    "before": "images/06-before.jpg",
+    "after": "images/06-after.jpg",
+    "expectVerdict": "WEAR",
+    "expectPriceItemId": null,
+    "task": "damage",
+    "labelStatus": "provisional",
+    "source": "Xem nhan-va-nguon.csv; nhãn proxy chưa phải đáp án chuẩn cho ảnh cùng vật trước/sau"
+  },
+  {
+    "name": "07 - Ghế nhận và trả phòng",
+    "positionId": "p-chair",
+    "positionName": "Ghế",
+    "before": "images/07-before.jpg",
+    "after": "images/07-after.jpg",
+    "expectVerdict": "NO_CHANGE",
+    "expectPriceItemId": null,
+    "task": "damage",
+    "labelStatus": "provisional",
+    "source": "Xem nhan-va-nguon.csv; nhãn proxy chưa phải đáp án chuẩn cho ảnh cùng vật trước/sau"
+  },
+  {
+    "name": "08 - Gạch giữ nguyên, chỉ đổi độ sáng",
+    "positionId": "p3",
+    "positionName": "Gạch sàn",
+    "before": "images/08-before.png",
+    "after": "images/08-after.jpg",
+    "expectVerdict": "NO_CHANGE",
+    "expectPriceItemId": null,
+    "task": "damage",
+    "labelStatus": "provisional",
+    "source": "Xem nhan-va-nguon.csv; nhãn proxy chưa phải đáp án chuẩn cho ảnh cùng vật trước/sau"
+  },
+  {
+    "name": "09 - Gỗ trong ảnh sau bị mất chi tiết",
+    "positionId": "p-wood",
+    "positionName": "Bề mặt gỗ",
+    "before": "images/09-before.png",
+    "after": "images/09-after.jpg",
+    "expectVerdict": "UNCLEAR",
+    "expectPriceItemId": null,
+    "task": "damage",
+    "labelStatus": "provisional",
+    "source": "Xem nhan-va-nguon.csv; nhãn proxy chưa phải đáp án chuẩn cho ảnh cùng vật trước/sau"
+  },
+  {
+    "name": "10 - Cặp ảnh sai vật liệu",
+    "positionId": "p-surface",
+    "positionName": "Bề mặt cần đối chiếu",
+    "before": "images/10-before.png",
+    "after": "images/10-after.png",
+    "expectVerdict": "UNCLEAR",
+    "expectPriceItemId": null,
+    "task": "damage",
+    "labelStatus": "provisional",
+    "source": "Xem nhan-va-nguon.csv; nhãn proxy chưa phải đáp án chuẩn cho ảnh cùng vật trước/sau"
+  }
+]

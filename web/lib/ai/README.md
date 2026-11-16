@@ -129,7 +129,7 @@ npm.cmd run ai:eval -- --cases reference/cases.json --allow-provisional --models
 `reference/` là bộ proxy đã gửi trước đây: không phải 10 cặp cùng phòng trước/sau.
 Nhãn của các ảnh ghép khác mẫu có thể không phù hợp với prompt nhận diện cùng vật;
 model trả UNCLEAR trên chúng không tự chứng minh model kém. Chỉ dùng để thử pipeline.
-Các ảnh này và kết quả chạy được Git bỏ qua, không tự đưa lên GitHub.
+Theo yêu cầu chia sẻ với nhóm, bộ ảnh tham khảo, nhãn và kết quả chạy được theo dõi bằng Git.
 
 Bộ chính thức đặt ở `eval/cases.json`, ít nhất 10 ca damage, đủ bốn nhãn. Mỗi ca
 thêm `task: "damage"`, `labelStatus: "reviewed"` sau khi người kiểm tra xác nhận.

@@ -24,7 +24,7 @@ Gốc dự án: `L:\HACKATHON\UniHack-TamK`.
 - `web/lib/ai/eval/results/2026-11-16T08-01-13.099Z-12316/results.json`: kết quả chi tiết và thống kê.
 - `web/lib/ai/eval/results/2026-11-16T08-01-13.099Z-12316/results.csv`: bảng theo từng ca, mở bằng Excel/Sheets.
 
-Các file dữ liệu/kết quả trên được Git bỏ qua. Chúng chưa được push.
+Cập nhật theo yêu cầu người dùng: các file dữ liệu/kết quả trên đã được đưa vào Git để chia sẻ với nhóm.
 
 ## Kiểm tra đã thực hiện
 
