@@ -8,7 +8,7 @@ import {DepositEscrow} from "../src/DepositEscrow.sol";
 import {IDepositEscrow} from "../src/IDepositEscrow.sol";
 import {MockUSDC} from "../src/MockUSDC.sol";
 
-/// Test P0 theo docs/contract-spec.md > Test bắt buộc.
+/// Test P0 + P1 theo docs/contract-spec.md > Test bắt buộc.
 /// Mỗi hàm có: đường đúng, người lạ gọi, sai trạng thái, gọi 2 lần hoặc sau hạn.
 contract DepositEscrowTest is Test {
     DepositEscrow escrow;
@@ -564,5 +564,424 @@ contract DepositEscrowTest is Test {
         escrow.addJuror(stranger);
         escrow.addJuror(stranger);
         assertTrue(escrow.isJuror(stranger));
+    }
+
+    // ================================================================ P1
+
+    address juror1 = makeAddr("juror1");
+    address juror2 = makeAddr("juror2");
+    address juror3 = makeAddr("juror3");
+    bytes32 constant EVIDENCE = keccak256("mismatch-photos");
+    bytes32 constant MREPORT = keccak256("mismatch-report");
+    uint64 constant MISMATCH_W = 2 minutes;
+    uint64 constant ABANDON_W = 2 minutes;
+    uint64 constant JURY_W = 5 minutes;
+
+    function _jurors() internal {
+        escrow.addJuror(juror1);
+        escrow.addJuror(juror2);
+        escrow.addJuror(juror3);
+    }
+
+    function _mSeal(uint256 id, uint8 verdict, uint256 key) internal view returns (bytes memory) {
+        bytes32 structHash =
+            keccak256(abi.encode(escrow.MISMATCH_REPORT_TYPEHASH(), id, TERMS, EVIDENCE, verdict, MREPORT));
+        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", escrow.domainSeparator(), structHash));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(key, digest);
+        return abi.encodePacked(r, s, v);
+    }
+
+    /// Đề xuất D (có con dấu AI với aiAmount nếu withSeal), trạng thái PROPOSED.
+    function _proposed(uint256 D, uint256 aiAmount, bool withSeal) internal returns (uint256 id) {
+        id = _checkedOut();
+        bytes memory sig = withSeal ? _seal(id, aiAmount, CHECKIN, CHECKOUT, REPORT, aiKey) : bytes("");
+        vm.prank(landlord);
+        escrow.proposeDeduction(id, D, withSeal ? aiAmount : 0, withSeal ? REPORT : bytes32(0), sig);
+    }
+
+    function _assertBalances(uint256 tenantGot, uint256 landlordGot) internal view {
+        assertEq(usdc.balanceOf(tenant), 1_000e6 - C + tenantGot, "tenant");
+        assertEq(usdc.balanceOf(landlord), landlordGot, "landlord");
+        assertEq(usdc.balanceOf(address(escrow)), 0, "escrow empty");
+        assertEq(tenantGot + landlordGot, C, "sum = C");
+    }
+
+    // ------------------------------------------------------------ contestCheckIn (P2)
+
+    function test_contestCheckIn_clearsPhotosOnce() public {
+        uint256 id = _checkedIn();
+        vm.prank(landlord);
+        escrow.contestCheckIn(id);
+        IDepositEscrow.Deal memory d = escrow.getDeal(id);
+        assertEq(d.checkInHash, bytes32(0));
+        assertTrue(d.checkInContested);
+        assertEq(d.deadline, block.timestamp + MOVE_IN_GRACE);
+
+        vm.prank(tenant);
+        escrow.submitCheckIn(id, CHECKIN); // chụp lại
+        vm.prank(landlord);
+        vm.expectRevert(IDepositEscrow.AlreadyContested.selector);
+        escrow.contestCheckIn(id);
+    }
+
+    function test_contestCheckIn_noRetake_isNoShow() public {
+        uint256 id = _checkedIn();
+        vm.prank(landlord);
+        escrow.contestCheckIn(id);
+        vm.warp(block.timestamp + MOVE_IN_GRACE + 1);
+        escrow.poke(id);
+        assertEq(uint8(_state(id)), uint8(IDepositEscrow.State.REFUNDED));
+        _assertBalances(C - R, R);
+    }
+
+    function test_contestCheckIn_revertsForStranger_andAfterDeadline() public {
+        uint256 id = _checkedIn();
+        vm.prank(stranger);
+        vm.expectRevert(IDepositEscrow.NotLandlord.selector);
+        escrow.contestCheckIn(id);
+        vm.warp(block.timestamp + OBJECTION + 1);
+        vm.prank(landlord);
+        vm.expectRevert(IDepositEscrow.DeadlinePassed.selector);
+        escrow.contestCheckIn(id);
+    }
+
+    // ------------------------------------------------------------ phòng sai mô tả (C)
+
+    function test_reportMismatch_clear_thenLandlordSilent_fullRefund() public {
+        uint256 id = _deposited();
+        bytes memory sig2 = _mSeal(id, 2, aiKey);
+        vm.prank(tenant);
+        escrow.reportMismatch(id, 2, EVIDENCE, MREPORT, sig2);
+        assertEq(uint8(_state(id)), uint8(IDepositEscrow.State.MISMATCH_REPORTED));
+        assertEq(escrow.getDeal(id).deadline, block.timestamp + MISMATCH_W);
+
+        vm.warp(block.timestamp + MISMATCH_W + 1);
+        vm.prank(stranger);
+        escrow.poke(id);
+        assertEq(uint8(_state(id)), uint8(IDepositEscrow.State.REFUNDED));
+        _assertBalances(C, 0);
+    }
+
+    function test_reportMismatch_unclear_opensDisputeWithoutAiVote() public {
+        uint256 id = _deposited();
+        bytes memory sig1 = _mSeal(id, 1, aiKey);
+        vm.prank(tenant);
+        escrow.reportMismatch(id, 1, EVIDENCE, MREPORT, sig1);
+        IDepositEscrow.Deal memory d = escrow.getDeal(id);
+        assertEq(uint8(d.state), uint8(IDepositEscrow.State.DISPUTED));
+        assertEq(uint8(d.disputeKind), uint8(IDepositEscrow.DisputeKind.MISMATCH));
+        assertEq(d.votesLandlord + d.votesTenant, 0);
+    }
+
+    function test_reportMismatch_noSeal_treatedAsUnclear() public {
+        uint256 id = _deposited();
+        vm.prank(tenant);
+        escrow.reportMismatch(id, 2, EVIDENCE, MREPORT, "");
+        assertEq(uint8(_state(id)), uint8(IDepositEscrow.State.DISPUTED));
+        assertFalse(escrow.getDeal(id).hasAiSeal);
+    }
+
+    function test_reportMismatch_revertsOnSameVerdict_wrongSigner_stranger_afterCheckIn() public {
+        uint256 id = _deposited();
+        bytes memory sig0 = _mSeal(id, 0, aiKey);
+        bytes memory sig1 = _mSeal(id, 1, aiKey);
+        bytes memory sig2bad = _mSeal(id, 2, 0xBAD);
+        bytes memory sig2 = _mSeal(id, 2, aiKey);
+        vm.startPrank(tenant);
+        vm.expectRevert(IDepositEscrow.BadVerdict.selector);
+        escrow.reportMismatch(id, 0, EVIDENCE, MREPORT, sig0);
+        vm.expectRevert(IDepositEscrow.BadSignature.selector);
+        escrow.reportMismatch(id, 2, EVIDENCE, MREPORT, sig2bad);
+        vm.expectRevert(IDepositEscrow.BadSignature.selector);
+        escrow.reportMismatch(id, 2, EVIDENCE, MREPORT, sig1); // sửa verdict sau khi ký
+        vm.stopPrank();
+
+        vm.prank(stranger);
+        vm.expectRevert(IDepositEscrow.NotTenant.selector);
+        escrow.reportMismatch(id, 2, EVIDENCE, MREPORT, sig2);
+
+        vm.startPrank(tenant);
+        escrow.submitCheckIn(id, CHECKIN);
+        vm.expectRevert(IDepositEscrow.CheckInAlreadySubmitted.selector);
+        escrow.reportMismatch(id, 2, EVIDENCE, MREPORT, sig2);
+        vm.stopPrank();
+    }
+
+    function test_contestMismatch_aiPlusOneJuror_tenantWins() public {
+        _jurors();
+        uint256 id = _deposited();
+        bytes memory sig2 = _mSeal(id, 2, aiKey);
+        vm.prank(tenant);
+        escrow.reportMismatch(id, 2, EVIDENCE, MREPORT, sig2);
+        vm.prank(landlord);
+        escrow.contestMismatch(id);
+        assertEq(escrow.getDeal(id).votesTenant, 1, "phieu AI");
+
+        vm.prank(juror1);
+        escrow.vote(id, IDepositEscrow.Side.TENANT);
+        assertEq(uint8(_state(id)), uint8(IDepositEscrow.State.REFUNDED));
+        _assertBalances(C, 0);
+    }
+
+    function test_contestMismatch_twoJurors_landlordWins_isNoShow() public {
+        _jurors();
+        uint256 id = _deposited();
+        bytes memory sig2 = _mSeal(id, 2, aiKey);
+        vm.prank(tenant);
+        escrow.reportMismatch(id, 2, EVIDENCE, MREPORT, sig2);
+        vm.prank(landlord);
+        escrow.contestMismatch(id);
+        vm.prank(juror1);
+        escrow.vote(id, IDepositEscrow.Side.LANDLORD);
+        vm.prank(juror2);
+        escrow.vote(id, IDepositEscrow.Side.LANDLORD);
+        _assertBalances(C - R, R);
+    }
+
+    function test_contestMismatch_revertsForStranger_andAfterDeadline() public {
+        uint256 id = _deposited();
+        bytes memory sig2 = _mSeal(id, 2, aiKey);
+        vm.prank(tenant);
+        escrow.reportMismatch(id, 2, EVIDENCE, MREPORT, sig2);
+        vm.prank(stranger);
+        vm.expectRevert(IDepositEscrow.NotLandlord.selector);
+        escrow.contestMismatch(id);
+        vm.warp(block.timestamp + MISMATCH_W + 1);
+        vm.prank(landlord);
+        vm.expectRevert(IDepositEscrow.DeadlinePassed.selector);
+        escrow.contestMismatch(id);
+    }
+
+    function test_mismatchDispute_expiredTie_tenantWins() public {
+        uint256 id = _deposited();
+        vm.prank(tenant);
+        escrow.reportMismatch(id, 1, EVIDENCE, MREPORT, "");
+        vm.warp(block.timestamp + JURY_W + 1);
+        escrow.poke(id);
+        _assertBalances(C, 0);
+    }
+
+    // ------------------------------------------------------------ bỏ ngang (E1)
+
+    function test_reportAbandon_tenantSilent_landlordGetsDeposit() public {
+        uint256 id = _active();
+        vm.prank(landlord);
+        escrow.reportAbandon(id);
+        assertEq(uint8(_state(id)), uint8(IDepositEscrow.State.ABANDON_REPORTED));
+        vm.expectRevert(IDepositEscrow.NothingToPoke.selector);
+        escrow.poke(id);
+        vm.warp(block.timestamp + ABANDON_W + 1);
+        escrow.poke(id);
+        assertEq(uint8(_state(id)), uint8(IDepositEscrow.State.SETTLED));
+        _assertBalances(0, C);
+    }
+
+    function test_contestAbandon_backToActive() public {
+        uint256 id = _active();
+        vm.prank(landlord);
+        escrow.reportAbandon(id);
+        vm.prank(tenant);
+        escrow.contestAbandon(id);
+        assertEq(uint8(_state(id)), uint8(IDepositEscrow.State.ACTIVE));
+        assertEq(escrow.getDeal(id).deadline, 0);
+        assertFalse(escrow.canPoke(id));
+        vm.prank(tenant);
+        escrow.submitCheckOut(id, CHECKOUT); // vẫn trả phòng bình thường được
+    }
+
+    function test_reportAbandon_activatesAutomatically() public {
+        uint256 id = _checkedIn();
+        vm.warp(block.timestamp + OBJECTION + 1);
+        vm.prank(landlord);
+        escrow.reportAbandon(id);
+        assertEq(uint8(_state(id)), uint8(IDepositEscrow.State.ABANDON_REPORTED));
+    }
+
+    function test_abandon_reverts_wrongCaller_wrongState_afterDeadline() public {
+        uint256 id = _active();
+        vm.prank(tenant);
+        vm.expectRevert(IDepositEscrow.NotLandlord.selector);
+        escrow.reportAbandon(id);
+        vm.prank(tenant);
+        vm.expectRevert(_wrongState(IDepositEscrow.State.ABANDON_REPORTED, IDepositEscrow.State.ACTIVE));
+        escrow.contestAbandon(id);
+        vm.prank(landlord);
+        escrow.reportAbandon(id);
+        vm.prank(landlord);
+        vm.expectRevert(IDepositEscrow.NotTenant.selector);
+        escrow.contestAbandon(id);
+        vm.warp(block.timestamp + ABANDON_W + 1);
+        vm.prank(tenant);
+        vm.expectRevert(IDepositEscrow.DeadlinePassed.selector);
+        escrow.contestAbandon(id);
+    }
+
+    // ------------------------------------------------------------ kháng nghị mức trừ (G)
+
+    function test_dispute_aiVoteToCloserSide_tenant() public {
+        // chủ trọ 100, người thuê 40, AI 50 -> người thuê gần hơn
+        uint256 id = _proposed(100e6, 50e6, true);
+        vm.prank(tenant);
+        escrow.disputeProposal(id, 40e6);
+        IDepositEscrow.Deal memory d = escrow.getDeal(id);
+        assertEq(uint8(d.state), uint8(IDepositEscrow.State.DISPUTED));
+        assertEq(uint8(d.disputeKind), uint8(IDepositEscrow.DisputeKind.DEDUCTION));
+        assertEq(d.counterAmount, 40e6);
+        assertEq(d.votesTenant, 1);
+        assertEq(d.votesLandlord, 0);
+        assertEq(d.deadline, block.timestamp + JURY_W);
+    }
+
+    function test_dispute_aiVoteToCloserSide_landlord() public {
+        uint256 id = _proposed(100e6, 90e6, true);
+        vm.prank(tenant);
+        escrow.disputeProposal(id, 10e6);
+        assertEq(escrow.getDeal(id).votesLandlord, 1);
+    }
+
+    function test_dispute_aiTie_goesToTenant() public {
+        uint256 id = _proposed(100e6, 70e6, true);
+        vm.prank(tenant);
+        escrow.disputeProposal(id, 40e6);
+        assertEq(escrow.getDeal(id).votesTenant, 1);
+    }
+
+    function test_dispute_aiPlusJuror_landlordWins_paysProposed() public {
+        _jurors();
+        uint256 id = _proposed(100e6, 90e6, true);
+        vm.prank(tenant);
+        escrow.disputeProposal(id, 10e6);
+        vm.prank(juror1);
+        escrow.vote(id, IDepositEscrow.Side.LANDLORD);
+        assertEq(uint8(_state(id)), uint8(IDepositEscrow.State.SETTLED));
+        _assertBalances(C - 100e6, 100e6);
+    }
+
+    function test_dispute_twoJurorsOverruleAi_paysCounter() public {
+        _jurors();
+        uint256 id = _proposed(100e6, 90e6, true); // AI về chủ trọ
+        vm.prank(tenant);
+        escrow.disputeProposal(id, 10e6);
+        vm.prank(juror1);
+        escrow.vote(id, IDepositEscrow.Side.TENANT);
+        assertEq(uint8(_state(id)), uint8(IDepositEscrow.State.DISPUTED), "1-1 chua xong");
+        vm.prank(juror2);
+        escrow.vote(id, IDepositEscrow.Side.TENANT);
+        _assertBalances(C - 10e6, 10e6);
+    }
+
+    function test_dispute_expired_withSeal_paysAiAmount() public {
+        uint256 id = _proposed(100e6, 60e6, true);
+        vm.prank(tenant);
+        escrow.disputeProposal(id, 10e6);
+        vm.warp(block.timestamp + JURY_W + 1);
+        escrow.poke(id);
+        _assertBalances(C - 60e6, 60e6);
+    }
+
+    function test_dispute_expired_noSeal_paysAverage() public {
+        uint256 id = _proposed(100e6, 0, false);
+        vm.prank(tenant);
+        escrow.disputeProposal(id, 30e6);
+        assertEq(escrow.getDeal(id).votesLandlord + escrow.getDeal(id).votesTenant, 0, "khong co phieu AI");
+        vm.warp(block.timestamp + JURY_W + 1);
+        escrow.poke(id);
+        _assertBalances(C - 65e6, 65e6);
+    }
+
+    function test_dispute_reverts_counterNotLower_stranger_afterDeadline() public {
+        uint256 id = _proposed(100e6, 0, false);
+        vm.prank(tenant);
+        vm.expectRevert(IDepositEscrow.InvalidAmount.selector);
+        escrow.disputeProposal(id, 100e6);
+        vm.prank(stranger);
+        vm.expectRevert(IDepositEscrow.NotTenant.selector);
+        escrow.disputeProposal(id, 10e6);
+        vm.warp(block.timestamp + RESPOND + 1);
+        vm.prank(tenant);
+        vm.expectRevert(IDepositEscrow.DeadlinePassed.selector);
+        escrow.disputeProposal(id, 10e6);
+    }
+
+    // ------------------------------------------------------------ vote
+
+    function test_vote_reverts_notJuror_party_twice_none_afterDeadline() public {
+        _jurors();
+        escrow.addJuror(tenant); // bồi thẩm nhưng là bên của deal
+        uint256 id = _proposed(100e6, 0, false);
+        vm.prank(tenant);
+        escrow.disputeProposal(id, 10e6);
+
+        vm.prank(stranger);
+        vm.expectRevert(IDepositEscrow.NotJuror.selector);
+        escrow.vote(id, IDepositEscrow.Side.TENANT);
+
+        vm.prank(tenant);
+        vm.expectRevert(IDepositEscrow.PartyCannotVote.selector);
+        escrow.vote(id, IDepositEscrow.Side.TENANT);
+
+        vm.prank(juror1);
+        vm.expectRevert(IDepositEscrow.BadVerdict.selector);
+        escrow.vote(id, IDepositEscrow.Side.NONE);
+
+        vm.startPrank(juror1);
+        escrow.vote(id, IDepositEscrow.Side.TENANT);
+        vm.expectRevert(IDepositEscrow.AlreadyVoted.selector);
+        escrow.vote(id, IDepositEscrow.Side.TENANT);
+        vm.stopPrank();
+
+        vm.warp(block.timestamp + JURY_W + 1);
+        vm.prank(juror2);
+        vm.expectRevert(IDepositEscrow.DeadlinePassed.selector);
+        escrow.vote(id, IDepositEscrow.Side.TENANT);
+    }
+
+    function test_vote_revertsWhenNotDisputed() public {
+        _jurors();
+        uint256 id = _proposed(100e6, 0, false);
+        vm.prank(juror1);
+        vm.expectRevert(_wrongState(IDepositEscrow.State.DISPUTED, IDepositEscrow.State.PROPOSED));
+        escrow.vote(id, IDepositEscrow.Side.TENANT);
+    }
+
+    function test_removedJuror_cannotVote() public {
+        _jurors();
+        escrow.removeJuror(juror1);
+        uint256 id = _proposed(100e6, 0, false);
+        vm.prank(tenant);
+        escrow.disputeProposal(id, 10e6);
+        vm.prank(juror1);
+        vm.expectRevert(IDepositEscrow.NotJuror.selector);
+        escrow.vote(id, IDepositEscrow.Side.TENANT);
+    }
+
+    /// Kết thúc xong thì không poke, không vote được nữa (bất biến 4).
+    function test_finishedDispute_isFinal() public {
+        _jurors();
+        uint256 id = _proposed(100e6, 90e6, true);
+        vm.prank(tenant);
+        escrow.disputeProposal(id, 10e6);
+        vm.prank(juror1);
+        escrow.vote(id, IDepositEscrow.Side.LANDLORD);
+        vm.warp(block.timestamp + 1 days);
+        vm.expectRevert(IDepositEscrow.NothingToPoke.selector);
+        escrow.poke(id);
+        vm.prank(juror2);
+        vm.expectRevert(_wrongState(IDepositEscrow.State.DISPUTED, IDepositEscrow.State.SETTLED));
+        escrow.vote(id, IDepositEscrow.Side.LANDLORD);
+    }
+
+    /// Fuzz tranh chấp hết hạn: tổng tiền chi ra luôn bằng C.
+    function testFuzz_disputeExpired_sumsToDeposit(uint256 dAmt, uint256 counter, uint256 ai, bool withSeal) public {
+        dAmt = bound(dAmt, 2, C);
+        counter = bound(counter, 0, dAmt - 1);
+        ai = bound(ai, 0, 10 * C); // AI có thể ký số lớn hơn cọc
+        uint256 id = _proposed(dAmt, ai, withSeal);
+        vm.prank(tenant);
+        escrow.disputeProposal(id, counter);
+        vm.warp(block.timestamp + JURY_W + 1);
+        escrow.poke(id);
+        assertEq(usdc.balanceOf(address(escrow)), 0);
+        assertEq(usdc.balanceOf(tenant) + usdc.balanceOf(landlord), 1_000e6);
     }
 }
