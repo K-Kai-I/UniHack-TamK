@@ -1,0 +1,40 @@
+{
+  "_note": "Dữ liệu phòng mẫu cho demo. Ảnh đặt trong scripts/demo/photos/ đúng tên file dưới đây (JPEG hoặc PNG, tối đa 5 MB). Tiền tính bằng mUSDC nhỏ nhất (6 số lẻ): 240000000 = 240 mUSDC = 6.000.000 đ.",
+  "rooms": [
+    {
+      "room": { "title": "Phòng 20m² gần ĐH Bách Khoa", "address": "268 Lý Thường Kiệt, Quận 10, TP.HCM", "rentVnd": 3000000, "amenities": ["Máy lạnh", "Tủ lạnh", "Giờ giấc tự do"] },
+      "listingPhotos": ["room1-cover.jpg", "room1-2.jpg"],
+      "money": { "depositAmount": "240000000", "reserveFeeAmount": "20000000" },
+      "moveInInDays": 3,
+      "leaseMonths": 6,
+      "positions": [
+        { "name": "Tường đầu giường", "instruction": "Đứng ở cửa, chụp ngang cả bức tường", "examplePhoto": "room1-p1.jpg" },
+        { "name": "Cửa sổ và rèm", "instruction": "Chụp thẳng, thấy cả khung và kính", "examplePhoto": "room1-p2.jpg" },
+        { "name": "Nhà vệ sinh", "instruction": "Chụp từ cửa, thấy bồn rửa và sàn", "examplePhoto": "room1-p3.jpg" }
+      ],
+      "priceList": [
+        { "item": "Sơn lại tường", "unit": "mảng 1m²", "priceAmount": "4000000" },
+        { "item": "Thay kính cửa sổ", "unit": "tấm", "priceAmount": "20000000" },
+        { "item": "Thay vòi nước", "unit": "cái", "priceAmount": "8000000" }
+      ],
+      "yieldEnabled": true
+    },
+    {
+      "room": { "title": "Phòng 25m² có gác, gần chợ Bến Thành", "address": "9 Lê Thị Riêng, Quận 1, TP.HCM", "rentVnd": 6000000, "amenities": ["Máy lạnh", "Gác lửng"] },
+      "listingPhotos": ["room2-cover.jpg"],
+      "money": { "depositAmount": "480000000", "reserveFeeAmount": "40000000" },
+      "moveInInDays": 5,
+      "leaseMonths": 12,
+      "positions": [
+        { "name": "Sàn và gác lửng", "instruction": "Đứng ở cửa, chụp chéo thấy cả sàn và gác", "examplePhoto": "room2-p1.jpg" },
+        { "name": "Bếp", "instruction": "Chụp thẳng mặt bếp", "examplePhoto": "room2-p2.jpg" },
+        { "name": "Cửa chính", "instruction": "Chụp từ trong ra, thấy ổ khóa", "examplePhoto": "room2-p3.jpg" }
+      ],
+      "priceList": [
+        { "item": "Sơn lại tường", "unit": "mảng 1m²", "priceAmount": "4000000" },
+        { "item": "Thay ổ khóa", "unit": "cái", "priceAmount": "12000000" }
+      ],
+      "yieldEnabled": false
+    }
+  ]
+}
