@@ -55,8 +55,9 @@ Tiền chỉ đi giữa ví người dùng, contract và vault. API và AI khôn
 <!-- deployments:start (bảng này do scripts/update-deployments.mjs tự ghi sau mỗi lần deploy) -->
 | Contract | Địa chỉ |
 | --- | --- |
-| `DepositEscrow` | [0x05c387ef3730ce48371f3a0232ffdeaffa4dc5fe](https://testnet.snowtrace.io/address/0x05c387ef3730ce48371f3a0232ffdeaffa4dc5fe) |
-| `MockUSDC` | [0xf78ce5e0a1c56bc3c90131915fd361fbe369c633](https://testnet.snowtrace.io/address/0xf78ce5e0a1c56bc3c90131915fd361fbe369c633) |
+| `DepositEscrow` | [0x6d2cd54af5c80acd4f1dbd634998d690d63a3657](https://testnet.snowtrace.io/address/0x6d2cd54af5c80acd4f1dbd634998d690d63a3657) |
+| `MockUSDC` | [0x3ad7b2e5f226ef892d5e65938c5cb2c0be985ebb](https://testnet.snowtrace.io/address/0x3ad7b2e5f226ef892d5e65938c5cb2c0be985ebb) |
+| `MockVault` | [0x1e48f951c6334d927b45a53a13854b953e6640ed](https://testnet.snowtrace.io/address/0x1e48f951c6334d927b45a53a13854b953e6640ed) |
 <!-- deployments:end -->
 
 App: [unihack-tamk.vercel.app](https://unihack-tamk.vercel.app). Mã nguồn contract đã verify trên Snowtrace.

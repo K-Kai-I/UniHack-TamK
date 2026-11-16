@@ -1,0 +1,6 @@
+.env
+out/
+cache/
+lib/
+node_modules/
+broadcast/*/31337/
