@@ -18,7 +18,7 @@ const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 /** Gom ảnh đã tải lên thành một bộ. Thiếu vị trí → ApiClientError 422 MISSING_POSITIONS. */
 export async function createPhotoSet(
   dealId: number,
-  body: { kind: Exclude<PhotoSetKind, "mismatch">; items: { positionId: string; photoId: string }[] },
+  body: { kind: PhotoSetKind; items: { positionId: string; photoId: string }[] },
   token: string | null,
 ): Promise<PhotoSetResponse> {
   if (USE_MOCK) {

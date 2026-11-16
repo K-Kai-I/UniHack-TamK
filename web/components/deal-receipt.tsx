@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, ExternalLink, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ChainHistory } from "@/components/chain-proof";
 import { Blocked, InfoBox, Row, Rows } from "@/components/deal-bits";
 import { NetworkBanner } from "@/components/network-banner";
 import { PageHeader } from "@/components/page-header";
@@ -28,24 +29,6 @@ const OUTCOME_TEXT: Record<Outcome, string> = {
   MISMATCH: "Phòng sai mô tả: người thuê được hoàn đủ cọc.",
   ABANDONED: "Người thuê bỏ đi không trả phòng: chủ trọ nhận phần lớn tiền cọc.",
   LANDLORD_SILENT: "Chủ trọ không đề xuất mức trừ đúng hạn: người thuê nhận lại đủ cọc.",
-};
-
-/** Tên event trong history → câu tiếng Việt. */
-const EVENT_TEXT: Record<string, string> = {
-  DealCreated: "Chủ trọ đăng phòng",
-  Deposited: "Người thuê gửi cọc",
-  CheckInSubmitted: "Gửi ảnh nhận phòng",
-  CheckInContested: "Chủ trọ phản đối ảnh nhận phòng",
-  MismatchReported: "Báo phòng sai mô tả",
-  AbandonReported: "Báo người thuê bỏ đi",
-  AbandonContested: "Người thuê xác nhận còn ở",
-  CheckedOut: "Gửi ảnh trả phòng",
-  Proposed: "Chủ trọ đề xuất mức trừ",
-  DisputeOpened: "Người thuê kháng nghị",
-  Voted: "Bồi thẩm bỏ phiếu",
-  Paid: "Chia tiền",
-  DealCancelled: "Gỡ phòng",
-  "StateChanged:ACTIVE": "Bắt đầu thuê",
 };
 
 export function DealReceipt({ dealId, previewAs }: { dealId: string; previewAs?: Role }) {
@@ -208,24 +191,7 @@ function History({ deal, back }: { deal: DealView; back: string }) {
       <h2 id="history" className="text-lg font-bold">
         Lịch sử trên chuỗi
       </h2>
-      <ol className="divide-y rounded-2xl bg-card ring-1 ring-foreground/10">
-        {deal.history.map((h, i) => (
-          <li key={`${h.txHash}-${i}`}>
-            <a
-              href={explorerTxUrl + h.txHash}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center justify-between gap-3 px-4 py-3 transition hover:bg-secondary/60"
-            >
-              <span className="min-w-0">
-                <span className="block truncate font-medium">{EVENT_TEXT[h.event] ?? h.event}</span>
-                <span className="text-xs text-muted-foreground">{formatDateTime(h.at)}</span>
-              </span>
-              <ExternalLink className="size-4 shrink-0 text-muted-foreground" />
-            </a>
-          </li>
-        ))}
-      </ol>
+      <ChainHistory deal={deal} />
       <Button asChild variant="outline" className="w-full">
         <Link href={back}>Về hợp đồng</Link>
       </Button>

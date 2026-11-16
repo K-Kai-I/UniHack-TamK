@@ -4,8 +4,9 @@
 import Link from "next/link";
 import { usePrivy } from "@privy-io/react-auth";
 import { useAccount } from "wagmi";
+import { useQuery } from "@tanstack/react-query";
 import { motion } from "motion/react";
-import { ArrowRight, Camera, Clock, House, KeyRound, LogOut, ShieldCheck } from "lucide-react";
+import { ArrowRight, Camera, ChevronRight, Clock, Gavel, House, KeyRound, LogOut, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,7 +14,9 @@ import { ShimmerButton } from "@/components/ui/shimmer-button";
 import { BorderBeam } from "@/components/ui/border-beam";
 import { WalletChip } from "@/components/wallet-chip";
 import { FaucetButton } from "@/components/faucet-button";
+import { fetchJurorDisputes } from "@/lib/client/disputes-api";
 import { useUiRole, type UiRole } from "@/lib/client/role";
+import type { Address } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 // TODO(spec): spec chưa chốt đường dẫn màn. Tạm theo DEVELOPER.md (web/app/rooms/...).
@@ -132,6 +135,7 @@ export function Onboarding() {
           <BorderBeam size={120} duration={8} colorFrom="#10b981" colorTo="#6ee7b7" />
         </Card>
         <FaucetButton />
+        {address && <JurorEntry address={address} />}
       </section>
 
       <section className="space-y-3">
@@ -169,6 +173,32 @@ export function Onboarding() {
         )}
       </div>
     </Shell>
+  );
+}
+
+/** Lối vào màn Bồi thẩm: chỉ hiện khi contract báo ví này là bồi thẩm (isJuror, qua GET /disputes?juror=). */
+function JurorEntry({ address }: { address: Address }) {
+  const { data } = useQuery({
+    queryKey: ["juror-disputes", address],
+    queryFn: () => fetchJurorDisputes(address),
+    staleTime: 30_000,
+  });
+  if (!data?.isJuror) return null;
+  const n = data.items.length;
+  return (
+    <Link
+      href="/jury"
+      className="flex items-center gap-3 rounded-2xl bg-card p-4 ring-1 ring-foreground/10 transition hover:bg-secondary/40 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+    >
+      <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-destructive/10 text-destructive">
+        <Gavel className="size-5" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-semibold">Bạn là bồi thẩm</span>
+        <span className="text-sm text-muted-foreground">{n > 0 ? `${n} vụ đang chờ phiếu của bạn` : "Chưa có vụ nào chờ phiếu"}</span>
+      </span>
+      <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+    </Link>
   );
 }
 

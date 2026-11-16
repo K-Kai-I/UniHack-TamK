@@ -319,7 +319,7 @@ function ReportSummary({ deal, report, sealed }: { deal: DealView; report: Damag
   );
 }
 
-const VERDICT: Record<DamageVerdict, { label: string; cls: string }> = {
+export const VERDICT: Record<DamageVerdict, { label: string; cls: string }> = {
   NEW_DAMAGE: { label: "Hư hỏng mới", cls: "bg-destructive/10 text-destructive" },
   WEAR: { label: "Hao mòn tự nhiên", cls: "bg-secondary text-primary" },
   NO_CHANGE: { label: "Không đổi", cls: "bg-success/10 text-success" },
@@ -404,7 +404,7 @@ function PositionCard({
   );
 }
 
-function PhotoTile({ url, label, alt, large }: { url: string | null; label: string; alt: string; large?: boolean }) {
+export function PhotoTile({ url, label, alt, large }: { url: string | null; label: string; alt: string; large?: boolean }) {
   return (
     <figure className="space-y-1">
       <div

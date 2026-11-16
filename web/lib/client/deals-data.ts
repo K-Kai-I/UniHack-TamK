@@ -107,6 +107,8 @@ type MockPatch = Partial<DealOnchain> & {
   state: DealState;
   checkin?: boolean;
   checkout?: boolean;
+  /** Có bộ ảnh "phòng không đúng mô tả" + báo cáo AI so với ảnh đăng tin. */
+  mismatch?: boolean;
   /** Tiến độ AI so ảnh (chỉ có nghĩa khi checkout = true). Mặc định "done". */
   ai?: AiJobStatus | null;
   title: string;
@@ -162,6 +164,25 @@ export function mockDamageReport(dealId: number): DamageReport {
   };
 }
 
+/** Báo cáo AI giả "phòng không đúng mô tả" theo schema kct.report.mismatch/1. */
+export function mockMismatchReport(dealId: number): MismatchReport {
+  return {
+    schema: "kct.report.mismatch/1",
+    dealId,
+    termsHash: H("a"),
+    evidenceHash: H("b"),
+    model: "gemini-3.1-flash-lite",
+    promptVersion: "listing-v1",
+    createdAt: at(-300),
+    verdict: "MISMATCH",
+    confidence: 0.82,
+    reasons: [
+      "Tường đầu giường thực tế bị ố và bong sơn, ảnh đăng tin sạch.",
+      "Cửa thực tế là cửa sắt, ảnh đăng tin là cửa gỗ.",
+    ],
+  };
+}
+
 export const MOCK_EXPLANATION =
   "Chỉ tường đầu giường có hư hỏng mới. Cửa chỉ cũ đi theo thời gian nên không tính. Ảnh sàn bị mờ nên AI không kết luận.";
 
@@ -211,7 +232,13 @@ const MOCK_STATES: Record<number, MockPatch> = {
   },
   28: { state: "REFUNDED", deadline: null, title: "Đã hoàn cọc (không đến nhận phòng)" },
   29: { state: "CANCELLED", deadline: null, tenant: null, title: "Chủ trọ đã gỡ tin" },
-  30: { state: "MISMATCH_REPORTED", deadline: at(120), title: "Người thuê báo phòng sai mô tả" },
+  30: {
+    state: "MISMATCH_REPORTED",
+    deadline: at(120),
+    mismatch: true,
+    hasAiSeal: true,
+    title: "Người thuê báo phòng sai mô tả",
+  },
   31: { state: "ABANDON_REPORTED", deadline: at(120), checkin: true, title: "Chủ trọ báo người thuê bỏ đi" },
   32: {
     state: "PROPOSED",
@@ -238,6 +265,28 @@ const MOCK_STATES: Record<number, MockPatch> = {
     checkout: true,
     ai: "failed",
     title: "Đã trả phòng, AI bị lỗi",
+  },
+  35: {
+    state: "DISPUTED",
+    deadline: at(300),
+    mismatch: true,
+    hasAiSeal: true,
+    disputeKind: "MISMATCH",
+    votesTenant: 1, // chủ trọ phản đối báo cáo "khác rõ": phiếu AI về người thuê
+    title: "Đang phân xử phòng sai mô tả",
+  },
+  36: {
+    state: "DISPUTED",
+    deadline: at(-45),
+    checkin: true,
+    checkout: true,
+    proposedAmount: "28000000",
+    aiAmount: "16000000",
+    counterAmount: "12000000",
+    hasAiSeal: true,
+    disputeKind: "DEDUCTION",
+    votesTenant: 1,
+    title: "Hết hạn bồi thẩm (thử nút Xử lý quá hạn)",
   },
 };
 
@@ -269,12 +318,17 @@ async function mockDealView(dealId: number): Promise<DealView> {
   }
   await delay(400);
   // `ai` không thuộc onchain: tách ra để không lọt vào DealOnchain (đọc lại bằng mockAiStatus bên dưới).
-  const { title, checkin, checkout, ai: aiPatch, ...onchain } = patch;
+  const { title, checkin, checkout, mismatch, ai: aiPatch, ...onchain } = patch;
   void aiPatch;
   const terms: Terms = { ...WALL_SAMPLE_TERMS, room: { ...WALL_SAMPLE_TERMS.room, title } };
   const view = base(dealId, terms, { tenant: A("9"), ...onchain });
   if (checkin) view.photoSets.checkin = photoSet("c");
   if (checkout) view.photoSets.checkout = photoSet("d");
+  if (mismatch) {
+    view.photoSets.mismatch = { ...photoSet("b"), photoSetId: `ps_mock_mismatch_${dealId}` };
+    view.reports.mismatch = mockMismatchReport(dealId);
+    view.aiStatus.mismatch = "done";
+  }
   const ai = mockAiStatus(dealId);
   view.aiStatus.damage = ai;
   if (ai === "done") {

@@ -1,7 +1,7 @@
 // Bảng "Nút trên app theo trạng thái" (docs/contract-spec.md) viết thành code, để màn Chi tiết hợp đồng
 // chỉ hiện nút khi contract đang ở đúng trạng thái. Nút "Xử lý quá hạn" (poke) không nằm ở đây vì nó hiện
 // cho MỌI người khi canPoke = true.
-import type { DealState } from "@/lib/types";
+import type { DealState, ListingVerdict } from "@/lib/types";
 import type { DealView } from "./deals-data";
 
 export type Role = "tenant" | "landlord" | "viewer";
@@ -20,6 +20,7 @@ export type ActionId =
   | "viewReport"
   | "propose"
   | "respond"
+  | "viewVotes"
   | "receipt";
 
 export interface DealAction {
@@ -69,6 +70,8 @@ export function actionsFor(deal: DealView, role: Role, now: number): DealAction[
         return [act("viewReport", "Xem báo cáo AI", "secondary", "P0")];
       case "PROPOSED":
         return [act("respond", "Xem đề xuất và trả lời", "primary", "P0")];
+      case "DISPUTED":
+        return [act("viewVotes", "Xem phiếu bồi thẩm", "secondary", "P1")];
       case "SETTLED":
       case "REFUNDED":
         return [act("receipt", "Xem biên nhận", "secondary", "P0")];
@@ -93,6 +96,8 @@ export function actionsFor(deal: DealView, role: Role, now: number): DealAction[
       }
       case "CHECKED_OUT":
         return [act("propose", "Đề xuất mức trừ", "primary", "P0"), act("viewReport", "Xem báo cáo AI", "secondary", "P0")];
+      case "DISPUTED":
+        return [act("viewVotes", "Xem phiếu bồi thẩm", "secondary", "P1")];
       case "SETTLED":
       case "REFUNDED":
         return [act("receipt", "Xem biên nhận", "secondary", "P0")];
@@ -130,6 +135,45 @@ export function deadlineInfo(state: DealState, hasCheckIn: boolean): { waiting: 
     default:
       return null;
   }
+}
+
+const absDiff = (a: bigint, b: bigint) => (a > b ? a - b : b - a);
+
+/**
+ * Bên được cộng sẵn phiếu AI lúc mở tranh chấp (contract `_openDispute`). null = không có phiếu AI.
+ *  - DEDUCTION: bên có con số gần aiAmount hơn; bằng nhau thì người thuê.
+ *  - MISMATCH: người thuê, khi con dấu ghi "khác rõ" (đi qua contestMismatch). "Không rõ" thì không có phiếu.
+ */
+export function aiVoteSide(deal: DealView, mismatchVerdict?: ListingVerdict | null): "landlord" | "tenant" | null {
+  const o = deal.onchain;
+  if (!o.hasAiSeal) return null;
+  if (o.disputeKind === "MISMATCH") return mismatchVerdict === "MISMATCH" ? "tenant" : null;
+  if (o.disputeKind !== "DEDUCTION") return null;
+  const AI = BigInt(o.aiAmount);
+  return absDiff(BigInt(o.proposedAmount), AI) < absDiff(BigInt(o.counterAmount), AI) ? "landlord" : "tenant";
+}
+
+/** Hết hạn bồi thẩm mà chưa bên nào đủ 2 phiếu thì `poke` chia thế nào (contract `_juryExpired`). */
+export function juryExpiryText(deal: DealView, vnd: (a: bigint) => string): string {
+  const o = deal.onchain;
+  if (o.disputeKind === "MISMATCH") {
+    return o.votesLandlord > o.votesTenant
+      ? "Chủ trọ nhiều phiếu hơn: người thuê được hoàn cọc, chủ trọ giữ phí giữ chỗ."
+      : "Chủ trọ không nhiều phiếu hơn: người thuê được hoàn đủ cọc.";
+  }
+  const C = BigInt(o.deposit);
+  const AI = BigInt(o.aiAmount);
+  if (o.hasAiSeal) return `Trừ theo con số AI đã ký: ${vnd(AI < C ? AI : C)}.`;
+  return `Trừ trung bình hai con số: ${vnd((BigInt(o.proposedAmount) + BigInt(o.counterAmount)) / 2n)}.`;
+}
+
+/** Câu cho nút "Xử lý quá hạn": bấm thì contract làm gì (contract `poke`). */
+export function pokeEffect(deal: DealView, vnd: (a: bigint) => string): string {
+  const s = deal.onchain.state;
+  if (s === "OPEN") return "Đã quá hạn dọn vào mà chưa ai cọc: đóng tin.";
+  if (s === "DISPUTED") return juryExpiryText(deal, vnd);
+  if (s === "PROPOSED") return `Chia tiền theo mức chủ trọ đề xuất (trừ ${vnd(BigInt(deal.onchain.proposedAmount))}).`;
+  return deadlineInfo(s, deal.photoSets.checkin !== null)?.onTimeout ?? "";
 }
 
 /** 5 bước hiển thị trên thanh tiến trình. */
