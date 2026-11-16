@@ -16,6 +16,7 @@ import type {
 } from "@/lib/types";
 import { DEAL_STATES } from "@/lib/types";
 import { apiFetch, ApiClientError } from "./api";
+import { TERMINAL_STATES } from "./deal-actions";
 import { fetchDeal, NotFoundError, WALL_SAMPLE_TERMS } from "./rooms-data";
 
 // TODO(spec): web/lib/types.ts chưa có kiểu response của GET /deals/:dealId. Khai báo tạm theo api-contract.
@@ -82,6 +83,7 @@ export async function fetchDealView(dealId: number): Promise<DealView> {
     d.examplePhotoUrls ??= {};
     d.aiStatus ??= { damage: null, mismatch: null };
     d.explanation ??= null;
+    d.history ??= [];
     // address(0) nghĩa là chưa có người thuê; đổi về null để UI so sánh ví cho gọn.
     if (d.onchain.tenant && d.onchain.tenant.toLowerCase() === ZERO) d.onchain.tenant = null;
     return d;
@@ -101,7 +103,6 @@ const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const T0 = Date.now();
 const at = (seconds: number) => new Date(T0 + seconds * 1000).toISOString();
 
-const TERMINAL: DealState[] = ["SETTLED", "REFUNDED", "CANCELLED"];
 
 type MockPatch = Partial<DealOnchain> & {
   state: DealState;
@@ -305,7 +306,7 @@ export function mockAiStatus(dealId: number): AiJobStatus | null {
 export const MOCK_DEAL_IDS = Object.keys(MOCK_STATES).map(Number);
 
 function mockCanPoke(state: DealState, deadline: IsoTime | null): boolean {
-  if (TERMINAL.includes(state) || deadline === null) return false;
+  if (TERMINAL_STATES.includes(state) || deadline === null) return false;
   return Date.now() > Date.parse(deadline);
 }
 
@@ -335,7 +336,7 @@ async function mockDealView(dealId: number): Promise<DealView> {
     view.reports.damage = mockDamageReport(dealId);
     view.explanation = MOCK_EXPLANATION;
   }
-  if (TERMINAL.includes(patch.state) && patch.state !== "CANCELLED") {
+  if (TERMINAL_STATES.includes(patch.state) && patch.state !== "CANCELLED") {
     view.history = [{ event: "Paid", txHash: H("f"), at: at(-120) }];
   }
   return view;

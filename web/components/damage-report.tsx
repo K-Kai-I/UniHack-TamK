@@ -113,6 +113,7 @@ export function DamageReportScreen({ dealId, previewAs }: { dealId: string; prev
               key={ai.data?.seal?.reportHash ?? ai.data?.status ?? "loading"}
               deal={d}
               ai={ai.data}
+              aiLoading={ai.isPending}
               back={back}
             />
           )}

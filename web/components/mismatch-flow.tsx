@@ -237,8 +237,12 @@ function ReportFlow({ deal, back }: { deal: DealView; back: string }) {
         setHash={sealed.setHash}
         back={back}
         onRetryAi={async () => {
-          await startMismatchAi(deal.dealId, sealed.photoSetId, await getAccessToken()).catch(() => null);
-          ai.refetch();
+          // Lỗi ném tiếp cho ResultStep hiện lý do; dù sao cũng hỏi lại GET để thấy trạng thái mới nhất.
+          try {
+            await startMismatchAi(deal.dealId, sealed.photoSetId, await getAccessToken());
+          } finally {
+            ai.refetch();
+          }
         }}
         onRestart={restart}
       />
@@ -320,6 +324,12 @@ function ReportFlow({ deal, back }: { deal: DealView; back: string }) {
   );
 }
 
+/** /deals/:id?as=x → /deals/:id/photos?kind=checkin&as=x (giữ tham số xem thử vai như hrefFor ở Chi tiết hợp đồng). */
+function checkinHref(back: string): string {
+  const [path, query] = back.split("?");
+  return `${path}/photos?kind=checkin${query ? `&${query}` : ""}`;
+}
+
 /** Kết quả AI + ký reportMismatch. */
 function ResultStep({
   deal,
@@ -341,6 +351,7 @@ function ResultStep({
   const tx = useTx();
   const qc = useQueryClient();
   const [retrying, setRetrying] = useState(false);
+  const [retryError, setRetryError] = useState("");
   const { passed } = useCountdown(deal.onchain.deadline);
   const busy = tx.state.phase === "signing" || tx.state.phase === "pending";
   const done = tx.state.phase === "success";
@@ -391,12 +402,19 @@ function ResultStep({
                 disabled={retrying}
                 onClick={async () => {
                   setRetrying(true);
-                  await onRetryAi();
-                  setRetrying(false);
+                  setRetryError("");
+                  try {
+                    await onRetryAi();
+                  } catch (e) {
+                    setRetryError(e instanceof ApiClientError ? e.message : "Chưa gọi được AI. Thử lại sau một lát.");
+                  } finally {
+                    setRetrying(false);
+                  }
                 }}
               >
                 {retrying ? <Loader2 className="animate-spin" /> : <RefreshCw />} Thử lại AI
               </Button>
+              {retryError && <p className="mt-1 font-medium text-destructive">{retryError}</p>}
             </InfoBox>
           )}
           {report && <VerdictCard report={report} />}
@@ -437,7 +455,7 @@ function ResultStep({
         ) : match ? (
           <>
             <Button asChild size="lg" className="h-14 w-full text-base">
-              <Link href={`${back.split("?")[0]}/photos?kind=checkin`}>Chụp ảnh nhận phòng</Link>
+              <Link href={checkinHref(back)}>Chụp ảnh nhận phòng</Link>
             </Button>
             <Button size="lg" variant="outline" className="h-12 w-full text-base" onClick={onRestart}>
               <RefreshCw /> Chụp lại ảnh thực tế

@@ -18,6 +18,7 @@ import { Field, MoneyInput } from "@/components/listing-fields";
 import { TxStatus } from "@/components/tx-status";
 import { addresses, escrowAbi } from "@/lib/chain";
 import type { DamageAiResponse } from "@/lib/client/ai-report-api";
+import { deductionAiSide } from "@/lib/client/deal-actions";
 import type { DealView } from "@/lib/client/deals-data";
 import { amountToVnd, formatToken, formatVnd, parseVndInput, vndToAmount } from "@/lib/client/money";
 import { useCountdown } from "@/lib/client/use-countdown";
@@ -25,11 +26,20 @@ import { useTx } from "@/lib/client/use-tx";
 import { useVndRate } from "@/lib/client/use-vnd-rate";
 import type { Amount } from "@/lib/types";
 
-const abs = (x: bigint) => (x < 0n ? -x : x);
-
 // ------------------------------------------------------------------ chủ trọ đề xuất
 
-export function ProposePanel({ deal, ai, back }: { deal: DealView; ai: DamageAiResponse | undefined; back: string }) {
+export function ProposePanel({
+  deal,
+  ai,
+  aiLoading,
+  back,
+}: {
+  deal: DealView;
+  ai: DamageAiResponse | undefined;
+  /** true khi GET /ai/damage đang tải lần đầu. Tải lỗi thì false và ai = undefined: coi như không có con dấu. */
+  aiLoading: boolean;
+  back: string;
+}) {
   const rate = useVndRate();
   const vnd = (a: Amount | bigint) => formatVnd(amountToVnd(a, rate));
   const tx = useTx();
@@ -38,7 +48,9 @@ export function ProposePanel({ deal, ai, back }: { deal: DealView; ai: DamageAiR
   const { passed } = useCountdown(deal.onchain.deadline);
 
   const seal = ai?.status === "done" ? ai.seal : null;
-  const waitingAi = !ai || ai.status === "processing";
+  // Chỉ chờ khi AI còn đang chạy. Không lấy được kết quả AI (API lỗi) thì vẫn cho đề xuất không con dấu (nhánh H),
+  // nếu không chủ trọ kẹt tới hạn và bị poke hoàn đủ cọc.
+  const waitingAi = aiLoading || ai?.status === "processing";
   const C = BigInt(deal.onchain.deposit);
 
   // touched = false: ô hiện aiAmount quy ra VND và số gửi lên chuỗi là đúng seal.aiAmount.
@@ -254,9 +266,8 @@ function DisputeDrawer({ deal, open, onClose, back }: { deal: DealView; open: bo
   const busy = tx.state.phase === "signing" || tx.state.phase === "pending";
   const done = tx.state.phase === "success";
 
-  // Giống contract: phiếu AI về chủ trọ khi |D − AI| < |counter − AI|, ngược lại (kể cả bằng nhau) về người thuê.
-  const aiSide =
-    onchain.hasAiSeal && counter !== null && !tooBig ? (abs(D - AI) < abs(counter - AI) ? "landlord" : "tenant") : null;
+  // Cùng quy tắc với bảng điểm bồi thẩm (deductionAiSide), để hai màn không lệch nhau.
+  const aiSide = onchain.hasAiSeal && counter !== null && !tooBig ? deductionAiSide(D, counter, AI) : null;
 
   async function submit() {
     if (counter === null || tooBig) return;
