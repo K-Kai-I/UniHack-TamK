@@ -159,6 +159,7 @@ contract DepositEscrow is IDepositEscrow, EIP712, ReentrancyGuard, Ownable {
         _requireState(d, State.RESERVED);
         if (d.checkInHash != bytes32(0)) revert CheckInAlreadySubmitted();
         if (block.timestamp > d.deadline) revert DeadlinePassed();
+        if (checkInHash == bytes32(0)) revert EmptyHash();
 
         d.checkInHash = checkInHash;
         // Vẫn RESERVED; hạn mới là hạn chủ trọ phản đối ảnh. Quá hạn -> poke đưa sang ACTIVE.
@@ -233,6 +234,7 @@ contract DepositEscrow is IDepositEscrow, EIP712, ReentrancyGuard, Ownable {
         }
         _activateIfDue(id, d);
         _requireState(d, State.ACTIVE);
+        if (checkOutHash == bytes32(0)) revert EmptyHash();
 
         d.checkOutHash = checkOutHash;
         _fromVault(d);

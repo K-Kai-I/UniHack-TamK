@@ -73,3 +73,28 @@ ALTER TABLE photos        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE photo_sets    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ai_reports    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE faucet_claims ENABLE ROW LEVEL SECURITY;
+
+-- Nhật ký sự kiện trên chuỗi cho mục history của GET /deals/:id.
+-- Server đọc log của contract theo từng đoạn khối (RPC giới hạn số khối mỗi lần) và lưu lại ở đây.
+CREATE TABLE IF NOT EXISTS chain_events (
+  tx_hash       TEXT NOT NULL,
+  log_index     INTEGER NOT NULL,
+  block_number  BIGINT NOT NULL,
+  deal_id       BIGINT NOT NULL,
+  event         TEXT NOT NULL,
+  at            TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY (tx_hash, log_index)
+);
+CREATE INDEX IF NOT EXISTS chain_events_deal ON chain_events (deal_id, block_number, log_index);
+
+-- Khối cuối đã đọc, theo địa chỉ contract (deploy bản mới thì đọc lại từ deployBlock của bản đó).
+CREATE TABLE IF NOT EXISTS sync_state (
+  key    TEXT PRIMARY KEY,
+  value  BIGINT NOT NULL
+);
+
+-- Lời giải thích phụ của OpenAI: không nằm trong báo cáo đã hash và ký.
+ALTER TABLE ai_reports ADD COLUMN IF NOT EXISTS explanation JSONB;
+
+ALTER TABLE chain_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sync_state   ENABLE ROW LEVEL SECURITY;

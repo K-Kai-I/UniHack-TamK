@@ -1414,6 +1414,11 @@
   },
   {
     "type": "error",
+    "name": "EmptyHash",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "InvalidAmount",
     "inputs": []
   },

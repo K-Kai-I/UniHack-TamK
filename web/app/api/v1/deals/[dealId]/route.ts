@@ -1,8 +1,9 @@
 // GET /api/v1/deals/:dealId: điều khoản + trạng thái trên chuỗi + bộ ảnh + báo cáo AI.
-// Phần onchain đọc từ contract ở mỗi lần gọi. history (P1) hiện trả mảng rỗng.
+// Phần onchain đọc từ contract ở mỗi lần gọi. history lấy từ sự kiện contract đã đọc về database.
 import { readCanPoke } from "@/lib/server/chain";
 import { onchainView } from "@/lib/server/chain";
 import { dealContext } from "@/lib/server/deal-context";
+import { dealHistory, syncEvents } from "@/lib/server/events";
 import { json, parseDealId, photoUrl, route } from "@/lib/server/http";
 import { getAiReport, getLatestPhotoSet, getPhotoSetByHash, type PhotoSetRow } from "@/lib/server/repo";
 import type { DamageReport, MismatchReport } from "@/lib/types";
@@ -12,14 +13,17 @@ const ZERO_HASH = `0x${"0".repeat(64)}`;
 export const GET = route(async (req: Request, ctx: { params: Promise<{ dealId: string }> }) => {
   const dealId = parseDealId((await ctx.params).dealId);
   const { deal, listing } = await dealContext(dealId);
+  // Đọc thêm vài đoạn sự kiện mới; lỗi RPC không được làm hỏng trang chi tiết.
+  await syncEvents(3).catch((e) => console.error("[events]", e));
 
-  const [canPoke, checkin, checkout, mismatch, damageRow, mismatchRow] = await Promise.all([
+  const [canPoke, checkin, checkout, mismatch, damageRow, mismatchRow, history] = await Promise.all([
     readCanPoke(dealId),
     deal.checkInHash !== ZERO_HASH ? getPhotoSetByHash(dealId, deal.checkInHash) : null,
     deal.checkOutHash !== ZERO_HASH ? getPhotoSetByHash(dealId, deal.checkOutHash) : null,
     getLatestPhotoSet(dealId, "mismatch"),
     getAiReport(dealId, "damage"),
     getAiReport(dealId, "mismatch"),
+    dealHistory(dealId).catch(() => []),
   ]);
 
   const setView = (s: PhotoSetRow | null) =>
@@ -46,6 +50,8 @@ export const GET = route(async (req: Request, ctx: { params: Promise<{ dealId: s
       mismatch: mismatchRow?.status === "done" ? (mismatchRow.report as MismatchReport) : null,
     },
     aiStatus: { damage: damageRow?.status ?? null, mismatch: mismatchRow?.status ?? null },
-    history: [],
+    // Lời giải thích của OpenAI (nếu có): chỉ để tham khảo, không nằm trong báo cáo đã ký.
+    explanation: damageRow?.status === "done" ? (damageRow.explanation ?? null) : null,
+    history,
   });
 });

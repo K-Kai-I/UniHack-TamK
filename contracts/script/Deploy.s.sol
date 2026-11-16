@@ -7,6 +7,7 @@ import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {DepositEscrow} from "../src/DepositEscrow.sol";
 import {IDepositEscrow} from "../src/IDepositEscrow.sol";
 import {MockUSDC} from "../src/MockUSDC.sol";
+import {MockVault} from "../src/MockVault.sol";
 
 /// forge script script/Deploy.s.sol --rpc-url fuji --broadcast --verify
 /// Sau khi chạy: chép 2 địa chỉ in ra vào shared/deployments.json, tăng abiVersion, chạy npm run export-abi.
@@ -16,6 +17,8 @@ contract Deploy is Script {
         address aiSigner = vm.envAddress("AI_SIGNER_ADDRESS");
         address feeRecipient = vm.envAddress("FEE_RECIPIENT_ADDRESS");
         bool demo = vm.envOr("DEMO_TIMEOUTS", true);
+        // Vault sinh lãi (P2). USE_VAULT=false trong contracts/.env để deploy không có vault.
+        bool useVault = vm.envOr("USE_VAULT", true);
         // Ví bồi thẩm, cách nhau bằng dấu phẩy (contracts/.env: JUROR_ADDRESSES=0x...,0x...). Không có thì bỏ qua.
         address[] memory jurors = vm.envOr("JUROR_ADDRESSES", ",", new address[](0));
 
@@ -27,8 +30,8 @@ contract Deploy is Script {
 
         vm.startBroadcast(pk);
         MockUSDC usdc = new MockUSDC();
-        DepositEscrow escrow =
-            new DepositEscrow(IERC20(address(usdc)), aiSigner, feeRecipient, 1000, IERC4626(address(0)), t);
+        IERC4626 vault = useVault ? IERC4626(address(new MockVault(IERC20(address(usdc))))) : IERC4626(address(0));
+        DepositEscrow escrow = new DepositEscrow(IERC20(address(usdc)), aiSigner, feeRecipient, 1000, vault, t);
         for (uint256 i = 0; i < jurors.length; i++) {
             escrow.addJuror(jurors[i]);
         }
@@ -36,6 +39,7 @@ contract Deploy is Script {
 
         console.log("MockUSDC     ", address(usdc));
         console.log("DepositEscrow", address(escrow));
+        console.log("MockVault    ", address(vault));
         for (uint256 i = 0; i < jurors.length; i++) {
             console.log("Juror        ", jurors[i]);
         }

@@ -1,7 +1,9 @@
-// DỮ LIỆU GIẢ cho màn "Phòng đang trống" và "Chi tiết phòng" (GĐ2).
-// Hình dạng khớp docs/api-contract.md > GET /listings?state=OPEN và GET /deals/:dealId.
-// Khi API của Khải xong: đổi thân hai hàm fetchOpenListings / fetchDeal sang apiFetch, UI giữ nguyên.
+// Dữ liệu màn "Phòng đang trống" và "Chi tiết phòng" (GĐ2).
+// NEXT_PUBLIC_MOCK_API=0: gọi GET /listings?state=OPEN và GET /deals/:dealId thật; khác "0": dùng dữ liệu giả bên dưới.
 import type { Address, Amount, DealState, IsoTime, Terms } from "@/lib/types";
+import { apiFetch, ApiClientError } from "./api";
+
+const USE_MOCK = process.env.NEXT_PUBLIC_MOCK_API !== "0";
 
 // TODO(spec): web/lib/types.ts chưa có kiểu cho response của GET /listings và GET /deals/:dealId.
 // Khai báo tạm theo docs/api-contract.md; khi nhóm chốt thì chuyển sang types.ts.
@@ -16,7 +18,7 @@ export interface ListingItem {
   moveInDate: IsoTime;
   coverUrl: string | null;
   landlord: Address;
-  amenities: string[]; // TODO(spec): GET /listings chưa trả amenities; cần cho thẻ danh sách
+  amenities: string[];
 }
 
 export interface DealDetail {
@@ -177,14 +179,25 @@ function toListing(d: DealDetail): ListingItem {
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** Giả GET /listings?state=OPEN: chỉ trả deal OPEN, giống API thật. */
+/** GET /listings?state=OPEN (bản giả: chỉ trả deal OPEN, giống API thật). */
 export async function fetchOpenListings(): Promise<ListingItem[]> {
+  if (!USE_MOCK) return (await apiFetch<{ items: ListingItem[] }>("/listings?state=OPEN")).items;
   await delay(500);
   return DEALS.filter((d) => d.onchain.state === "OPEN").map(toListing);
 }
 
-/** Giả GET /deals/:dealId. Ném NotFoundError khi không có (API thật: 404 NOT_FOUND). */
+/** GET /deals/:dealId. Ném NotFoundError khi không có (API: 404 NOT_FOUND). */
 export async function fetchDeal(dealId: number): Promise<DealDetail> {
+  if (!USE_MOCK) {
+    try {
+      const d = await apiFetch<DealDetail>(`/deals/${dealId}`);
+      if (d.onchain.tenant && /^0x0{40}$/i.test(d.onchain.tenant)) d.onchain.tenant = null;
+      return d;
+    } catch (e) {
+      if (e instanceof ApiClientError && e.code === "NOT_FOUND") throw new NotFoundError(e.message);
+      throw e;
+    }
+  }
   await delay(400);
   const found = DEALS.find((d) => d.dealId === dealId);
   if (!found) throw new NotFoundError(`Không có phòng #${dealId}`);

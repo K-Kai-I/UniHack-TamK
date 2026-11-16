@@ -143,9 +143,13 @@ Database chỉ lưu nội dung ngoài chuỗi và bản ghi tra cứu nhanh. Kh�
 | --- | --- |
 | `listings` | `id`, `landlord`, `terms` (jsonb), `terms_hash`, `deal_id` (null tới khi lên chuỗi), `tx_hash`, `created_at` |
 | `photos` | `id`, `owner`, `sha256`, `storage_path`, `purpose`, `position_id`, `captured_at`, `lat`, `lng`, `accuracy_m`, `created_at` |
-| `photo_sets` | `id`, `deal_id`, `kind`, `manifest` (jsonb), `set_hash`, `created_by`, `created_at` |
-| `ai_reports` | `id`, `deal_id`, `type` (`damage` / `mismatch`), `status`, `report` (jsonb), `report_hash`, `sealed_amount`, `verdict`, `signature`, `error`, `created_at` |
+| `photo_sets` | `id`, `deal_id`, `kind`, `manifest` (jsonb), `set_hash`, `photo_ids` (jsonb, theo positionId), `created_by`, `created_at` |
+| `ai_reports` | `id`, `deal_id`, `type` (`damage` / `mismatch`), `input_hash`, `status`, `report` (jsonb), `report_hash`, `sealed_amount`, `verdict`, `signature`, `error`, `explanation` (jsonb, ngoài phần đã ký), `created_at`, `updated_at` |
 | `faucet_claims` | `wallet`, `claimed_at` |
+| `chain_events` | `tx_hash`, `log_index`, `block_number`, `deal_id`, `event`, `at` (cho mục history) |
+| `sync_state` | `key` (`events:<địa chỉ escrow>`), `value` (khối cuối đã đọc) |
+
+Schema đầy đủ: `web/db/schema.sql`, server tự chạy lúc khởi động. Mọi bảng bật RLS: chỉ server (qua `DATABASE_URL`) đọc ghi.
 
 ## deployments.json
 

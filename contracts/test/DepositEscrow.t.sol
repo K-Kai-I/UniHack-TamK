@@ -984,4 +984,31 @@ contract DepositEscrowTest is Test {
         assertEq(usdc.balanceOf(address(escrow)), 0);
         assertEq(usdc.balanceOf(tenant) + usdc.balanceOf(landlord), 1_000e6);
     }
+
+    // ================================================================ rà an toàn 16/11
+
+    /// Gửi hash rỗng từng cho phép người thuê tự gia hạn mãi (mỗi lần gửi đặt lại hạn phản đối).
+    function test_submitCheckIn_revertsOnEmptyHash() public {
+        uint256 id = _deposited();
+        vm.prank(tenant);
+        vm.expectRevert(IDepositEscrow.EmptyHash.selector);
+        escrow.submitCheckIn(id, bytes32(0));
+    }
+
+    function test_submitCheckOut_revertsOnEmptyHash() public {
+        uint256 id = _active();
+        vm.prank(tenant);
+        vm.expectRevert(IDepositEscrow.EmptyHash.selector);
+        escrow.submitCheckOut(id, bytes32(0));
+    }
+
+    /// Owner không có đường nào chạm vào tiền: chỉ thêm, bớt bồi thẩm.
+    function test_owner_cannotTouchMoney() public {
+        uint256 id = _deposited();
+        uint256 before = usdc.balanceOf(address(escrow));
+        escrow.addJuror(stranger);
+        escrow.removeJuror(stranger);
+        assertEq(usdc.balanceOf(address(escrow)), before);
+        assertEq(escrow.getDeal(id).tenant, tenant);
+    }
 }

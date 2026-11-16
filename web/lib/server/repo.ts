@@ -171,6 +171,12 @@ export interface AiReportRow {
   verdict: number | null;
   signature: string | null;
   error: string | null;
+  explanation?: unknown;
+}
+
+/** Lưu lời giải thích phụ (OpenAI). Không đụng tới báo cáo đã hash và ký. */
+export async function setAiExplanation(id: string, explanation: unknown): Promise<void> {
+  await (await db()).query("UPDATE ai_reports SET explanation = $2::jsonb WHERE id = $1", [id, JSON.stringify(explanation)]);
 }
 
 /** Tạo bản ghi "processing" nếu chưa có. Trả về bản ghi hiện có và cờ created. */

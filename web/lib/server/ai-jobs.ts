@@ -15,11 +15,21 @@ import {
   type MismatchSeal,
 } from "../types";
 import type { OnchainDeal } from "./chain";
-import { failAiReport, finishAiReport, type AiReportRow, type ListingRow, type PhotoSetRow } from "./repo";
+import { explainDamage } from "../llm/explain";
+import { failAiReport, finishAiReport, setAiExplanation, type AiReportRow, type ListingRow, type PhotoSetRow } from "./repo";
 import { photoDataUrl } from "./storage";
 import { aiSignerAccount } from "./wallets";
 
 const CHAIN_ID = 43113;
+/** Vercel cắt hàm ở giây 60; dừng sớm để kịp ghi trạng thái failed thay vì kẹt ở processing. */
+const AI_BUDGET_MS = 50_000;
+
+function withBudget<T>(p: Promise<T>, ms = AI_BUDGET_MS): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`AI quá ${ms / 1000} giây, hãy chạy lại`)), ms)),
+  ]);
+}
 
 /** So từng vị trí song song (mỗi vị trí 1 lần gọi AI) để không vượt giới hạn thời gian của hàm. */
 async function comparePositions(positions: PositionInput[], listing: ListingRow) {
@@ -50,7 +60,7 @@ export async function runDamageJob(
         afterUrl: await photoDataUrl(checkout.photo_ids[p.id]),
       })),
     );
-    const ai = await comparePositions(inputs, listing);
+    const ai = await withBudget(comparePositions(inputs, listing));
 
     // API tự nhân đơn giá; AI chỉ chọn kết luận, hạng mục và số lượng.
     const prices = new Map(listing.terms.priceList.map((i) => [i.id, BigInt(i.priceAmount)]));
@@ -83,6 +93,17 @@ export async function runDamageJob(
       message: { dealId, checkInHash: deal.checkInHash, checkOutHash: deal.checkOutHash, aiAmount: sealed, reportHash },
     });
     await finishAiReport(row.id, { report, reportHash, sealedAmount: sealed.toString(), signature });
+
+    // Lời giải thích tiếng Việt (OpenAI) là phần phụ: chỉ chạy khi có khóa, lỗi thì bỏ qua,
+    // và lưu riêng nên không ảnh hưởng báo cáo đã ký.
+    if (process.env.OPENAI_API_KEY) {
+      try {
+        const explanation = await withBudget(explainDamage(report), 8_000);
+        await setAiExplanation(row.id, explanation);
+      } catch (e) {
+        console.error("[ai/explain]", (e as Error).message);
+      }
+    }
   } catch (e) {
     console.error("[ai/damage]", e);
     await failAiReport(row.id, (e as Error).message ?? "AI lỗi");
@@ -106,7 +127,7 @@ export async function runMismatchJob(
         afterUrl: await photoDataUrl(evidence.photo_ids[p.id]),
       })),
     );
-    const ai = await compareListing({ positions: inputs });
+    const ai = await withBudget(compareListing({ positions: inputs }));
     const evidenceHash = evidence.set_hash as Hash;
     const report: MismatchReport = {
       schema: "kct.report.mismatch/1",
@@ -149,7 +170,7 @@ export function damageResponse(row: AiReportRow | null, deal: OnchainDeal, dealI
     signature: row.signature as Hash,
     signer: aiSignerAccount().address.toLowerCase() as Hash,
   };
-  return { status: "done" as const, report, seal };
+  return { status: "done" as const, report, seal, explanation: row.explanation ?? null };
 }
 
 export function mismatchResponse(row: AiReportRow | null, dealId: bigint) {

@@ -13,9 +13,12 @@ const env = Object.fromEntries(
     .map((l) => [l.slice(0, l.indexOf("=")).trim(), l.slice(l.indexOf("=") + 1).trim().replace(/^["']|["']$/g, "")]),
 );
 
-const addr = (name) => {
+const addr = (name, optional = false) => {
   const tx = run.transactions.find((t) => t.contractName === name && t.transactionType === "CREATE");
-  if (!tx) throw new Error(`Không thấy ${name} trong broadcast`);
+  if (!tx) {
+    if (optional) return null;
+    throw new Error(`Không thấy ${name} trong broadcast`);
+  }
   return tx.contractAddress;
 };
 const block = Math.min(...run.receipts.map((r) => Number(r.blockNumber)));
@@ -27,9 +30,29 @@ const next = {
   abiVersion: (old.abiVersion ?? 0) + 1,
   deployedAt: new Date().toISOString(),
   deployBlock: block,
-  contracts: { DepositEscrow: addr("DepositEscrow"), MockUSDC: addr("MockUSDC"), MockVault: null },
+  contracts: { DepositEscrow: addr("DepositEscrow"), MockUSDC: addr("MockUSDC"), MockVault: addr("MockVault", true) },
   aiSigner: env.AI_SIGNER_ADDRESS,
   feeRecipient: env.FEE_RECIPIENT_ADDRESS,
 };
 writeFileSync(path, JSON.stringify(next, null, 2) + "\n");
 console.log("shared/deployments.json:", JSON.stringify(next, null, 2));
+
+// Ghi bảng địa chỉ vào README (giữa 2 dòng đánh dấu deployments:start / deployments:end).
+const readmePath = join(root, "README.md");
+const readme = readFileSync(readmePath, "utf8");
+const link = (a) => `[${a}](https://testnet.snowtrace.io/address/${a})`;
+const rows = [
+  ["DepositEscrow", next.contracts.DepositEscrow],
+  ["MockUSDC", next.contracts.MockUSDC],
+  ...(next.contracts.MockVault ? [["MockVault", next.contracts.MockVault]] : []),
+].map(([n, a]) => `| \`${n}\` | ${link(a)} |`);
+const table = ["| Contract | Địa chỉ |", "| --- | --- |", ...rows].join("\n");
+const updated = readme.replace(
+  /(<!-- deployments:start[^\n]*-->\n)[\s\S]*?(\n<!-- deployments:end -->)/,
+  `$1${table}$2`,
+);
+if (updated !== readme) {
+  writeFileSync(readmePath, updated);
+  console.log("README.md: đã cập nhật bảng địa chỉ contract");
+}
+

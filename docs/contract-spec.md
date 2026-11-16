@@ -193,6 +193,8 @@ DamageReport(uint256 dealId,bytes32 checkInHash,bytes32 checkOutHash,uint256 aiA
 MismatchReport(uint256 dealId,bytes32 termsHash,bytes32 evidenceHash,uint8 verdict,bytes32 reportHash)
 ```
 
+`submitCheckIn` và `submitCheckOut` từ chối hash bằng 0 (`EmptyHash`): nếu không, người thuê gửi bộ ảnh rỗng nhiều lần để tự gia hạn. `contestCheckIn` khi chưa có ảnh trả `WrongState`.
+
 Contract lấy `checkInHash`, `checkOutHash`, `termsHash` từ chính deal đang lưu, không nhận từ tham số. Người ký không phải `aiSigner` thì revert `BadSignature`.
 
 ## Event
@@ -266,25 +268,28 @@ Frontend chỉ hiện nút khi contract đang ở đúng trạng thái. Nút "X�
 
 ## Test bắt buộc
 
-- [ ] Luồng chuẩn đủ 7 bước, kiểm tra số dư 2 ví khớp ví dụ ở mục Chia tiền
-- [ ] Mỗi dòng của bảng Chia tiền có một test riêng, kiểm tra bất biến 1
-- [ ] Mỗi hàm: người lạ gọi, sai trạng thái, gọi 2 lần, gọi sau hạn
-- [ ] `poke` trước hạn thì revert; sau hạn thì ai gọi cũng được và tiền về đúng người
-- [ ] Hai người gửi cọc cùng một phòng: người sau revert, không mất tiền
-- [ ] Chủ trọ tự gửi cọc phòng mình: revert
-- [ ] Chữ ký AI: đúng người ký thì qua; sai người ký, sai `dealId`, sai hash ảnh thì revert
-- [ ] Bồi thẩm: 2 phiếu thắng ngay; AI + 1 bồi thẩm thắng; 2 bên của deal không được bỏ phiếu; hết hạn đi đúng quy tắc
-- [ ] Fuzz: `deposit`, `reserveFee`, `amount`, `yieldGross` ngẫu nhiên vẫn giữ bất biến 1
-- [ ] Có vault (P2): lãi chốt đúng lúc rút, phí đúng 10%
+Trạng thái 16/11: 83 test qua (`contracts/test/DepositEscrow.t.sol`, `contracts/test/Vault.t.sol`).
+
+
+- [x] Luồng chuẩn đủ 7 bước, kiểm tra số dư 2 ví khớp ví dụ ở mục Chia tiền
+- [x] Mỗi dòng của bảng Chia tiền có một test riêng, kiểm tra bất biến 1
+- [x] Mỗi hàm: người lạ gọi, sai trạng thái, gọi 2 lần, gọi sau hạn
+- [x] `poke` trước hạn thì revert; sau hạn thì ai gọi cũng được và tiền về đúng người
+- [x] Hai người gửi cọc cùng một phòng: người sau revert, không mất tiền
+- [x] Chủ trọ tự gửi cọc phòng mình: revert
+- [x] Chữ ký AI: đúng người ký thì qua; sai người ký, sai `dealId`, sai hash ảnh thì revert
+- [x] Bồi thẩm: 2 phiếu thắng ngay; AI + 1 bồi thẩm thắng; 2 bên của deal không được bỏ phiếu; hết hạn đi đúng quy tắc
+- [x] Fuzz: `deposit`, `reserveFee`, `amount`, `yieldGross` ngẫu nhiên vẫn giữ bất biến 1
+- [x] Có vault (P2): lãi chốt đúng lúc rút, phí đúng 10%
 
 ## Checklist an toàn trước khi khóa
 
-- [ ] Mọi hàm chuyển tiền có `nonReentrant` và đổi trạng thái trước khi chuyển
-- [ ] Dùng `SafeERC20` cho mọi lần chuyển token
-- [ ] Mọi hàm có kiểm tra người gọi và trạng thái ở dòng đầu
-- [ ] `amount` và `counterAmount` không vượt `deposit`
-- [ ] Không có hàm nào của owner chạm vào tiền
-- [ ] Contract đã verify trên Snowtrace; địa chỉ nằm trong `deployments.json` và README
+- [x] Mọi hàm chuyển tiền có `nonReentrant` và đổi trạng thái trước khi chuyển
+- [x] Dùng `SafeERC20` cho mọi lần chuyển token
+- [x] Mọi hàm có kiểm tra người gọi và trạng thái ở dòng đầu
+- [x] `amount` và `counterAmount` không vượt `deposit`
+- [x] Không có hàm nào của owner chạm vào tiền
+- [x] Contract đã verify trên Snowtrace; địa chỉ nằm trong `deployments.json` và README
 - [ ] Private key ví deploy và ví ký AI không nằm trong repo
 
 ## Câu giám khảo có thể hỏi
