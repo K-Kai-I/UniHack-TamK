@@ -31,6 +31,13 @@ contract Deploy is Script {
         vm.startBroadcast(pk);
         MockUSDC usdc = new MockUSDC();
         IERC4626 vault = useVault ? IERC4626(address(new MockVault(IERC20(address(usdc))))) : IERC4626(address(0));
+        if (useVault) {
+            // Gửi mồi 1.000 mUSDC cho địa chỉ chết: chặn việc "tặng" tiền vào vault rỗng làm người gửi đầu mất tiền
+            // (contracts/test/Vault.t.sol: test_vault_emptyVaultDonation_*).
+            usdc.mint(vm.addr(pk), 1_000e6);
+            usdc.approve(address(vault), 1_000e6);
+            vault.deposit(1_000e6, address(0xdead));
+        }
         DepositEscrow escrow = new DepositEscrow(IERC20(address(usdc)), aiSigner, feeRecipient, 1000, vault, t);
         for (uint256 i = 0; i < jurors.length; i++) {
             escrow.addJuror(jurors[i]);

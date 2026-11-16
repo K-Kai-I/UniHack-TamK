@@ -150,6 +150,9 @@ Sau khi AI viết xong: tự đọc lại, chạy lệnh kiểm tra, và hỏi l
 | Deploy Fuji | `cd contracts && npm run deploy:fuji` (deploy + verify + ghi `deployments.json`, ABI, bảng địa chỉ trong README) |
 | Tạo phòng mẫu cho demo | Xem đầu file `scripts/seed-demo.mjs` |
 | Tạo lãi giả trong vault | `cd web && node ../scripts/seed-demo.mjs --yield 5` |
+| Gửi mồi vào vault (1 lần cho bản đã deploy trước 17/11) | `cd web && node ../scripts/seed-demo.mjs --seed-vault` |
+| Test khớp chéo backend ↔ contract | `cd web && npm run be:test` |
+| Test bất biến contract (xem độ phủ) | `cd contracts && forge test --match-contract InvariantTest -vv` |
 | Chạy keeper tay | `cd web && KEEPER_PRIVATE_KEY=0x... node ../scripts/keeper.mjs` |
 | Chấm AI | `cd web && npm run ai:eval` |
 
@@ -160,6 +163,9 @@ Sau khi AI viết xong: tự đọc lại, chạy lệnh kiểm tra, và hỏi l
 - mUSDC: gọi `faucet()` trên `MockUSDC` hoặc bấm "Nhận tiền test" trong app.
 
 ## An toàn
+
+- **Vault rỗng phải có "mồi".** Vault ERC-4626 đang rỗng mà bị chuyển tiền vào trước thì người gửi đầu tiên mất tiền (test `test_vault_emptyVaultDonation_*`). Script deploy tự gửi 1.000 mUSDC cho địa chỉ chết ngay khi tạo vault. Bản v4 (deploy 16/11) chưa có bước này: chạy `--seed-vault` một lần **trước khi** ai dùng `--yield`.
+- Mỗi Pull Request tự chạy `.github/workflows/ci.yml`: test contract, kiểm tra kiểu, test khớp chéo, test AI. Đỏ thì chưa merge.
 
 - Ví deploy, ví ký AI, ví keeper là ví riêng chỉ dùng cho test. Không dùng ví cá nhân có tiền thật.
 - `.env`, `.env.local` không bao giờ commit (đã có trong `.gitignore`). Lỡ commit key thì báo ngay để đổi ví.

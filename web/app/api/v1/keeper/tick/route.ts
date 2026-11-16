@@ -6,7 +6,7 @@ import { addresses, escrowAbi } from "@/lib/chain";
 import { env } from "@/lib/server/env";
 import { FINAL_STATES, readCanPokeMany, readDealCount, readDeals } from "@/lib/server/chain";
 import { ApiErr, json, route } from "@/lib/server/http";
-import { keeperWallet } from "@/lib/server/wallets";
+import { keeperSend } from "@/lib/server/wallets";
 import { syncEvents } from "@/lib/server/events";
 
 export const maxDuration = 60;
@@ -27,12 +27,13 @@ async function tick(req: Request) {
   const can = await readCanPokeMany(live);
   const due = live.filter((_, i) => can[i]);
 
-  const keeper = keeperWallet();
   const poked: { dealId: number; txHash: string }[] = [];
   const errors: { dealId: number; error: string }[] = [];
   for (const id of due) {
     try {
-      const txHash = await keeper.writeContract({ address: addresses.escrow, abi: escrowAbi, functionName: "poke", args: [id] });
+      const txHash = await keeperSend((w) =>
+        w.writeContract({ address: addresses.escrow, abi: escrowAbi, functionName: "poke", args: [id] }),
+      );
       poked.push({ dealId: Number(id), txHash });
     } catch (e) {
       errors.push({ dealId: Number(id), error: ((e as Error).message ?? "lỗi").split("\n")[0] });

@@ -3,7 +3,7 @@
 import { readCanPoke } from "@/lib/server/chain";
 import { onchainView } from "@/lib/server/chain";
 import { dealContext } from "@/lib/server/deal-context";
-import { dealHistory, syncEvents } from "@/lib/server/events";
+import { dealHistory, syncEventsSoon } from "@/lib/server/events";
 import { json, parseDealId, photoUrl, route } from "@/lib/server/http";
 import { getAiReport, getLatestPhotoSet, getPhotoSetByHash, type PhotoSetRow } from "@/lib/server/repo";
 import type { DamageReport, MismatchReport } from "@/lib/types";
@@ -13,8 +13,8 @@ const ZERO_HASH = `0x${"0".repeat(64)}`;
 export const GET = route(async (req: Request, ctx: { params: Promise<{ dealId: string }> }) => {
   const dealId = parseDealId((await ctx.params).dealId);
   const { deal, listing } = await dealContext(dealId);
-  // Đọc thêm vài đoạn sự kiện mới; lỗi RPC không được làm hỏng trang chi tiết.
-  await syncEvents(3).catch((e) => console.error("[events]", e));
+  // Đọc thêm sự kiện mới cho history, có giới hạn tần suất và thời gian chờ để trang không bị chậm.
+  await syncEventsSoon();
 
   const [canPoke, checkin, checkout, mismatch, damageRow, mismatchRow, history] = await Promise.all([
     readCanPoke(dealId),

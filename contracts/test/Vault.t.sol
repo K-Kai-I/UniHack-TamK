@@ -207,4 +207,31 @@ contract VaultTest is Test {
         assertEq(usdc.balanceOf(fee), 22_222, "phi san");
         assertEq(uint8(escrow.getDeal(id).state), uint8(IDepositEscrow.State.SETTLED));
     }
+
+    // ------------------------------------------------------------ vault rỗng bị "tặng" tiền (rà soát 16/11)
+
+    /// GHI NHẬN RỦI RO: vault ERC-4626 đang rỗng mà có người chuyển tiền vào trước (ở đây: simulateYield),
+    /// thì người gửi đầu tiên nhận quá ít cổ phần và mất gần hết tiền gửi. Test bất biến đã tìm ra ca này.
+    /// Contract không mất tiền của deal khác, nhưng 2 bên của deal này chịu lỗ.
+    function test_vault_emptyVaultDonation_firstDepositorLoses() public {
+        vault.simulateYield(500e6); // "tặng" 500 mUSDC vào vault rỗng
+        uint256 id = _deal(true);
+        _deposit(tenant, id, true);
+        uint256 redeemable = vault.previewRedeem(escrow.getDeal(id).vaultShares);
+        assertLt(redeemable, C / 2, "khong co moi: nguoi gui dau mat hon nua tien coc");
+    }
+
+    /// CÁCH CHẶN (script deploy làm sẵn): gửi mồi 1.000 mUSDC cho địa chỉ chết ngay khi tạo vault.
+    /// Sau đó cùng cú "tặng" 500 mUSDC chỉ còn là lãi chia đều, người gửi sau không mất gì đáng kể.
+    function test_vault_emptyVaultDonation_blockedBySeedDeposit() public {
+        usdc.mint(address(this), 1_000e6);
+        usdc.approve(address(vault), 1_000e6);
+        vault.deposit(1_000e6, address(0xdead));
+
+        vault.simulateYield(500e6);
+        uint256 id = _deal(true);
+        _deposit(tenant, id, true);
+        uint256 redeemable = vault.previewRedeem(escrow.getDeal(id).vaultShares);
+        assertApproxEqAbs(redeemable, C, 2, "co moi: rut lai du tien coc");
+    }
 }

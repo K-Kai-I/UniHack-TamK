@@ -24,3 +24,8 @@ line_length = 120
 [lint]
 # Hạn chót tính bằng phút/ngày; validator lệch vài giây không ảnh hưởng.
 exclude_lints = ["block-timestamp"]
+
+[invariant]
+runs = 64
+depth = 250
+fail_on_revert = false

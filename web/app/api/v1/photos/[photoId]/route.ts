@@ -9,6 +9,13 @@ export const GET = route(async (_req: Request, ctx: { params: Promise<{ photoId:
   const p = await getPhotoBytes(photoId);
   if (!p) throw new ApiErr("NOT_FOUND", "Không có ảnh này");
   return new Response(Buffer.from(p.data), {
-    headers: { "content-type": p.mime, "cache-control": "private, max-age=31536000, immutable" },
+    headers: {
+      "content-type": p.mime,
+      "cache-control": "private, max-age=31536000, immutable",
+      // Ảnh do người dùng tải lên: cấm trình duyệt tự đoán kiểu và cấm chạy như trang web.
+      "x-content-type-options": "nosniff",
+      "content-security-policy": "default-src 'none'",
+      "content-disposition": "inline",
+    },
   });
 });

@@ -43,7 +43,7 @@ Tiền chỉ đi giữa ví người dùng, contract và vault. API và AI khôn
 
 | Thành phần | Công nghệ | Việc |
 | --- | --- | --- |
-| `contracts/` | Solidity 0.8.24, Foundry, OpenZeppelin v5 | `DepositEscrow` giữ cọc, máy trạng thái 11 trạng thái, chia tiền, bồi thẩm, kiểm tra con dấu AI. `MockUSDC` là stablecoin test, `MockVault` là vault ERC-4626 sinh lãi giả. 83 test (có fuzz) |
+| `contracts/` | Solidity 0.8.24, Foundry, OpenZeppelin v5 | `DepositEscrow` giữ cọc, máy trạng thái 11 trạng thái, chia tiền, bồi thẩm, kiểm tra con dấu AI. `MockUSDC` là stablecoin test, `MockVault` là vault ERC-4626 sinh lãi giả. 88 test (có fuzz và test bất biến) |
 | `web/` | Next.js, Privy, wagmi, viem | Giao diện, đăng nhập Google tạo ví, camera, API |
 | `web/app/api/v1/` | Next.js Route Handlers | Lưu ảnh và điều khoản ngoài chuỗi, tính hash, gọi AI, ký con dấu, bot keeper |
 | `web/lib/ai/` | Gemini 3.1 Flash-Lite (so ảnh), OpenAI (giải thích tiếng Việt, tham khảo) | So ảnh, trả kết luận có cấu trúc |
@@ -80,6 +80,7 @@ Test contract: `cd contracts && npm install && npm run setup && forge test`.
 - Danh sách bồi thẩm do nhóm thêm và bồi thẩm chưa có thưởng, nên nhóm vẫn ảnh hưởng được kết quả tranh chấp (nhưng không lấy được tiền). Hướng sau: bồi thẩm đặt cọc, bỏ phiếu đúng bên thắng thì nhận một phần phí sàn.
 - Độ chính xác AI chưa được đo trên ảnh phòng trọ thật; AI chỉ đề xuất và là một phiếu, người thuê luôn kháng nghị được.
 - Ảnh vẫn có thể bị dàn dựng; camera trong app, thời gian và hash trên chuỗi làm việc giả mạo khó hơn chứ không loại bỏ hẳn.
+- Vault ERC-4626 đang rỗng có thể bị "tặng" tiền trước để người gửi đầu chịu lỗ. Hiện chặn bằng khoản gửi mồi lúc deploy; bản sau nên thêm kiểm tra số cổ phần tối thiểu ngay trong contract.
 - MVP chỉ dùng token test trên Fuji. Luật chia tiền cần luật sư xem trước khi dùng tiền thật.
 
 ## Nhóm
