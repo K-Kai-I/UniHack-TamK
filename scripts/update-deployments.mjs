@@ -13,9 +13,12 @@ const env = Object.fromEntries(
     .map((l) => [l.slice(0, l.indexOf("=")).trim(), l.slice(l.indexOf("=") + 1).trim().replace(/^["']|["']$/g, "")]),
 );
 
-const addr = (name) => {
+const addr = (name, optional = false) => {
   const tx = run.transactions.find((t) => t.contractName === name && t.transactionType === "CREATE");
-  if (!tx) throw new Error(`Không thấy ${name} trong broadcast`);
+  if (!tx) {
+    if (optional) return null;
+    throw new Error(`Không thấy ${name} trong broadcast`);
+  }
   return tx.contractAddress;
 };
 const block = Math.min(...run.receipts.map((r) => Number(r.blockNumber)));
@@ -27,7 +30,7 @@ const next = {
   abiVersion: (old.abiVersion ?? 0) + 1,
   deployedAt: new Date().toISOString(),
   deployBlock: block,
-  contracts: { DepositEscrow: addr("DepositEscrow"), MockUSDC: addr("MockUSDC"), MockVault: null },
+  contracts: { DepositEscrow: addr("DepositEscrow"), MockUSDC: addr("MockUSDC"), MockVault: addr("MockVault", true) },
   aiSigner: env.AI_SIGNER_ADDRESS,
   feeRecipient: env.FEE_RECIPIENT_ADDRESS,
 };

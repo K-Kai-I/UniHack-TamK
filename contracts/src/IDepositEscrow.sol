@@ -127,6 +127,8 @@ interface IDepositEscrow {
     error BadSignature();
     error BadVerdict();
     error NothingToPoke();
+    /// Hash bộ ảnh bằng 0 (chưa chụp gì). Chặn để không ai tự gia hạn bằng cách gửi bộ ảnh rỗng.
+    error EmptyHash();
 
     // ---------------------------------------------------------------- hàm
 

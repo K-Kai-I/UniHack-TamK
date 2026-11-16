@@ -1,0 +1,20 @@
+# Bot keeper dự phòng: GitHub gọi POST /api/v1/keeper/tick mỗi 5 phút (mức nhanh nhất GitHub cho phép,
+# và có thể trễ vài phút khi GitHub đông). Lịch 1 phút/lần: dùng cron-job.org (xem DEVELOPER.md).
+# Cần thêm secret KEEPER_SECRET ở Settings > Secrets and variables > Actions (cùng giá trị trên Vercel).
+name: keeper
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Gọi keeper/tick
+        env:
+          KEEPER_SECRET: ${{ secrets.KEEPER_SECRET }}
+          APP_URL: ${{ vars.APP_URL || 'https://unihack-tamk.vercel.app' }}
+        run: |
+          if [ -z "$KEEPER_SECRET" ]; then echo "Chưa có secret KEEPER_SECRET, bỏ qua"; exit 0; fi
+          curl -sS --fail-with-body -X POST "$APP_URL/api/v1/keeper/tick" -H "x-keeper-secret: $KEEPER_SECRET"

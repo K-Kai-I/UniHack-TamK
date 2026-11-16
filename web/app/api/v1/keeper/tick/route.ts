@@ -7,6 +7,7 @@ import { env } from "@/lib/server/env";
 import { FINAL_STATES, readCanPokeMany, readDealCount, readDeals } from "@/lib/server/chain";
 import { ApiErr, json, route } from "@/lib/server/http";
 import { keeperWallet } from "@/lib/server/wallets";
+import { syncEvents } from "@/lib/server/events";
 
 export const maxDuration = 60;
 
@@ -37,7 +38,12 @@ async function tick(req: Request) {
       errors.push({ dealId: Number(id), error: ((e as Error).message ?? "lỗi").split("\n")[0] });
     }
   }
-  return json({ checked: live.length, poked, errors });
+  // Tiện thể đọc sự kiện mới cho mục history (mỗi phút một lần là đủ theo kịp chuỗi).
+  const events = await syncEvents(20).catch((e) => {
+    console.error("[events]", e);
+    return -1;
+  });
+  return json({ checked: live.length, poked, errors, newEvents: events });
 }
 
 export const POST = route(tick);
