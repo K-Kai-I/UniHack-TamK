@@ -30,13 +30,15 @@ import type { Hash, Position } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export type CaptureKind = "checkin" | "checkout";
+/** Các khối chụp bên dưới dùng chung cho cả màn "Báo phòng không đúng" (components/mismatch-flow.tsx). */
+export type ShotKind = CaptureKind | "mismatch";
 
 const COPY = {
   checkin: { title: "Ảnh nhận phòng", submit: "Gửi ảnh nhận phòng", done: "Đã gửi ảnh nhận phòng" },
   checkout: { title: "Ảnh trả phòng", submit: "Gửi ảnh trả phòng", done: "Đã gửi ảnh trả phòng" },
 } as const;
 
-interface Shot {
+export interface Shot {
   blob: Blob;
   capturedAt: string;
   previewUrl: string;
@@ -321,7 +323,7 @@ function Flow({ deal, kind, back }: { deal: DealView; kind: CaptureKind; back: s
 }
 
 /** Một vị trí: hướng dẫn + ảnh tham chiếu + camera (hoặc ảnh vừa chụp để xem lại). */
-function ShootStep({
+export function ShootStep({
   deal,
   kind,
   pos,
@@ -332,7 +334,7 @@ function ShootStep({
   isLast,
 }: {
   deal: DealView;
-  kind: CaptureKind;
+  kind: ShotKind;
   pos: Position;
   shot: Shot | null;
   onCapture: (c: CapturedPhoto) => void;
@@ -341,11 +343,12 @@ function ShootStep({
   isLast: boolean;
 }) {
   // Trả phòng: tham chiếu là ảnh nhận phòng cùng vị trí, để chụp đúng góc cũ cho AI so.
-  // Nhận phòng: tham chiếu là ảnh ví dụ chủ trọ chụp lúc đăng phòng.
-  // TODO(spec): Terms chỉ có photoId + sha256 của ảnh ví dụ, GET /deals/:id chưa trả url. Tạm vẽ khung giữ chỗ.
+  // Nhận phòng và báo phòng sai: tham chiếu là ảnh ví dụ chủ trọ chụp lúc đăng phòng (GET /deals/:id > examplePhotoUrls).
   const refUrl =
-    kind === "checkout" ? (deal.photoSets.checkin?.items.find((i) => i.positionId === pos.id)?.url ?? null) : null;
-  const refLabel = kind === "checkout" ? "Lúc nhận phòng" : "Ảnh ví dụ";
+    kind === "checkout"
+      ? (deal.photoSets.checkin?.items.find((i) => i.positionId === pos.id)?.url ?? null)
+      : (deal.examplePhotoUrls[pos.id] ?? null);
+  const refLabel = kind === "checkout" ? "Lúc nhận phòng" : kind === "mismatch" ? "Lúc đăng tin" : "Ảnh ví dụ";
 
   return (
     <section aria-labelledby="pos-name" className="mt-4 space-y-4">
@@ -394,7 +397,7 @@ function ShootStep({
 }
 
 /** Lưới ảnh đã chụp để kiểm tra lần cuối trước khi khóa lên chuỗi. Chạm ảnh để quay lại vị trí đó. */
-function Review({
+export function Review({
   deal,
   shots,
   kind,
@@ -402,7 +405,7 @@ function Review({
 }: {
   deal: DealView;
   shots: Record<string, Shot>;
-  kind: CaptureKind;
+  kind: ShotKind;
   onPick?: (i: number) => void;
 }) {
   const positions = deal.terms.positions;
@@ -448,7 +451,9 @@ function Review({
             Gửi xong, bộ ảnh được khóa bằng một mã hash ghi lên smart contract. Không ai sửa được, kể cả app.
             {kind === "checkin"
               ? " Chủ trọ có một khoảng thời gian để xem; im lặng là đồng ý."
-              : " AI sẽ so với ảnh nhận phòng để tính mức trừ."}
+              : kind === "mismatch"
+                ? " AI sẽ so với ảnh chủ trọ đăng tin."
+                : " AI sẽ so với ảnh nhận phòng để tính mức trừ."}
           </p>
         </div>
       )}
@@ -457,7 +462,7 @@ function Review({
 }
 
 /** Dải chấm theo vị trí: xanh = đã chụp, viền = đang chụp. Chạm để nhảy tới vị trí. */
-function PositionStrip({
+export function PositionStrip({
   positions,
   shots,
   step,
@@ -497,7 +502,7 @@ function PositionStrip({
 }
 
 /** Tiến độ phần API (tải ảnh, khóa bộ ảnh, gọi AI). Phần giao dịch do TxStatus hiện. */
-function SubmitProgress({
+export function SubmitProgress({
   phase,
   uploaded,
   total,
