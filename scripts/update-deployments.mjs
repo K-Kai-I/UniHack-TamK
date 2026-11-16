@@ -36,3 +36,23 @@ const next = {
 };
 writeFileSync(path, JSON.stringify(next, null, 2) + "\n");
 console.log("shared/deployments.json:", JSON.stringify(next, null, 2));
+
+// Ghi bảng địa chỉ vào README (giữa 2 dòng đánh dấu deployments:start / deployments:end).
+const readmePath = join(root, "README.md");
+const readme = readFileSync(readmePath, "utf8");
+const link = (a) => `[${a}](https://testnet.snowtrace.io/address/${a})`;
+const rows = [
+  ["DepositEscrow", next.contracts.DepositEscrow],
+  ["MockUSDC", next.contracts.MockUSDC],
+  ...(next.contracts.MockVault ? [["MockVault", next.contracts.MockVault]] : []),
+].map(([n, a]) => `| \`${n}\` | ${link(a)} |`);
+const table = ["| Contract | Địa chỉ |", "| --- | --- |", ...rows].join("\n");
+const updated = readme.replace(
+  /(<!-- deployments:start[^\n]*-->\n)[\s\S]*?(\n<!-- deployments:end -->)/,
+  `$1${table}$2`,
+);
+if (updated !== readme) {
+  writeFileSync(readmePath, updated);
+  console.log("README.md: đã cập nhật bảng địa chỉ contract");
+}
+

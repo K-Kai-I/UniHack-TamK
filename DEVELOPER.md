@@ -8,7 +8,7 @@
 | --- | --- | --- | --- |
 | Contract + Backend | Khải | Solidity, test, deploy, API, ký con dấu AI, keeper, faucet | `contracts/`, `web/app/api/`, `web/lib/server/`, `scripts/` |
 | Frontend | (điền tên) | Mọi màn hình, Privy, camera, gọi contract và API | `web/app/`, `web/components/`, `web/lib/client/` |
-| AI | (điền tên) | `compareDamage`, `compareListing`, prompt, bộ 10 cặp ảnh, slide, kịch bản video | `web/lib/ai/` |
+| AI | Lê Đăng Khoa | `compareDamage`, `compareListing`, prompt, bộ 10 cặp ảnh, slide, kịch bản video | `web/lib/ai/` |
 
 Lịch từng ngày và cổng kiểm tra nằm trong doc "Timeline UniHack – Team" trên Drive.
 
@@ -30,14 +30,43 @@ npm run dev                      # http://localhost:3000
 cd ../contracts
 npm install                      # cài OpenZeppelin 5.1.0
 npm run setup                    # cài forge-std vào contracts/lib (cần Foundry)
-cp .env.example .env
+cp .env.example .env             # DEPLOYER_PRIVATE_KEY, AI_SIGNER_ADDRESS, FEE_RECIPIENT_ADDRESS, JUROR_ADDRESSES, USE_VAULT
 forge build
 forge test -vv
 ```
 
 Deploy web lên Vercel: import repo, đặt **Root Directory = `web`**, giữ bật "Include files outside the root directory" (web đọc `../shared`), rồi thêm các biến trong `web/.env.example` vào Settings > Environment Variables.
 
-Hiện trạng khung (12/11): contract biên dịch sạch với solc 0.8.24; `createDeal`, `cancelDeal`, `getDeal`, `addJuror` chạy thật, các hàm còn lại revert `NotImplemented()` kèm `TODO(spec)`. Web build được, trang chủ có nút đăng nhập Privy, route `GET /api/v1/config` đã viết, module AI đang là bản giả trả `UNCLEAR`. Giữ `wagmi` ở bản 2.x (bản 3 lỗi build với Privy).
+Hiện trạng (16/11): contract đủ P0 + P1 + vault P2, 83 test qua; đã deploy lên Fuji (địa chỉ trong `shared/deployments.json` và README). Backend có đủ 14 endpoint trong `docs/api-contract.md`, chạy trên Vercel. Giữ `wagmi` ở bản 2.x (bản 3 lỗi build với Privy).
+
+### Biến môi trường của backend (`web/.env.local` và Vercel)
+
+| Biến | Bí mật? | Lấy ở đâu |
+| --- | --- | --- |
+| `NEXT_PUBLIC_PRIVY_APP_ID` | Không | Privy dashboard |
+| `PRIVY_APP_SECRET` | Có | Privy dashboard > App settings > API keys |
+| `DATABASE_URL` | Có | Supabase > Connect > Transaction pooler (cổng 6543). Bỏ trống khi dev: server dùng PGlite trong máy |
+| `SUPABASE_URL` | Không | `https://<project-ref>.supabase.co` |
+| `STORAGE_KEY` | Có | Supabase > Project Settings > API Keys > Secret key (`sb_secret_…`). Bucket `photos` để private |
+| `AI_SIGNER_PRIVATE_KEY` | Có | Ví ký AI (chỉ ký, không cần AVAX). Địa chỉ của ví này phải trùng `AI_SIGNER_ADDRESS` lúc deploy |
+| `KEEPER_PRIVATE_KEY` | Có | Ví keeper (cần AVAX: gọi `poke`, phát faucet) |
+| `KEEPER_SECRET` | Có | Chuỗi ngẫu nhiên; cron gửi trong header `x-keeper-secret` |
+| `AI_MODEL`, `AI_API_KEY` | Có (key) | Gemini; `AI_MODEL=mock` để chạy không cần AI |
+| `OPENAI_API_KEY`, `OPENAI_MODEL` | Có (key) | Không bắt buộc: có thì báo cáo có thêm lời giải thích tiếng Việt |
+| `NEXT_PUBLIC_MOCK_API` | Không | `0` = frontend gọi API thật |
+| `FAUCET_AVAX` | Không | AVAX gửi cho ví mới ở faucet, mặc định `0.005` |
+| `AUTH_DEV_BYPASS` | Không | **Chỉ máy local**: `1` = nhận header `x-dev-wallet` thay token Privy. Vercel luôn bỏ qua |
+
+Biến `NEXT_PUBLIC_` được đóng gói lúc build: sửa trên Vercel xong phải Redeploy. Không bao giờ đặt `NEXT_PUBLIC_` trước biến bí mật.
+
+### Bot keeper chạy tự động
+
+Bot là `POST /api/v1/keeper/tick` (header `x-keeper-secret`): gọi `poke` cho mọi deal quá hạn và đọc sự kiện mới cho mục lịch sử. Gói Hobby của Vercel không chạy cron mỗi phút, nên dùng một trong hai:
+
+- [cron-job.org](https://cron-job.org): job mỗi 1 phút gọi URL trên, thêm header `x-keeper-secret`. Khuyên dùng khi demo.
+- GitHub Actions (`.github/workflows/keeper.yml`, mỗi 5 phút, có thể trễ): thêm secret `KEEPER_SECRET` ở Settings > Secrets and variables > Actions.
+
+Bot ngừng thì tiền không kẹt: ai cũng gọi được `poke` (nút "Xử lý quá hạn" trên app).
 
 ## Cấu trúc repo
 
@@ -62,7 +91,7 @@ ket-coc-tro/
     deployments.json   địa chỉ contract, chainId, abiVersion
     abi/               ABI xuất sau mỗi lần build contract
     samples/           JSON mẫu đúng schema
-  scripts/             keeper chạy tay, script tiện ích
+  scripts/             deploy, xuất ABI, keeper chạy tay, tạo phòng mẫu (seed-demo.mjs, demo/)
 ```
 
 ## Quy trình làm việc
@@ -117,7 +146,10 @@ Sau khi AI viết xong: tự đọc lại, chạy lệnh kiểm tra, và hỏi l
 | Build contract | `cd contracts && forge build` |
 | Test contract | `cd contracts && forge test -vv` |
 | Xuất ABI | `cd contracts && npm run export-abi` |
-| Deploy Fuji | `cd contracts && forge script script/Deploy.s.sol --rpc-url fuji --broadcast --verify` |
+| Chạy thử deploy (miễn phí, in phí gas dự kiến) | `cd contracts && forge script script/Deploy.s.sol --rpc-url fuji` |
+| Deploy Fuji | `cd contracts && npm run deploy:fuji` (deploy + verify + ghi `deployments.json`, ABI, bảng địa chỉ trong README) |
+| Tạo phòng mẫu cho demo | Xem đầu file `scripts/seed-demo.mjs` |
+| Tạo lãi giả trong vault | `cd web && node ../scripts/seed-demo.mjs --yield 5` |
 | Chạy keeper tay | `cd web && KEEPER_PRIVATE_KEY=0x... node ../scripts/keeper.mjs` |
 | Chấm AI | `cd web && npm run ai:eval` |
 

@@ -28,21 +28,38 @@ AI chỉ đề xuất và ký con dấu. AI không có ví và không chuyển �
 
 ## Kiến trúc
 
+```mermaid
+flowchart LR
+  U[Điện thoại người dùng<br/>Next.js + Privy] -- ký giao dịch --> C[(DepositEscrow<br/>Avalanche Fuji)]
+  U -- ảnh, điều khoản --> A[API Next.js<br/>trên Vercel]
+  A -- lưu ảnh, điều khoản --> S[(Supabase<br/>Postgres + Storage)]
+  A -- so ảnh --> G[Gemini]
+  A -- con dấu EIP-712 --> U
+  K[Bot keeper] -- poke khi quá hạn --> C
+  C -- lãi P2 --> V[(MockVault<br/>ERC-4626)]
+```
+
+Tiền chỉ đi giữa ví người dùng, contract và vault. API và AI không giữ tiền, không có quyền chuyển tiền.
+
 | Thành phần | Công nghệ | Việc |
 | --- | --- | --- |
-| `contracts/` | Solidity 0.8.24, Foundry, OpenZeppelin v5 | `DepositEscrow` giữ cọc, máy trạng thái, chia tiền, bồi thẩm, kiểm tra con dấu AI. `MockUSDC` là stablecoin test |
+| `contracts/` | Solidity 0.8.24, Foundry, OpenZeppelin v5 | `DepositEscrow` giữ cọc, máy trạng thái 11 trạng thái, chia tiền, bồi thẩm, kiểm tra con dấu AI. `MockUSDC` là stablecoin test, `MockVault` là vault ERC-4626 sinh lãi giả. 83 test (có fuzz) |
 | `web/` | Next.js, Privy, wagmi, viem | Giao diện, đăng nhập Google tạo ví, camera, API |
 | `web/app/api/v1/` | Next.js Route Handlers | Lưu ảnh và điều khoản ngoài chuỗi, tính hash, gọi AI, ký con dấu, bot keeper |
-| `web/lib/ai/` | Mô hình AI đọc ảnh | So ảnh, trả kết luận có cấu trúc |
+| `web/lib/ai/` | Gemini 3.1 Flash-Lite (so ảnh), OpenAI (giải thích tiếng Việt, tham khảo) | So ảnh, trả kết luận có cấu trúc |
 
 Đặc tả đầy đủ trong [`docs/`](docs/): [contract](docs/contract-spec.md), [API](docs/api-contract.md), [dữ liệu](docs/data-contract.md), [luồng người dùng](docs/user-flow.md).
 
 ## Contract đã deploy (Avalanche Fuji, chain ID 43113)
 
-| Contract | Địa chỉ | Snowtrace |
-| --- | --- | --- |
-| `DepositEscrow` | _cập nhật sau khi deploy_ | _link_ |
-| `MockUSDC` | _cập nhật sau khi deploy_ | _link_ |
+<!-- deployments:start (bảng này do scripts/update-deployments.mjs tự ghi sau mỗi lần deploy) -->
+| Contract | Địa chỉ |
+| --- | --- |
+| `DepositEscrow` | [0x05c387ef3730ce48371f3a0232ffdeaffa4dc5fe](https://testnet.snowtrace.io/address/0x05c387ef3730ce48371f3a0232ffdeaffa4dc5fe) |
+| `MockUSDC` | [0xf78ce5e0a1c56bc3c90131915fd361fbe369c633](https://testnet.snowtrace.io/address/0xf78ce5e0a1c56bc3c90131915fd361fbe369c633) |
+<!-- deployments:end -->
+
+App: [unihack-tamk.vercel.app](https://unihack-tamk.vercel.app). Mã nguồn contract đã verify trên Snowtrace.
 
 ## Chạy thử
 
@@ -50,14 +67,17 @@ Hướng dẫn cài đặt chi tiết cho người trong nhóm: [`DEVELOPER.md`]
 
 ```bash
 cd web
-cp .env.example .env.local
+cp .env.example .env.local   # bỏ trống DATABASE_URL thì server tự dùng database trong máy (PGlite)
 npm install
 npm run dev
 ```
 
+Test contract: `cd contracts && npm install && npm run setup && forge test`.
+
 ## Giới hạn đã biết
 
-- Danh sách bồi thẩm do nhóm thêm, nên một người vẫn có thể ảnh hưởng tới kết quả tranh chấp (nhưng không lấy được tiền).
+- Danh sách bồi thẩm do nhóm thêm và bồi thẩm chưa có thưởng, nên nhóm vẫn ảnh hưởng được kết quả tranh chấp (nhưng không lấy được tiền). Hướng sau: bồi thẩm đặt cọc, bỏ phiếu đúng bên thắng thì nhận một phần phí sàn.
+- Độ chính xác AI chưa được đo trên ảnh phòng trọ thật; AI chỉ đề xuất và là một phiếu, người thuê luôn kháng nghị được.
 - Ảnh vẫn có thể bị dàn dựng; camera trong app, thời gian và hash trên chuỗi làm việc giả mạo khó hơn chứ không loại bỏ hẳn.
 - MVP chỉ dùng token test trên Fuji. Luật chia tiền cần luật sư xem trước khi dùng tiền thật.
 
@@ -67,4 +87,4 @@ npm run dev
 | --- | --- |
 | Contract + Backend | Lê Quang Khải |
 | Frontend | _điền tên_ |
-| AI | _điền tên_ |
+| AI | Lê Đăng Khoa |

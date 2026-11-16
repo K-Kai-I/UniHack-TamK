@@ -155,7 +155,9 @@ Server đọc `getDeal(12)` và chỉ nhận khi `termsHash` và `landlord` kh�
 }
 ```
 
-Phần `onchain` được đọc từ contract ở mỗi lần gọi, không lấy từ database. `history` là P1; chưa kịp thì trả mảng rỗng.
+Phần `onchain` được đọc từ contract ở mỗi lần gọi, không lấy từ database. `history` dựng từ event của contract (server đọc log theo đoạn và lưu ở bảng `chain_events`), cũ trước mới sau; `StateChanged:<STATE>` chỉ xuất hiện khi giao dịch đó không có event nào khác (vd `poke` chuyển sang ACTIVE).
+
+Trường thêm ngoài mẫu trên: `listingId`; `listingPhotoUrls` (URL ảnh đăng tin); `examplePhotoUrls` (theo `positionId`); `aiStatus` (`{ damage, mismatch }`: `processing` | `done` | `failed` | null); `explanation` (lời giải thích OpenAI, chỉ tham khảo, không nằm trong báo cáo đã ký; null khi không có). `GET /listings` có thêm `amenities`. `GET /ai/damage` có thêm `explanation`.
 
 ### POST /deals/:dealId/photo-sets
 
