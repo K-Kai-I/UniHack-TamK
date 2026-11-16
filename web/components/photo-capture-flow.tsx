@@ -24,6 +24,7 @@ import { actionsFor, roleOf, type ActionId, type Role } from "@/lib/client/deal-
 import { DEALS_MOCK, fetchDealView, NotFoundError, type DealView } from "@/lib/client/deals-data";
 import { uploadPhoto } from "@/lib/client/listings-api";
 import { createPhotoSet, startDamageAi } from "@/lib/client/photo-sets-api";
+import { useCheckOutGrace } from "@/lib/client/use-config";
 import { formatDuration, useCountdown } from "@/lib/client/use-countdown";
 import { useTx } from "@/lib/client/use-tx";
 import type { Hash, Position } from "@/lib/types";
@@ -55,6 +56,7 @@ export function PhotoCaptureFlow({ dealId, kind, previewAs }: { dealId: string; 
     retry: (n, e) => !(e instanceof NotFoundError) && n < 2,
   });
   const { now } = useCountdown(null);
+  const checkOutGrace = useCheckOutGrace();
 
   const back = id !== null ? `/deals/${id}${previewAs ? `?as=${previewAs}` : ""}` : "/";
 
@@ -81,7 +83,7 @@ export function PhotoCaptureFlow({ dealId, kind, previewAs }: { dealId: string; 
   // Chỉ mở camera khi contract đang chờ đúng bước này từ đúng người (bảng "Nút trên app theo trạng thái").
   const role: Role = DEALS_MOCK && previewAs ? previewAs : roleOf(data, address);
   const need: ActionId[] = kind === "checkin" ? ["checkin"] : ["checkout", "checkoutForTenant"];
-  const allowed = actionsFor(data, role, now).some((a) => need.includes(a.id));
+  const allowed = actionsFor(data, role, now, checkOutGrace).some((a) => need.includes(a.id));
   if (!allowed) {
     return (
       <Blocked
@@ -90,7 +92,7 @@ export function PhotoCaptureFlow({ dealId, kind, previewAs }: { dealId: string; 
         text={
           kind === "checkin"
             ? "Chỉ người thuê chụp ảnh nhận phòng, sau khi đã gửi cọc và trước khi gửi ảnh."
-            : "Người thuê trả phòng khi đang ở. Chủ trọ chỉ trả phòng thay sau khi hết hạn thuê."
+            : "Người thuê trả phòng khi đang ở. Chủ trọ chỉ trả phòng thay sau khi hết hạn thuê và hết thời gian chờ."
         }
       />
     );
@@ -386,7 +388,7 @@ export function ShootStep({
           </div>
         </div>
       ) : (
-        <CameraCapture onCapture={onCapture} />
+        <CameraCapture onCapture={onCapture} overlayUrl={kind === "checkout" ? refUrl : null} />
       )}
 
       <p className="text-sm text-muted-foreground">

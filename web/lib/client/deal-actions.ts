@@ -54,12 +54,23 @@ export function roleOf(deal: DealView, wallet: string | undefined): Role {
 }
 
 /**
- * Nút theo trạng thái và vai trò. `now` dùng cho nút chỉ hiện sau một mốc giờ (Trả phòng thay).
+ * Chủ trọ được trả phòng thay từ lúc nào (ms): contract `submitCheckOut` cho chủ trọ gọi khi
+ * `now > leaseEnd + checkOutGrace`. `checkOutGraceSec` lấy từ GET /config > timeouts; null = chưa biết.
+ */
+export function checkoutForTenantFrom(deal: DealView, checkOutGraceSec: number | null): number | null {
+  if (checkOutGraceSec === null) return null;
+  return Date.parse(deal.terms.dates.leaseEnd) + checkOutGraceSec * 1000;
+}
+
+/**
+ * Nút theo trạng thái và vai trò. `now` dùng cho nút phụ thuộc mốc giờ (Trả phòng thay, Tôi vẫn đang ở).
+ * `checkOutGraceSec`: GET /config > timeouts.checkOutGrace; null (chưa tải được) thì chưa hiện "Trả phòng thay".
  * Người xem không phải hai bên (bồi thẩm, người lạ) không có nút nào ở đây.
  */
-export function actionsFor(deal: DealView, role: Role, now: number): DealAction[] {
+export function actionsFor(deal: DealView, role: Role, now: number, checkOutGraceSec: number | null): DealAction[] {
   const s = deal.onchain.state;
   const hasCheckIn = deal.photoSets.checkin !== null;
+  const deadlinePassed = deal.onchain.deadline !== null && now > Date.parse(deal.onchain.deadline);
 
   if (role === "tenant") {
     switch (s) {
@@ -70,7 +81,8 @@ export function actionsFor(deal: DealView, role: Role, now: number): DealAction[
       case "ACTIVE":
         return [act("checkout", "Trả phòng", "primary", "P0")];
       case "ABANDON_REPORTED":
-        return [act("contestAbandon", "Tôi vẫn đang ở", "primary", "P1")];
+        // contestAbandon chỉ hợp lệ trước deadline (contract revert DeadlinePassed). Quá hạn thì chỉ còn poke.
+        return deadlinePassed ? [] : [act("contestAbandon", "Tôi vẫn đang ở", "primary", "P1")];
       case "CHECKED_OUT":
         return [act("viewReport", "Xem báo cáo AI", "secondary", "P0")];
       case "PROPOSED":
@@ -90,13 +102,16 @@ export function actionsFor(deal: DealView, role: Role, now: number): DealAction[
       case "OPEN":
         return [act("cancel", "Gỡ phòng", "danger", "P0")];
       case "RESERVED":
-        return hasCheckIn ? [act("contestCheckIn", "Phản đối ảnh nhận phòng", "secondary", "P2")] : [];
+        // contestCheckIn: đã có ảnh, chưa quá hạn phản đối, và chỉ một lần (contract-spec > contestCheckIn).
+        return hasCheckIn && !deadlinePassed && !deal.onchain.checkInContested
+          ? [act("contestCheckIn", "Phản đối ảnh nhận phòng", "secondary", "P2")]
+          : [];
       case "MISMATCH_REPORTED":
         return [act("contestMismatch", "Phản đối", "primary", "P1")];
       case "ACTIVE": {
         const list = [act("reportAbandon", "Báo người thuê bỏ đi", "secondary", "P1")];
-        // TODO(spec): đúng ra là sau leaseEnd + checkOutGrace (lấy từ GET /config). Tạm so với leaseEnd.
-        if (now > Date.parse(deal.terms.dates.leaseEnd)) list.unshift(act("checkoutForTenant", "Trả phòng thay", "primary", "P1"));
+        const from = checkoutForTenantFrom(deal, checkOutGraceSec);
+        if (from !== null && now > from) list.unshift(act("checkoutForTenant", "Trả phòng thay", "primary", "P1"));
         return list;
       }
       case "CHECKED_OUT":

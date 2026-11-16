@@ -15,7 +15,8 @@ import { NetworkBanner } from "@/components/network-banner";
 import { PageHeader } from "@/components/page-header";
 import { RoomCover } from "@/components/room-cover";
 import { WalletChip } from "@/components/wallet-chip";
-import { fetchDeal, MOCK_VND_PER_TOKEN, NotFoundError, type DealDetail } from "@/lib/client/rooms-data";
+import { fetchDeal, NotFoundError, type DealDetail } from "@/lib/client/rooms-data";
+import { useVndRate } from "@/lib/client/use-vnd-rate";
 import { formatDate, monthsBetween } from "@/lib/client/date";
 import { amountToVnd, formatToken, formatVnd } from "@/lib/client/money";
 import type { Amount } from "@/lib/types";
@@ -51,9 +52,14 @@ export function RoomDetail({ dealId }: { dealId: string }) {
   );
 }
 
-const vnd = (a: Amount) => formatVnd(amountToVnd(a, MOCK_VND_PER_TOKEN));
+/** Đổi số tiền sang chuỗi VND theo tỉ giá từ GET /config. */
+function useVnd() {
+  const rate = useVndRate();
+  return (a: Amount) => formatVnd(amountToVnd(a, rate));
+}
 
 function DetailBody({ deal }: { deal: DealDetail }) {
+  const vnd = useVnd();
   const { terms, onchain } = deal;
   const photoCount = Math.max(deal.listingPhotoUrls.length, terms.listingPhotos.length);
   const months = monthsBetween(terms.dates.moveInDate, terms.dates.leaseEnd);
@@ -198,6 +204,7 @@ function Row({
 
 /** Thanh nút dính đáy: nút "Gửi cọc" chỉ hoạt động khi phòng OPEN và người xem không phải chủ trọ. */
 function DepositBar({ deal }: { deal: DealDetail }) {
+  const vnd = useVnd();
   const { ready, authenticated, login } = usePrivy();
   const { address } = useAccount();
   const { onchain, terms } = deal;

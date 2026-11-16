@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/page-header";
 import { RoomCover } from "@/components/room-cover";
-import { fetchOpenListings, MOCK_VND_PER_TOKEN, type ListingItem } from "@/lib/client/rooms-data";
+import { fetchOpenListings, type ListingItem } from "@/lib/client/rooms-data";
+import { useVndRate } from "@/lib/client/use-vnd-rate";
 import { formatDayMonth } from "@/lib/client/date";
 import { amountToVnd, formatVnd } from "@/lib/client/money";
 
@@ -81,7 +82,7 @@ export function RoomsList() {
 }
 
 function RoomItem({ room }: { room: ListingItem }) {
-  const depositVnd = formatVnd(amountToVnd(room.depositAmount, MOCK_VND_PER_TOKEN));
+  const depositVnd = formatVnd(amountToVnd(room.depositAmount, useVndRate()));
   const shown = room.amenities.slice(0, MAX_CHIPS);
   const more = room.amenities.length - shown.length;
 

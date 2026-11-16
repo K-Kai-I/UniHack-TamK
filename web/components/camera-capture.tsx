@@ -4,7 +4,8 @@
 // Dự phòng: <input type="file" accept="image/*" capture="environment"> khi getUserMedia không dùng được
 // (trình duyệt chặn, HTTP trên mạng LAN, từ chối quyền). Input này mở thẳng app camera, không có thư viện ảnh.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Camera, RefreshCw, SwitchCamera } from "lucide-react";
+import { Camera, Layers, RefreshCw, SwitchCamera } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 export interface CapturedPhoto {
@@ -18,7 +19,15 @@ export interface CapturedPhoto {
 
 type CamState = "starting" | "live" | "fallback";
 
-export function CameraCapture({ onCapture }: { onCapture: (p: CapturedPhoto) => void }) {
+export function CameraCapture({
+  onCapture,
+  overlayUrl,
+}: {
+  onCapture: (p: CapturedPhoto) => void;
+  /** Ảnh cũ cùng vị trí (P2 "lớp ảnh mờ"): vẽ mờ đè lên khung để chụp đúng góc cũ. Chỉ để canh góc:
+   *  snap() chỉ vẽ khung hình video ra canvas nên lớp mờ KHÔNG nằm trong ảnh chụp. */
+  overlayUrl?: string | null;
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -26,6 +35,8 @@ export function CameraCapture({ onCapture }: { onCapture: (p: CapturedPhoto) => 
   const [facing, setFacing] = useState<"environment" | "user">("environment");
   const [reason, setReason] = useState("");
   const [attempt, setAttempt] = useState(0); // tăng để mở lại camera sau khi bị từ chối
+  const [ghost, setGhost] = useState(true);
+  const showGhost = !!overlayUrl && ghost && cam === "live";
 
   const stop = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -130,6 +141,21 @@ export function CameraCapture({ onCapture }: { onCapture: (p: CapturedPhoto) => 
       <div className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-black">
         {/* playsInline + muted: bắt buộc trên iOS Safari để video không bật toàn màn hình */}
         <video ref={videoRef} playsInline muted className="size-full object-cover" />
+        {showGhost && (
+          // Cùng object-cover và cùng khung 3:4 với video, nên ảnh cũ trùng khít vị trí trên màn hình.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={overlayUrl!}
+            alt=""
+            aria-hidden
+            className="pointer-events-none absolute inset-0 size-full object-cover opacity-35"
+          />
+        )}
+        {showGhost && (
+          <p className="pointer-events-none absolute inset-x-3 top-3 rounded-full bg-black/55 px-3 py-1 text-center text-xs text-white">
+            Canh cho khớp ảnh mờ lúc nhận phòng
+          </p>
+        )}
         {cam === "starting" && (
           <p className="absolute inset-0 grid place-items-center text-sm text-white/80">Đang mở camera…</p>
         )}
@@ -150,6 +176,18 @@ export function CameraCapture({ onCapture }: { onCapture: (p: CapturedPhoto) => 
             <Button size="lg" className="h-14 flex-1 text-base" onClick={snap}>
               <Camera /> Chụp
             </Button>
+            {overlayUrl && (
+              <Button
+                size="lg"
+                variant="secondary"
+                className={cn("h-14", ghost && "ring-2 ring-primary/40")}
+                aria-label={ghost ? "Ẩn ảnh mờ lúc nhận phòng" : "Hiện ảnh mờ lúc nhận phòng"}
+                aria-pressed={ghost}
+                onClick={() => setGhost((g) => !g)}
+              >
+                <Layers />
+              </Button>
+            )}
             <Button
               size="lg"
               variant="secondary"

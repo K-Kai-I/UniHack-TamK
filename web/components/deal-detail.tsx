@@ -5,7 +5,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePrivy } from "@privy-io/react-auth";
-import { useAccount } from "wagmi";
+import { useAccount, useReadContract } from "wagmi";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Check, Clock, Gavel, Hourglass, Loader2, SearchX } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,9 +19,11 @@ import { PokeDrawer, PokeTrigger, useCanPoke } from "@/components/poke-button";
 import { RoomCover } from "@/components/room-cover";
 import { TxStatus } from "@/components/tx-status";
 import { WalletChip } from "@/components/wallet-chip";
-import { addresses, escrowAbi } from "@/lib/chain";
+import { addresses, chain, escrowAbi } from "@/lib/chain";
+import { vaultAbi } from "@/lib/abi";
 import {
   actionsFor,
+  checkoutForTenantFrom,
   deadlineInfo,
   roleOf,
   stepIndex,
@@ -31,12 +33,13 @@ import {
   type Role,
 } from "@/lib/client/deal-actions";
 import { DEALS_MOCK, fetchDealView, NotFoundError, type DealView, type PhotoSetView } from "@/lib/client/deals-data";
-import { formatDate } from "@/lib/client/date";
+import { formatDate, formatDateTime } from "@/lib/client/date";
 import { amountToVnd, formatToken, formatVnd } from "@/lib/client/money";
 import { formatDuration, useCountdown } from "@/lib/client/use-countdown";
 import { useTx } from "@/lib/client/use-tx";
+import { useAppConfig, useCheckOutGrace } from "@/lib/client/use-config";
 import { useVndRate } from "@/lib/client/use-vnd-rate";
-import type { Amount } from "@/lib/types";
+import type { Amount, Timeouts } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const ROLE_LABEL: Record<Role, string> = { tenant: "Người thuê", landlord: "Chủ trọ", viewer: "Người xem" };
@@ -61,7 +64,7 @@ export function DealDetail({ dealId, previewAs }: { dealId: string; previewAs?: 
     <>
       <NetworkBanner />
       <main className="mx-auto min-h-dvh max-w-md px-5 pb-40">
-        <PageHeader href="/" backLabel="Về trang chủ" title={id !== null ? `Hợp đồng #${id}` : "Hợp đồng"} />
+        <PageHeader href="/deals" backLabel="Về Hợp đồng của tôi" title={id !== null ? `Hợp đồng #${id}` : "Hợp đồng"} />
         {DEALS_MOCK && <PreviewSwitch dealId={id} current={previewAs} />}
         {isPending && <DetailSkeleton />}
         {error && !isPending && (
@@ -99,9 +102,16 @@ function DetailBody({ deal, role, onExpire }: { deal: DealView; role: Role; onEx
       </section>
 
       <Stepper deal={deal} />
-      <DeadlineCard deal={deal} onExpire={onExpire} />
+      <DeadlineCard deal={deal} role={role} onExpire={onExpire} />
       <ProposalCard deal={deal} role={role} vnd={vnd} />
       <MismatchCard deal={deal} />
+      {onchain.state === "RESERVED" && onchain.checkInContested && !deal.photoSets.checkin && (
+        <InfoBox icon={<AlertTriangle className="size-5" />} title="Chủ trọ đã phản đối ảnh nhận phòng">
+          {role === "tenant"
+            ? "Chụp lại các vị trí trước hạn. Lần này chủ trọ không phản đối được nữa."
+            : "Đang chờ người thuê chụp lại. Bạn đã dùng lần phản đối duy nhất."}
+        </InfoBox>
+      )}
 
       <section aria-labelledby="money" className="space-y-3">
         <h2 id="money" className="text-lg font-bold">
@@ -112,7 +122,7 @@ function DetailBody({ deal, role, onExpire }: { deal: DealView; role: Role; onEx
           <Row label="Phí giữ chỗ" value={vnd(onchain.reserveFee)} sub={formatToken(onchain.reserveFee)} />
           <Row label="Dọn vào" value={formatDate(terms.dates.moveInDate)} />
           <Row label="Hết hạn thuê" value={formatDate(terms.dates.leaseEnd)} />
-          {onchain.yieldOn && <Row label="Sinh lãi" value="Đang bật" />}
+          {onchain.yieldOn && <YieldRow deal={deal} vnd={vnd} />}
         </dl>
       </section>
 
@@ -152,6 +162,36 @@ function DetailBody({ deal, role, onExpire }: { deal: DealView; role: Role; onEx
   );
 }
 
+/**
+ * Lãi tạm tính khi cọc đang nằm trong vault (user-flow > Chưa có trong spec #4, P2):
+ * `vault.convertToAssets(vaultShares) − deposit`, trước phí sàn. Đọc thẳng contract (không qua API) mỗi 30 giây.
+ * Khi kết thúc, contract trừ phí sàn rồi chia đôi phần còn lại cho hai bên (contract-spec > Chia tiền).
+ */
+function YieldRow({ deal, vnd }: { deal: DealView; vnd: (a: Amount) => string }) {
+  const live = !DEALS_MOCK && addresses.vault !== null;
+  const d = useReadContract({
+    address: addresses.escrow,
+    abi: escrowAbi,
+    functionName: "getDeal",
+    args: [BigInt(deal.dealId)],
+    chainId: chain.id,
+    query: { enabled: live },
+  });
+  const shares = d.data?.vaultShares;
+  const assets = useReadContract({
+    address: addresses.vault ?? undefined,
+    abi: vaultAbi,
+    functionName: "convertToAssets",
+    args: shares !== undefined ? [shares] : undefined,
+    chainId: chain.id,
+    query: { enabled: live && shares !== undefined, refetchInterval: 30_000 },
+  });
+  if (assets.data === undefined) return <Row label="Sinh lãi" value="Đang bật" />;
+  const gain = assets.data - BigInt(deal.onchain.deposit);
+  const g = (gain > 0n ? gain : 0n).toString();
+  return <Row label="Lãi tạm tính" value={vnd(g)} sub={`${formatToken(g)} · trước phí sàn, chia đôi khi kết thúc`} />;
+}
+
 /** Thanh 5 bước: xong (dấu tick), đang làm (tô đậm), chưa tới (mờ). */
 function Stepper({ deal }: { deal: DealView }) {
   const current = stepIndex(deal);
@@ -186,16 +226,20 @@ function Stepper({ deal }: { deal: DealView }) {
 }
 
 /** Đếm ngược deadline + nói rõ hết hạn thì chuyện gì xảy ra (ai im lặng thì người đó chịu). */
-function DeadlineCard({ deal, onExpire }: { deal: DealView; onExpire: () => void }) {
+function DeadlineCard({ deal, role, onExpire }: { deal: DealView; role: Role; onExpire: () => void }) {
   const { onchain } = deal;
   const info = deadlineInfo(onchain.state, deal.photoSets.checkin !== null);
   const { passed, msLeft } = useCountdown(onchain.deadline, onExpire);
+  const checkoutFrom = checkoutForTenantFrom(deal, useCheckOutGrace());
 
   if (!info || !onchain.deadline || msLeft === null) {
     if (onchain.state === "ACTIVE") {
       return (
         <InfoBox icon={<Clock className="size-5" />} title="Đang thuê">
           Hết hạn thuê ngày {formatDate(deal.terms.dates.leaseEnd)}. Người thuê bấm Trả phòng khi dọn đi.
+          {role === "landlord" &&
+            checkoutFrom !== null &&
+            ` Người thuê chưa trả thì từ ${formatDateTime(new Date(checkoutFrom).toISOString())} bạn được trả phòng thay.`}
         </InfoBox>
       );
     }
@@ -319,6 +363,9 @@ const READY: ActionId[] = [
   "mismatch",
   "contestMismatch",
   "viewVotes",
+  "reportAbandon",
+  "contestAbandon",
+  "contestCheckIn",
 ];
 
 /** Nút mở màn khác (thay vì mở hộp thoại giao dịch tại chỗ). */
@@ -341,10 +388,11 @@ function hrefFor(id: ActionId, dealId: number, previewAs?: Role): string | null 
 
 function ActionBar({ deal, role, previewAs }: { deal: DealView; role: Role; previewAs?: Role }) {
   const { ready, authenticated, login } = usePrivy();
-  const [cancelOpen, setCancelOpen] = useState(false);
+  const [quickTx, setQuickTx] = useState<QuickTxId | null>(null);
   const [pokeOpen, setPokeOpen] = useState(false);
   const { now } = useCountdown(null);
-  const actions = actionsFor(deal, role, now);
+  const checkOutGrace = useCheckOutGrace();
+  const actions = actionsFor(deal, role, now, checkOutGrace);
   const { onchain } = deal;
   const canPoke = useCanPoke(deal);
   const receiptHref = hrefFor("receipt", deal.dealId, previewAs)!;
@@ -389,7 +437,7 @@ function ActionBar({ deal, role, previewAs }: { deal: DealView; role: Role; prev
             action={a}
             href={hrefFor(a.id, deal.dealId, previewAs)}
             secondary={canPoke}
-            onCancel={() => setCancelOpen(true)}
+            onQuickTx={setQuickTx}
           />
         ))}
       </div>
@@ -401,9 +449,10 @@ function ActionBar({ deal, role, previewAs }: { deal: DealView; role: Role; prev
       {showBar && (
         <div className="fixed inset-x-0 bottom-0 z-30 border-t bg-background/95 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur supports-[backdrop-filter]:bg-background/80">
           <div className="mx-auto max-w-md px-5 pt-3">{content}</div>
-          <CancelDrawer deal={deal} open={cancelOpen} onClose={() => setCancelOpen(false)} />
         </div>
       )}
+      {/* Nằm ngoài thanh: giao dịch xong thì nút biến mất (deal đổi trạng thái) nhưng drawer vẫn còn để hiện kết quả. */}
+      <QuickTxDrawer deal={deal} id={quickTx} onClose={() => setQuickTx(null)} />
       <PokeDrawer deal={deal} open={pokeOpen} onClose={() => setPokeOpen(false)} receiptHref={receiptHref} />
     </>
   );
@@ -413,14 +462,15 @@ function ActionButton({
   action,
   href,
   secondary,
-  onCancel,
+  onQuickTx,
 }: {
   action: DealAction;
   href: string | null;
   /** true khi đã có nút "Xử lý quá hạn" ở trên: các nút khác lùi xuống nút viền. */
   secondary: boolean;
-  onCancel: () => void;
+  onQuickTx: (id: QuickTxId) => void;
 }) {
+  const quick = isQuickTx(action.id) ? action.id : null;
   const ready = READY.includes(action.id);
   const variant =
     action.variant === "danger" ? "outline" : action.variant === "secondary" || secondary ? "outline" : "default";
@@ -444,7 +494,7 @@ function ActionButton({
       size="lg"
       variant={variant}
       disabled={!ready}
-      onClick={action.id === "cancel" ? onCancel : undefined}
+      onClick={quick ? () => onQuickTx(quick) : undefined}
       className={cls}
     >
       {action.label}
@@ -453,11 +503,75 @@ function ActionButton({
   );
 }
 
-/** Chủ trọ gỡ phòng chưa ai cọc: xác nhận rồi gửi `cancelDeal(id)`. Hiện 3 trạng thái giao dịch, xong thì tải lại deal.
+/** Giao dịch một bước, chỉ cần dealId: xác nhận ngay tại màn này, không mở màn khác. */
+type QuickTxId = "cancel" | "reportAbandon" | "contestAbandon" | "contestCheckIn";
+const QUICK_TX: QuickTxId[] = ["cancel", "reportAbandon", "contestAbandon", "contestCheckIn"];
+const isQuickTx = (id: ActionId): id is QuickTxId => (QUICK_TX as ActionId[]).includes(id);
+
+/** "2 phút", "3 giờ", "2 ngày": độ dài một khoảng chờ trong câu văn (formatDuration là kiểu đồng hồ đếm ngược). */
+function formatWindow(sec: number): string {
+  if (sec >= 86400 && sec % 86400 === 0) return `${sec / 86400} ngày`;
+  if (sec >= 3600 && sec % 3600 === 0) return `${sec / 3600} giờ`;
+  if (sec >= 60) return `${Math.round(sec / 60)} phút`;
+  return `${sec} giây`;
+}
+
+function quickTxCopy(id: QuickTxId, timeouts: Timeouts | null) {
+  const win = (sec: number | undefined) => (sec !== undefined ? formatWindow(sec) : "một khoảng thời gian");
+  const wait = win(timeouts?.abandonWindow);
+  switch (id) {
+    case "contestCheckIn":
+      // contract-spec > contestCheckIn: xóa hash ảnh, deadline = now + moveInGrace; hết hạn chưa chụp lại → NO_SHOW (C − R).
+      return {
+        fn: "contestCheckIn" as const,
+        title: "Phản đối ảnh nhận phòng?",
+        text: `Ảnh người thuê gửi sẽ bị gỡ và họ phải chụp lại trong ${win(timeouts?.moveInGrace)}. Không chụp lại kịp thì người thuê được hoàn cọc, bạn giữ phí giữ chỗ. Bạn chỉ phản đối được một lần.`,
+        button: "Phản đối, yêu cầu chụp lại",
+        done: "Đã phản đối. Đang chờ người thuê chụp lại",
+        danger: false,
+      };
+    case "cancel":
+      return {
+        fn: "cancelDeal" as const,
+        title: "Gỡ phòng này?",
+        text: "Phòng chưa có ai cọc. Gỡ xong, phòng không hiện trong danh sách nữa và không mở lại được.",
+        button: "Gỡ phòng",
+        done: "Đã gỡ phòng",
+        danger: true,
+      };
+    case "reportAbandon":
+      // contract-spec > Chia tiền > ABANDONED: người thuê im lặng thì chủ trọ nhận C + L/2.
+      return {
+        fn: "reportAbandon" as const,
+        title: "Báo người thuê đã bỏ đi?",
+        text: `Người thuê có ${wait} để bấm “Tôi vẫn đang ở”. Họ im lặng tới hạn thì bạn nhận toàn bộ tiền cọc. Chỉ báo khi người thuê thật sự đã dọn đi mà không trả phòng.`,
+        button: "Báo bỏ đi",
+        done: "Đã báo. Đang chờ người thuê trả lời",
+        danger: false,
+      };
+    case "contestAbandon":
+      return {
+        fn: "contestAbandon" as const,
+        title: "Bạn vẫn đang ở phòng này?",
+        text: "Chủ trọ báo bạn đã bỏ đi. Xác nhận để hợp đồng quay lại Đang thuê, cọc của bạn vẫn nằm yên trong contract.",
+        button: "Tôi vẫn đang ở",
+        done: "Đã xác nhận. Hợp đồng quay lại Đang thuê",
+        danger: false,
+      };
+  }
+}
+
+/** Xác nhận rồi gửi giao dịch một bước (`cancelDeal`, `reportAbandon`, `contestAbandon`), tham số duy nhất là dealId.
+ *  Hiện 3 trạng thái giao dịch, xong thì tải lại deal. Contract tự kiểm tra người gọi, trạng thái và hạn chót.
  *  Nút "Xử lý quá hạn" (poke) nằm ở components/poke-button.tsx để các màn khác dùng chung. */
-function CancelDrawer({ deal, open, onClose }: { deal: DealView; open: boolean; onClose: () => void }) {
+function QuickTxDrawer({ deal, id, onClose }: { deal: DealView; id: QuickTxId | null; onClose: () => void }) {
   const tx = useTx();
   const qc = useQueryClient();
+  const cfg = useAppConfig();
+  // Giữ id cuối cùng để chữ trong drawer không biến mất trong lúc drawer đang đóng.
+  const [shown, setShown] = useState<QuickTxId>("cancel");
+  if (id && id !== shown) setShown(id);
+  const copy = quickTxCopy(shown, cfg?.timeouts ?? null);
   const busy = tx.state.phase === "signing" || tx.state.phase === "pending";
   const done = tx.state.phase === "success";
 
@@ -465,7 +579,7 @@ function CancelDrawer({ deal, open, onClose }: { deal: DealView; open: boolean; 
     const receipt = await tx.run({
       address: addresses.escrow,
       abi: escrowAbi,
-      functionName: "cancelDeal",
+      functionName: copy.fn,
       args: [BigInt(deal.dealId)],
     });
     if (receipt) await qc.invalidateQueries({ queryKey: ["deal-view", deal.dealId] });
@@ -478,18 +592,16 @@ function CancelDrawer({ deal, open, onClose }: { deal: DealView; open: boolean; 
   }
 
   return (
-    <Drawer open={open} onOpenChange={change}>
+    <Drawer open={id !== null} onOpenChange={change}>
       <DrawerContent>
         <div className="mx-auto w-full max-w-md px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
           <DrawerHeader className="px-0 text-left">
-            <DrawerTitle className="text-xl font-extrabold text-primary">Gỡ phòng này?</DrawerTitle>
-            <DrawerDescription>
-              Phòng chưa có ai cọc. Gỡ xong, phòng không hiện trong danh sách nữa và không mở lại được.
-            </DrawerDescription>
+            <DrawerTitle className="text-xl font-extrabold text-primary">{copy.title}</DrawerTitle>
+            <DrawerDescription>{copy.text}</DrawerDescription>
           </DrawerHeader>
           {tx.state.phase !== "idle" && (
             <div className="mb-3">
-              <TxStatus state={tx.state} doneText="Đã gỡ phòng" />
+              <TxStatus state={tx.state} doneText={copy.done} />
             </div>
           )}
           {done ? (
@@ -497,9 +609,15 @@ function CancelDrawer({ deal, open, onClose }: { deal: DealView; open: boolean; 
               Xong
             </Button>
           ) : (
-            <Button size="lg" variant="destructive" className="h-14 w-full text-base" disabled={busy} onClick={submit}>
+            <Button
+              size="lg"
+              variant={copy.danger ? "destructive" : "default"}
+              className="h-14 w-full text-base"
+              disabled={busy}
+              onClick={submit}
+            >
               {busy && <Loader2 className="animate-spin" />}
-              {tx.state.phase === "error" ? "Thử lại" : "Gỡ phòng"}
+              {tx.state.phase === "error" ? "Thử lại" : copy.button}
             </Button>
           )}
         </div>
