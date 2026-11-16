@@ -1,6 +1,19 @@
 import "server-only";
 import { z } from "zod";
 
+export class AiRequestError extends Error {
+  constructor(message: string, readonly retryable: boolean, readonly retryAfterMs = 1000) {
+    super(message);
+  }
+}
+
+function retryDelay(value: string | null) {
+  if (!value) return 1000;
+  const seconds = Number(value);
+  const ms = Number.isFinite(seconds) ? seconds * 1000 : Date.parse(value) - Date.now();
+  return Number.isFinite(ms) ? Math.max(0, ms) : 1000;
+}
+
 export async function postJson(url: string, headers: Record<string, string>, body: unknown) {
   let response: Response;
   try {
@@ -9,11 +22,22 @@ export async function postJson(url: string, headers: Record<string, string>, bod
       body: JSON.stringify(body), signal: AbortSignal.timeout(90_000),
     });
   } catch {
-    throw new Error("Không kết nối được AI hoặc quá 90 giây. Hãy thử lại.");
+    throw new AiRequestError("Không kết nối được AI hoặc quá 90 giây. Hãy thử lại.", true);
   }
   // Không đưa response thô hoặc headers vào lỗi: chúng có thể chứa dữ liệu riêng tư.
-  if (!response.ok) throw new Error(`Dịch vụ AI trả HTTP ${response.status}. Kiểm tra API key, model và hạn mức.`);
-  return response.json() as Promise<unknown>;
+  if (!response.ok) {
+    const status = response.status;
+    const hint = status === 429 ? "Đạt giới hạn tốc độ hoặc hạn mức; kiểm tra dashboard."
+      : status >= 500 ? "Dịch vụ AI đang lỗi hoặc quá tải; thử lại sau."
+      : status === 401 || status === 403 ? "Kiểm tra API key và quyền truy cập model."
+      : "Kiểm tra model và định dạng yêu cầu.";
+    const delay = retryDelay(response.headers.get("retry-after"));
+    // Không thử sớm hơn Retry-After; trả lỗi nếu thời gian chờ vượt ngân sách.
+    throw new AiRequestError(`Dịch vụ AI trả HTTP ${status}. ${hint}`,
+      [408, 429, 500, 502, 503, 504].includes(status) && delay <= 10_000, delay);
+  }
+  try { return await response.json() as unknown; }
+  catch { throw new AiRequestError("Dịch vụ AI trả phản hồi không phải JSON hợp lệ.", true); }
 }
 
 export function imagePart(url: string) {
@@ -46,23 +70,27 @@ export async function geminiJson<T>(input: unknown[], schema: object, parse: (va
   const key = process.env.AI_API_KEY?.trim();
   if (!key) throw new Error("Thiếu AI_API_KEY trong web/.env.local (khóa Gemini).");
   const model = process.env.AI_MODEL?.trim();
-  if (!model || model === "mock") throw new Error("Đặt AI_MODEL=gemini-4-hydrogen để gọi Gemini thật.");
+  if (!model || model === "mock") throw new Error("Đặt AI_MODEL thành model Gemini được tài khoản hỗ trợ.");
   // Tối đa 2 lần gọi theo lỗi AI_FAILED trong docs/api-contract.md;
   // cũng không vượt giới hạn 2 lần thử lại của AGENTS.md.
   for (let attempt = 0; attempt < 2; attempt++) {
-    const raw = await postJson("https://generativelanguage.googleapis.com/v1beta/interactions", {
-      "x-goog-api-key": key, "Api-Revision": "2026-05-20",
-    }, {
-      model, store: false, input,
-      response_format: { type: "text", mime_type: "application/json", schema },
-    });
     try {
+      const raw = await postJson("https://generativelanguage.googleapis.com/v1beta/interactions", {
+        "x-goog-api-key": key, "Api-Revision": "2026-05-20",
+      }, {
+        model, store: false, input,
+        response_format: { type: "text", mime_type: "application/json", schema },
+      });
       const response = geminiResponse.parse(raw);
       const text = response.steps.filter(s => s.type === "model_output")
         .flatMap(s => s.content ?? []).filter(p => p.type === "text").map(p => p.text ?? "").join("");
       return parse(JSON.parse(text));
-    } catch {
-      if (attempt === 1) throw new Error("AI_FAILED: Gemini không trả kết quả hợp lệ sau 2 lần gọi.");
+    } catch (error) {
+      if (error instanceof AiRequestError && !error.retryable) throw new Error(`AI_FAILED: ${error.message}`);
+      if (attempt === 1) throw new Error(error instanceof AiRequestError
+        ? `AI_FAILED: ${error.message} Đã thử 2 lần.`
+        : "AI_FAILED: Gemini không trả kết quả hợp lệ sau 2 lần gọi.");
+      await new Promise(resolve => setTimeout(resolve, error instanceof AiRequestError ? error.retryAfterMs : 1000));
     }
   }
   throw new Error("AI_FAILED");

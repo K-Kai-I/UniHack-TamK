@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { compareDamage, compareListing } from "./index";
 import { explainDamage } from "../llm/explain";
 import { imagePart } from "./providers";
+import { casesSchema, score, summarize, toCsv, type EvalRow } from "./eval/evaluation";
 
 const originalFetch = globalThis.fetch;
 const oldEnv = { AI_MODEL: process.env.AI_MODEL, AI_API_KEY: process.env.AI_API_KEY, OPENAI_API_KEY: process.env.OPENAI_API_KEY };
@@ -99,4 +100,70 @@ test("OpenAI từ chối hoặc trả thiếu nội dung là lỗi", async () =>
   process.env.OPENAI_API_KEY = "test-only";
   globalThis.fetch = async () => Response.json({ status: "completed", output: [{ type: "message", content: [{ type: "refusal" }] }] });
   await assert.rejects(explainDamage({ model: "x", promptVersion: "x", positions: [{ ...output, verdict: "NEW_DAMAGE" }] }), /không trả/);
+});
+
+test("503 được thử lại và phục hồi, không lộ response thô", async () => {
+  setup(); let calls = 0;
+  globalThis.fetch = async () => ++calls === 1
+    ? new Response("secret", { status: 503, headers: { "retry-after": "0" } }) : response(output);
+  assert.equal((await compareDamage({ positions: [position], priceList })).positions[0].verdict, "NEW_DAMAGE");
+  assert.equal(calls, 2);
+});
+test("503 liên tiếp dừng sau hai lần và giải thích quá tải", async () => {
+  setup(); let calls = 0;
+  globalThis.fetch = async () => { calls++; return new Response("secret", { status: 503, headers: { "retry-after": "0" } }); };
+  await assert.rejects(compareDamage({ positions: [position], priceList }), /AI_FAILED:.*503.*quá tải/);
+  assert.equal(calls, 2);
+});
+test("401 và 400 không thử lại", async () => {
+  setup();
+  for (const status of [400, 401]) {
+    let calls = 0;
+    globalThis.fetch = async () => { calls++; return new Response("secret", { status }); };
+    await assert.rejects(compareDamage({ positions: [position], priceList }), /AI_FAILED/);
+    assert.equal(calls, 1);
+  }
+});
+test("429 tôn trọng Retry-After dài, không gọi ngay lần hai", async () => {
+  setup(); let calls = 0;
+  globalThis.fetch = async () => { calls++; return new Response("secret", { status: 429, headers: { "retry-after": "60" } }); };
+  await assert.rejects(compareDamage({ positions: [position], priceList }), /429.*hạn mức/);
+  assert.equal(calls, 1);
+});
+test("lỗi mạng và response không phải JSON được thử lại", async () => {
+  setup();
+  for (const kind of ["network", "json"]) {
+    let calls = 0;
+    globalThis.fetch = async () => {
+      if (++calls === 1) { if (kind === "network") throw new Error("secret network"); return new Response("not-json"); }
+      return response(output);
+    };
+    await compareDamage({ positions: [position], priceList }); assert.equal(calls, 2);
+  }
+});
+test("listing: tất cả MATCH mới MATCH; một UNCLEAR thì không MATCH", async () => {
+  setup();
+  for (const verdict of ["MATCH", "UNCLEAR"] as const) {
+    let calls = 0;
+    globalThis.fetch = async () => response({ verdict: ++calls === 1 ? "MATCH" : verdict, confidence: 0.8, reasons: ["Quan sát cấu trúc"] });
+    assert.equal((await compareListing({ positions: [position, { ...position, positionId: "p2" }] })).verdict, verdict);
+  }
+});
+test("listing thiếu lý do bị từ chối", async () => {
+  setup(); globalThis.fetch = async () => response({ verdict: "MATCH", confidence: 0.9, reasons: [" "] });
+  await assert.rejects(compareListing({ positions: [position] }), /AI_FAILED/);
+});
+test("eval kiểm tra nhãn, số lượng và ngoài bảng giá riêng", () => {
+  const c = casesSchema.parse([{ task: "damage", name: "test", positionId: "p1", positionName: "Tường", before: "a.jpg", after: "b.jpg", expectVerdict: "NEW_DAMAGE", expectPriceItemId: "i1", expectQuantity: 2, expectOutsidePriceList: false }])[0];
+  assert.equal(c.labelStatus, "provisional");
+  assert.deepEqual(score(c, output), { labelMatch: true, fieldsMatch: false });
+  assert.equal(score(c, { ...output, quantity: 2 }).fieldsMatch, true);
+  assert.throws(() => casesSchema.parse([{ ...c, expectVerdict: "WEAR" }]));
+});
+test("eval tách lỗi dịch vụ khỏi sai nhãn và bảo vệ CSV", () => {
+  const base: EvalRow = { name: "=SUM(1)", task: "damage", model: "test", promptVersion: "v1", expected: "WEAR", predicted: "WEAR", labelStatus: "reviewed", labelMatch: true, fieldsMatch: true, durationMs: 20, error: null, output: null };
+  const summary = summarize([base, { ...base, predicted: null, labelMatch: false, fieldsMatch: false, error: "503", durationMs: 100 }])[0];
+  assert.equal(summary.valid, 1); assert.equal(summary.errors, 1); assert.equal(summary.labelMatches, 1);
+  assert.equal(summary.medianMs, 20); assert.equal(summary.confusion.WEAR.ERROR, 1);
+  assert.ok(toCsv([base]).includes("'=SUM(1)"));
 });

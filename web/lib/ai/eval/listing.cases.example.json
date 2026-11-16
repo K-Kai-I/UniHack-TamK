@@ -1,0 +1,5 @@
+[
+  {"task":"listing","name":"Cùng phòng, khác ánh sáng","positionId":"p1","positionName":"Toàn cảnh phòng","before":"images/listing-01-before.jpg","after":"images/listing-01-after.jpg","expectVerdict":"MATCH","labelStatus":"provisional"},
+  {"task":"listing","name":"Thiếu cửa sổ lớn","positionId":"p1","positionName":"Toàn cảnh phòng","before":"images/listing-02-before.jpg","after":"images/listing-02-after.jpg","expectVerdict":"MISMATCH","labelStatus":"provisional"},
+  {"task":"listing","name":"Ảnh thực tế che khuất","positionId":"p1","positionName":"Toàn cảnh phòng","before":"images/listing-03-before.jpg","after":"images/listing-03-after.jpg","expectVerdict":"UNCLEAR","labelStatus":"provisional"}
+]

@@ -47,7 +47,7 @@ if (-not (Test-Path .env.local)) { Copy-Item .env.example .env.local }
 Mở .env.local bằng VS Code, điền bốn biến này (giá trị khóa bên dưới chỉ là hướng dẫn):
 
 ```dotenv
-AI_MODEL=gemini-4-hydrogen
+AI_MODEL=gemini-3.1-flash-lite
 AI_API_KEY=DIEN_KHOA_GEMINI_CUA_BAN
 OPENAI_MODEL=gpt-6-luna
 OPENAI_API_KEY=DIEN_KHOA_OPENAI_CUA_BAN
@@ -111,7 +111,46 @@ ai:test giả lập câu trả lời dịch vụ để kiểm tra code, không g
 typecheck kiểm tra kiểu TypeScript. ai:eval gọi Gemini thật, tốn hạn mức; chỉ chạy sau khi chép
 cases.example.json thành cases.json, bổ sung ít nhất 10 cặp có ảnh thật và nhãn do người kiểm tra.
 Nhãn là kết quả mong đợi: expectVerdict, expectPriceItemId. Không cần đổi tên ảnh giống nhãn.
-Đánh giá này hiện chỉ chấm damage, chưa chấm listing hoặc chất lượng diễn giải OpenAI.
+Eval chấm cả damage và listing, chưa chấm chất lượng diễn giải OpenAI.
+
+### Bộ đánh giá và báo cáo tự động
+
+Chạy từ thư mục `web`:
+
+```powershell
+# Kiểm tra 10 cặp tham khảo đã có trên máy, không gọi API
+npm.cmd run ai:eval -- --cases reference/cases.json --allow-provisional --dry-run
+# Chạy model trong .env.local, ghi kết quả sau từng ca
+npm.cmd run ai:eval -- --cases reference/cases.json --allow-provisional
+# So sánh cùng bộ ảnh giữa các model mà tài khoản hỗ trợ
+npm.cmd run ai:eval -- --cases reference/cases.json --allow-provisional --models "gemini-3.1-flash-lite,gemini-3.8-flash,gemini-4-hydrogen"
+```
+
+`reference/` là bộ proxy đã gửi trước đây: không phải 10 cặp cùng phòng trước/sau.
+Nhãn của các ảnh ghép khác mẫu có thể không phù hợp với prompt nhận diện cùng vật;
+model trả UNCLEAR trên chúng không tự chứng minh model kém. Chỉ dùng để thử pipeline.
+Các ảnh này và kết quả chạy được Git bỏ qua, không tự đưa lên GitHub.
+
+Bộ chính thức đặt ở `eval/cases.json`, ít nhất 10 ca damage, đủ bốn nhãn. Mỗi ca
+thêm `task: "damage"`, `labelStatus: "reviewed"` sau khi người kiểm tra xác nhận.
+Có thể chấm thêm `expectQuantity` và `expectOutsidePriceList`; bỏ trống thì không chấm hai trường đó.
+Giữ nguồn ảnh bằng trường `source`. Không đổi nhãn theo dự đoán của model để tăng điểm.
+
+Listing: sao chép `listing.cases.example.json` thành bộ riêng, thay đường dẫn bằng ảnh thật,
+kiểm tra nhãn và chạy `--cases listing.cases.json`. Mẫu chưa kèm ảnh, không phải kết quả test.
+Bộ listing cần đủ ba nhãn MATCH/MISMATCH/UNCLEAR.
+
+Kết quả nằm ở `eval/results/<thời-gian>-<pid>/results.json` và `results.csv`.
+Mỗi ca lưu model, promptVersion, nhãn mong đợi/dự đoán, khớp nhãn/khớp trường,
+thời gian, lỗi và đầu ra đã kiểm tra. Ca lỗi không làm dừng các ca tiếp theo.
+JSON có số ca hợp lệ, số lỗi, độ khớp nhãn trên ca hợp lệ và trên tổng yêu cầu,
+ma trận nhầm nhãn và thời gian trung vị của ca thành công. Nhãn provisional được cảnh báo rõ.
+Mã thoát 1 có thể là ca sai/lỗi; xem báo cáo để phân biệt, không gộp lỗi mạng thành sai nhãn.
+
+Gemini thử tối đa hai lần tổng cộng cho lỗi mạng/timeout, JSON sai và HTTP tạm thời
+408/429/500/502/503/504. Chờ một giây hoặc theo Retry-After; nếu Retry-After trên 10 giây,
+trả lỗi để người gọi thử sau, không gọi sớm. HTTP 400/401/403 không thử lại.
+HTTP 503 không có nghĩa hết lượt miễn phí. Không có cơ chế tự đổi model ngầm.
 
 ## 6. Nối với web app (việc backend/frontend còn cần làm)
 
