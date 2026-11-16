@@ -30,6 +30,7 @@ Bốn lựa chọn đầu là đề xuất, nhóm chốt trong buổi họp. Gi�
 | `GET /config` | Mọi người | Địa chỉ contract, chain ID, tỉ giá VND, phí, 8 hạn chót | P0 | 13/11 |
 | `POST /faucet` | Đã đăng nhập | Gửi AVAX thử và mUSDC cho ví của người gọi | P0 | 13/11 |
 | `POST /uploads` | Đã đăng nhập | Nhận 1 ảnh, lưu, tính SHA-256 | P0 | 14/11 |
+| `GET /photos/:photoId` | Mọi người | Trả file ảnh (kho ảnh để private, ảnh đi qua server) | P0 | 16/11 |
 | `POST /listings` | Chủ trọ | Nhận điều khoản, dựng file điều khoản chuẩn, trả `termsHash` | P0 | 14/11 |
 | `POST /listings/:listingId/onchain` | Chủ trọ | Gắn `dealId` sau khi `createDeal` thành công | P0 | 14/11 |
 | `GET /listings?state=OPEN` | Mọi người | Danh sách "Phòng đang trống" | P0 | 14/11 |

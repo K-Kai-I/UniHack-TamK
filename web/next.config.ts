@@ -3,6 +3,10 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Cho phép import file trong ../shared (deployments.json, abi).
   experimental: { externalDir: true },
+  // API tự chạy db/schema.sql lúc khởi động: đưa file này vào gói chạy trên Vercel.
+  outputFileTracingIncludes: { "/api/**/*": ["./db/schema.sql"] },
+  // PGlite (database local khi chưa có DATABASE_URL) có file wasm, không bundle được.
+  serverExternalPackages: ["@electric-sql/pglite", "postgres"],
   webpack: (config) => {
     // Privy và wagmi connectors import tùy chọn các gói Solana, x402, Abstract, Farcaster
     // mà app không dùng (chỉ dùng EVM trên Avalanche). Bỏ qua để build không lỗi.
