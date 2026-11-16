@@ -282,13 +282,30 @@ function PhotoSetSection({ title, set, deal }: { title: string; set: PhotoSetVie
 // ------------------------------------------------------------------ nút hành động
 
 // Nút đã có màn/giao dịch thật. Nút còn lại hiện mờ kèm "Sắp có" cho tới khi làm xong màn tương ứng.
-const READY: ActionId[] = ["deposit", "cancel", "checkin", "checkout", "checkoutForTenant"];
+const READY: ActionId[] = [
+  "deposit",
+  "cancel",
+  "checkin",
+  "checkout",
+  "checkoutForTenant",
+  "viewReport",
+  "propose",
+  "respond",
+  "receipt",
+];
 
 /** Nút mở màn khác (thay vì mở hộp thoại giao dịch tại chỗ). */
 function hrefFor(id: ActionId, dealId: number, previewAs?: Role): string | null {
-  const as = DEALS_MOCK && previewAs ? `&as=${previewAs}` : "";
-  if (id === "checkin") return `/deals/${dealId}/photos?kind=checkin${as}`;
-  if (id === "checkout" || id === "checkoutForTenant") return `/deals/${dealId}/photos?kind=checkout${as}`;
+  const as = DEALS_MOCK && previewAs ? `as=${previewAs}` : "";
+  const q = (...parts: string[]) => {
+    const s = parts.filter(Boolean).join("&");
+    return s ? `?${s}` : "";
+  };
+  if (id === "checkin") return `/deals/${dealId}/photos${q("kind=checkin", as)}`;
+  if (id === "checkout" || id === "checkoutForTenant") return `/deals/${dealId}/photos${q("kind=checkout", as)}`;
+  // Cùng một màn báo cáo: phần hành động ở cuối đổi theo vai và trạng thái (đề xuất / trả lời / chỉ xem).
+  if (id === "viewReport" || id === "propose" || id === "respond") return `/deals/${dealId}/report${q(as)}`;
+  if (id === "receipt") return `/deals/${dealId}/receipt${q(as)}`;
   return null;
 }
 

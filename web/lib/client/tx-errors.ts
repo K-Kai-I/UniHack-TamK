@@ -18,6 +18,7 @@ const CONTRACT_ERRORS: Record<string, string> = {
   AlreadyVoted: "Bạn đã bỏ phiếu rồi.",
   BadSignature: "Con dấu AI không hợp lệ.",
   BadVerdict: "Kết luận không hợp lệ.",
+  EmptyHash: "Bộ ảnh chưa được máy chủ khóa (hash rỗng). Gửi lại ảnh rồi thử lại.",
   NothingToPoke: "Hiện không có gì cần xử lý.",
   NotImplemented: "Hàm này contract chưa làm xong.",
 };
