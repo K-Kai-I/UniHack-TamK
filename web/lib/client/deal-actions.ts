@@ -6,6 +6,11 @@ import type { DealView } from "./deals-data";
 
 export type Role = "tenant" | "landlord" | "viewer";
 
+/** Đã chia tiền xong (có biên nhận). */
+export const PAID_STATES: readonly DealState[] = ["SETTLED", "REFUNDED"];
+/** Đã kết thúc, không còn bước nào (gồm cả gỡ tin). */
+export const TERMINAL_STATES: readonly DealState[] = ["SETTLED", "REFUNDED", "CANCELLED"];
+
 export type ActionId =
   | "deposit"
   | "cancel"
@@ -140,17 +145,30 @@ export function deadlineInfo(state: DealState, hasCheckIn: boolean): { waiting: 
 const absDiff = (a: bigint, b: bigint) => (a > b ? a - b : b - a);
 
 /**
+ * Tranh chấp mức trừ: phiếu AI về bên có con số gần aiAmount hơn (contract `disputeProposal`).
+ * Về chủ trọ chỉ khi |D − AI| < |counter − AI|; bằng nhau thì về người thuê.
+ */
+export function deductionAiSide(proposed: bigint, counter: bigint, aiAmount: bigint): "landlord" | "tenant" {
+  return absDiff(proposed, aiAmount) < absDiff(counter, aiAmount) ? "landlord" : "tenant";
+}
+
+/**
  * Bên được cộng sẵn phiếu AI lúc mở tranh chấp (contract `_openDispute`). null = không có phiếu AI.
  *  - DEDUCTION: bên có con số gần aiAmount hơn; bằng nhau thì người thuê.
  *  - MISMATCH: người thuê, khi con dấu ghi "khác rõ" (đi qua contestMismatch). "Không rõ" thì không có phiếu.
+ *    hasAiSeal không đủ để phân biệt (con dấu "không rõ" cũng bật hasAiSeal), nên xem deal có từng qua
+ *    MISMATCH_REPORTED không (sự kiện StateChanged trong history, đọc từ chuỗi): có thì chắc chắn là contestMismatch.
+ *    history trống (indexer chưa kịp) thì mới dựa vào kết luận AI trong database.
  */
 export function aiVoteSide(deal: DealView, mismatchVerdict?: ListingVerdict | null): "landlord" | "tenant" | null {
   const o = deal.onchain;
   if (!o.hasAiSeal) return null;
-  if (o.disputeKind === "MISMATCH") return mismatchVerdict === "MISMATCH" ? "tenant" : null;
+  if (o.disputeKind === "MISMATCH") {
+    const contested = deal.history.some((h) => h.event === "StateChanged:MISMATCH_REPORTED");
+    return contested || mismatchVerdict === "MISMATCH" ? "tenant" : null;
+  }
   if (o.disputeKind !== "DEDUCTION") return null;
-  const AI = BigInt(o.aiAmount);
-  return absDiff(BigInt(o.proposedAmount), AI) < absDiff(BigInt(o.counterAmount), AI) ? "landlord" : "tenant";
+  return deductionAiSide(BigInt(o.proposedAmount), BigInt(o.counterAmount), BigInt(o.aiAmount));
 }
 
 /** Hết hạn bồi thẩm mà chưa bên nào đủ 2 phiếu thì `poke` chia thế nào (contract `_juryExpired`). */

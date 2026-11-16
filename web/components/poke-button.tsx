@@ -14,24 +14,20 @@ import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { TxStatus } from "@/components/tx-status";
 import { addresses, chain, escrowAbi } from "@/lib/chain";
-import { pokeEffect } from "@/lib/client/deal-actions";
+import { PAID_STATES, TERMINAL_STATES, pokeEffect } from "@/lib/client/deal-actions";
 import { DEALS_MOCK, type DealView } from "@/lib/client/deals-data";
 import { amountToVnd, formatVnd } from "@/lib/client/money";
 import { useCountdown } from "@/lib/client/use-countdown";
 import { useTx } from "@/lib/client/use-tx";
 import { useVndRate } from "@/lib/client/use-vnd-rate";
-import type { DealState } from "@/lib/types";
 import { cn } from "@/lib/utils";
-
-const TERMINAL: DealState[] = ["SETTLED", "REFUNDED", "CANCELLED"];
-const PAID: DealState[] = ["SETTLED", "REFUNDED"];
 
 /** true khi ai cũng gọi được poke cho deal này (API báo, hoặc contract báo khi API chưa kịp). */
 export function useCanPoke(deal: DealView): boolean {
   const o = deal.onchain;
   const { passed } = useCountdown(o.deadline);
   // Bản giả không có deal thật trên chuỗi: chỉ tin API giả.
-  const askChain = !DEALS_MOCK && passed && !o.canPoke && !TERMINAL.includes(o.state);
+  const askChain = !DEALS_MOCK && passed && !o.canPoke && !TERMINAL_STATES.includes(o.state);
   const live = useReadContract({
     address: addresses.escrow,
     abi: escrowAbi,
@@ -41,6 +37,23 @@ export function useCanPoke(deal: DealView): boolean {
     query: { enabled: askChain, refetchInterval: (q) => (q.state.data ? false : 4000) },
   });
   return o.canPoke || (askChain && live.data === true);
+}
+
+/** Chỉ cái nút. Màn nào tự giữ state mở drawer (như thanh hành động ở Chi tiết hợp đồng) thì dùng cái này + PokeDrawer. */
+export function PokeTrigger({
+  onClick,
+  className,
+  big = true,
+}: {
+  onClick: () => void;
+  className?: string;
+  big?: boolean;
+}) {
+  return (
+    <Button size="lg" className={cn("w-full text-base", big ? "h-14" : "h-12", className)} onClick={onClick}>
+      <TimerOff /> Xử lý quá hạn
+    </Button>
+  );
 }
 
 export function PokeButton({
@@ -58,20 +71,17 @@ export function PokeButton({
   const can = useCanPoke(deal);
   const [open, setOpen] = useState(false);
   // Giữ drawer khi đã mở: poke xong thì canPoke về false, nhưng người dùng còn cần thấy kết quả.
+  // Chỉ đúng khi component cha KHÔNG gỡ nút này lúc canPoke về false; cha nào có thể gỡ thì dùng PokeTrigger + PokeDrawer.
   if (!can && !open) return null;
   return (
     <>
-      {can && (
-        <Button size="lg" className={cn("w-full text-base", big ? "h-14" : "h-12", className)} onClick={() => setOpen(true)}>
-          <TimerOff /> Xử lý quá hạn
-        </Button>
-      )}
+      {can && <PokeTrigger onClick={() => setOpen(true)} className={className} big={big} />}
       <PokeDrawer deal={deal} open={open} onClose={() => setOpen(false)} receiptHref={receiptHref} />
     </>
   );
 }
 
-function PokeDrawer({
+export function PokeDrawer({
   deal,
   open,
   onClose,
@@ -112,7 +122,7 @@ function PokeDrawer({
     ]);
     if (!receipt) return;
     const next = qc.getQueryData<DealView>(["deal-view", deal.dealId]);
-    setPaid(!!next && PAID.includes(next.onchain.state));
+    setPaid(!!next && PAID_STATES.includes(next.onchain.state));
   }
 
   function change(next: boolean) {

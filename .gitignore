@@ -27,7 +27,7 @@ out/
 .planning/
 CLAUDE.local.md
 .claude/settings.local.json
-vercel-recovery-codes-lucknguyen.19@gmail.com.txt
+vercel-recovery-codes-*.txt
 
 # Editor / OS
 .vscode/*

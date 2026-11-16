@@ -24,20 +24,19 @@ import { PokeButton } from "@/components/poke-button";
 import { TxStatus } from "@/components/tx-status";
 import { addresses, chain, escrowAbi } from "@/lib/chain";
 import { ApiClientError } from "@/lib/client/api";
-import { aiVoteSide, juryExpiryText, roleOf } from "@/lib/client/deal-actions";
+import { PAID_STATES, aiVoteSide, juryExpiryText, roleOf } from "@/lib/client/deal-actions";
 import { DEALS_MOCK, fetchDealView, NotFoundError, type DealView } from "@/lib/client/deals-data";
 import { fetchDispute, type DisputeEvidence, type DisputeView } from "@/lib/client/disputes-api";
 import { amountToVnd, formatToken, formatVnd } from "@/lib/client/money";
 import { formatDuration, useCountdown } from "@/lib/client/use-countdown";
 import { useTx } from "@/lib/client/use-tx";
 import { useVndRate } from "@/lib/client/use-vnd-rate";
-import type { Address, DealState } from "@/lib/types";
+import type { Address } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type Side = "landlord" | "tenant";
 /** enum Side { NONE, LANDLORD, TENANT } trong contract. */
 const SIDE_CODE: Record<Side, number> = { landlord: 1, tenant: 2 };
-const PAID: DealState[] = ["SETTLED", "REFUNDED"];
 
 export function JuryVote({ dealId }: { dealId: string }) {
   const id = /^\d+$/.test(dealId) ? Number(dealId) : null;
@@ -64,7 +63,12 @@ export function JuryVote({ dealId }: { dealId: string }) {
   const d = deal.data;
   const back = d && roleOf(d, address) !== "viewer" ? `/deals/${id}` : "/jury";
 
-  if (dispute.error instanceof ApiClientError && dispute.error.code === "WRONG_STATE") {
+  // Deal đã SETTLED/REFUNDED theo đường thường (không ai kháng nghị) thì API vẫn trả 200 với kind = NONE.
+  const noDispute =
+    (dispute.error instanceof ApiClientError && dispute.error.code === "WRONG_STATE") ||
+    d?.onchain.disputeKind === "NONE" ||
+    dispute.data?.kind === "NONE";
+  if (noDispute) {
     return (
       <Blocked
         back={`/deals/${id}`}
@@ -152,10 +156,12 @@ function Screen({
   });
   const isJuror = DEALS_MOCK || juror.data === true;
   const hasVoted = !DEALS_MOCK && voted.data === true;
+  // Chưa đọc xong hasVoted thì chưa hiện ô bỏ phiếu: bồi thẩm đã bỏ phiếu bấm vào sẽ bị revert AlreadyVoted.
+  const votedKnown = DEALS_MOCK || !voted.isPending;
 
   const busy = tx.state.phase === "signing" || tx.state.phase === "pending";
   const done = tx.state.phase === "success";
-  const canVote = open && !passed && !isParty && isJuror && !hasVoted && !done;
+  const canVote = open && !passed && !isParty && isJuror && votedKnown && !hasVoted && !done;
   const aiSide = aiVoteSide(deal, dispute.aiVerdict);
   const receiptHref = `/deals/${deal.dealId}/receipt`;
 
@@ -251,7 +257,7 @@ function Screen({
 
           {canVote && <Choices deal={deal} kind={kind} choice={choice} onChoose={setChoice} vnd={vnd} />}
 
-          {!open && PAID.includes(o.state) && (
+          {!open && PAID_STATES.includes(o.state) && (
             <InfoBox icon={<CheckCircle2 className="size-5" />} tone="success" title="Vụ này đã phân xử xong">
               Tiền cọc đã được contract chia. Xem ai nhận bao nhiêu ở biên nhận.
             </InfoBox>
@@ -279,10 +285,10 @@ function Screen({
         {tx.state.phase !== "idle" && (
           <TxStatus
             state={tx.state}
-            doneText={PAID.includes(o.state) ? "Đã bỏ phiếu, đủ 2 phiếu nên contract đã chia tiền" : "Đã bỏ phiếu"}
+            doneText={PAID_STATES.includes(o.state) ? "Đã bỏ phiếu, đủ 2 phiếu nên contract đã chia tiền" : "Đã bỏ phiếu"}
           />
         )}
-        {PAID.includes(o.state) ? (
+        {PAID_STATES.includes(o.state) ? (
           <Button asChild size="lg" className="h-14 w-full text-base">
             <Link href={receiptHref}>Xem biên nhận</Link>
           </Button>

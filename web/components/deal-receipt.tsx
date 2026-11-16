@@ -12,15 +12,12 @@ import { Blocked, InfoBox, Row, Rows } from "@/components/deal-bits";
 import { NetworkBanner } from "@/components/network-banner";
 import { PageHeader } from "@/components/page-header";
 import { chain, explorerTxUrl } from "@/lib/chain";
-import { roleOf, type Role } from "@/lib/client/deal-actions";
+import { PAID_STATES, roleOf, type Role } from "@/lib/client/deal-actions";
 import { DEALS_MOCK, fetchDealView, NotFoundError, type DealView } from "@/lib/client/deals-data";
 import { formatDateTime } from "@/lib/client/date";
 import { amountToVnd, formatToken, formatVnd, shortAddress } from "@/lib/client/money";
 import { fetchPaid, type Outcome, type PaidInfo } from "@/lib/client/receipt";
 import { useVndRate } from "@/lib/client/use-vnd-rate";
-import type { DealState } from "@/lib/types";
-
-const DONE: DealState[] = ["SETTLED", "REFUNDED"];
 
 /** Vì sao chia như vậy (bảng Outcome trong docs/contract-spec.md). */
 const OUTCOME_TEXT: Record<Outcome, string> = {
@@ -45,7 +42,7 @@ export function DealReceipt({ dealId, previewAs }: { dealId: string; previewAs?:
     // Vừa chia tiền xong mà server chưa kịp đọc event Paid: hỏi lại tới khi có.
     refetchInterval: (q) => {
       const d = q.state.data;
-      return d && DONE.includes(d.onchain.state) && !d.history.some((h) => h.event === "Paid") ? 4000 : false;
+      return d && PAID_STATES.includes(d.onchain.state) && !d.history.some((h) => h.event === "Paid") ? 4000 : false;
     },
   });
   const d = deal.data;
@@ -76,7 +73,7 @@ export function DealReceipt({ dealId, previewAs }: { dealId: string; previewAs?:
       </main>
     );
   }
-  if (!DONE.includes(d.onchain.state)) {
+  if (!PAID_STATES.includes(d.onchain.state)) {
     return (
       <Blocked
         back={back}

@@ -15,7 +15,7 @@ import { ChainProof } from "@/components/chain-proof";
 import { DealStatusBadge } from "@/components/deal-status-badge";
 import { NetworkBanner } from "@/components/network-banner";
 import { PageHeader } from "@/components/page-header";
-import { PokeButton, useCanPoke } from "@/components/poke-button";
+import { PokeDrawer, PokeTrigger, useCanPoke } from "@/components/poke-button";
 import { RoomCover } from "@/components/room-cover";
 import { TxStatus } from "@/components/tx-status";
 import { WalletChip } from "@/components/wallet-chip";
@@ -342,6 +342,7 @@ function hrefFor(id: ActionId, dealId: number, previewAs?: Role): string | null 
 function ActionBar({ deal, role, previewAs }: { deal: DealView; role: Role; previewAs?: Role }) {
   const { ready, authenticated, login } = usePrivy();
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [pokeOpen, setPokeOpen] = useState(false);
   const { now } = useCountdown(null);
   const actions = actionsFor(deal, role, now);
   const { onchain } = deal;
@@ -353,7 +354,9 @@ function ActionBar({ deal, role, previewAs }: { deal: DealView; role: Role; prev
   // Người ngoài (bồi thẩm) mở hợp đồng đang tranh chấp: dẫn sang màn Bỏ phiếu (màn đó tự kiểm tra isJuror).
   const juryLink = onchain.state === "DISPUTED" && role === "viewer";
 
-  if (!canPoke && actions.length === 0 && !depositLink && !juryLink) return null;
+  // Poke xong thì canPoke về false và người ngoài không còn nút nào: thanh ẩn đi, nhưng drawer poke nằm NGOÀI thanh
+  // nên vẫn mở để hiện kết quả giao dịch (link Snowtrace, nút Xem biên nhận).
+  const showBar = canPoke || actions.length > 0 || depositLink || juryLink;
 
   let content: React.ReactNode;
   if (!ready) {
@@ -367,7 +370,7 @@ function ActionBar({ deal, role, previewAs }: { deal: DealView; role: Role; prev
   } else {
     content = (
       <div className="space-y-2">
-        <PokeButton deal={deal} receiptHref={receiptHref} />
+        {canPoke && <PokeTrigger onClick={() => setPokeOpen(true)} />}
         {juryLink && (
           <Button asChild size="lg" variant={canPoke ? "outline" : "default"} className="h-14 w-full text-base">
             <Link href={`/jury/${deal.dealId}`}>
@@ -394,10 +397,15 @@ function ActionBar({ deal, role, previewAs }: { deal: DealView; role: Role; prev
   }
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-30 border-t bg-background/95 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <div className="mx-auto max-w-md px-5 pt-3">{content}</div>
-      <CancelDrawer deal={deal} open={cancelOpen} onClose={() => setCancelOpen(false)} />
-    </div>
+    <>
+      {showBar && (
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t bg-background/95 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur supports-[backdrop-filter]:bg-background/80">
+          <div className="mx-auto max-w-md px-5 pt-3">{content}</div>
+          <CancelDrawer deal={deal} open={cancelOpen} onClose={() => setCancelOpen(false)} />
+        </div>
+      )}
+      <PokeDrawer deal={deal} open={pokeOpen} onClose={() => setPokeOpen(false)} receiptHref={receiptHref} />
+    </>
   );
 }
 
