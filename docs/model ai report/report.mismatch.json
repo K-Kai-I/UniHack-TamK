@@ -1,0 +1,14 @@
+{
+  "schema": "kct.report.mismatch/1",
+  "dealId": 1,
+  "termsHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "evidenceHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "model": "gemini-3.1-flash-lite",
+  "promptVersion": "listing-v1",
+  "createdAt": "2026-11-20T02:20:00Z",
+  "verdict": "MISMATCH",
+  "confidence": 0.91,
+  "reasons": [
+    "Cùng một góc chụp cho thấy ảnh đăng tin có cửa sổ lớn, còn ảnh thực tế là một mảng tường kín."
+  ]
+}

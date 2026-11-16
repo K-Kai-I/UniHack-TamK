@@ -1,0 +1,33 @@
+{
+  "schema": "kct.report.damage/1",
+  "dealId": 1,
+  "checkInHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "checkOutHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "model": "gemini-3.1-flash-lite",
+  "promptVersion": "damage-v1",
+  "createdAt": "2027-05-20T03:00:00Z",
+  "positions": [
+    {
+      "positionId": "p1",
+      "verdict": "NEW_DAMAGE",
+      "confidence": 0.86,
+      "description": "Ảnh trả phòng xuất hiện một vết bẩn lớn ở góc phải của mảng tường.",
+      "priceItemId": "i1",
+      "quantity": 1,
+      "outsidePriceList": false,
+      "amount": "16000000"
+    },
+    {
+      "positionId": "p2",
+      "verdict": "WEAR",
+      "confidence": 0.74,
+      "description": "Sơn cửa bạc màu đều và không thấy vết trầy mới.",
+      "priceItemId": null,
+      "quantity": 0,
+      "outsidePriceList": false,
+      "amount": "0"
+    }
+  ],
+  "totalAmount": "16000000",
+  "sealedAmount": "16000000"
+}
