@@ -30,7 +30,7 @@ export interface DealDetail {
   examplePhotoUrls: Record<string, string | null>; // theo positionId
 }
 
-// TODO(spec): tỉ giá lấy từ GET /config (vndPerToken). Tạm hằng số, trùng VND_PER_TOKEN trong .env.example.
+// Tỉ giá dự phòng khi GET /config chưa trả lời (bản giả, contract chưa deploy). Màn hình dùng useVndRate().
 export const MOCK_VND_PER_TOKEN = 25000;
 
 export class NotFoundError extends Error {}

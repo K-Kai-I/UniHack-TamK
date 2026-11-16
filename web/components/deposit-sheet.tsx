@@ -12,7 +12,8 @@ import { FaucetButton } from "@/components/faucet-button";
 import { TxStatus } from "@/components/tx-status";
 import { addresses, chain, usdcAbi } from "@/lib/chain";
 import { formatToken, formatVnd, amountToVnd } from "@/lib/client/money";
-import { MOCK_VND_PER_TOKEN, type DealDetail } from "@/lib/client/rooms-data";
+import type { DealDetail } from "@/lib/client/rooms-data";
+import { useVndRate } from "@/lib/client/use-vnd-rate";
 import { useDeposit } from "@/lib/client/use-deposit";
 import { formatDate } from "@/lib/client/date";
 
@@ -42,8 +43,8 @@ export function DepositSheet({
     query: { enabled: !!address && tokenLive && open, refetchInterval: 8000 },
   });
 
-  // TODO(spec): tỉ giá lấy từ GET /config; xem rooms-data.ts.
-  const vnd = (a: string) => formatVnd(amountToVnd(a, MOCK_VND_PER_TOKEN));
+  const rate = useVndRate();
+  const vnd = (a: string) => formatVnd(amountToVnd(a, rate));
   const deposit_ = terms.money.depositAmount;
   const yieldAvailable = terms.yieldEnabled && addresses.vault !== null;
   const short = balance.data !== undefined && balance.data < BigInt(deposit_);

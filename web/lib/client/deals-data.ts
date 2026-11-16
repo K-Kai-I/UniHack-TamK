@@ -32,6 +32,8 @@ export interface DealOnchain {
    *  TODO(spec): api-contract chưa nói deadline = 0 trả về gì; tạm hiểu là null. */
   deadline: IsoTime | null;
   canPoke: boolean;
+  /** Chủ trọ đã dùng lần phản đối ảnh nhận phòng duy nhất (nhánh D). API trả từ getDeal; bản giả không có = false. */
+  checkInContested?: boolean;
   proposedAmount: Amount;
   aiAmount: Amount;
   counterAmount: Amount;

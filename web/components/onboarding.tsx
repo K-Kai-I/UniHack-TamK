@@ -6,7 +6,7 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useAccount } from "wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "motion/react";
-import { ArrowRight, Camera, ChevronRight, Clock, Gavel, House, KeyRound, LogOut, ShieldCheck } from "lucide-react";
+import { ArrowRight, Camera, ChevronRight, Clock, FileText, Gavel, House, KeyRound, LogOut, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -135,6 +135,7 @@ export function Onboarding() {
           <BorderBeam size={120} duration={8} colorFrom="#10b981" colorTo="#6ee7b7" />
         </Card>
         <FaucetButton />
+        <MyDealsEntry />
         {address && <JurorEntry address={address} />}
       </section>
 
@@ -173,6 +174,25 @@ export function Onboarding() {
         )}
       </div>
     </Shell>
+  );
+}
+
+/** Lối vào màn "Hợp đồng của tôi". Luôn hiện: không có thông báo đẩy, đây là nơi xem có người vừa cọc. */
+function MyDealsEntry() {
+  return (
+    <Link
+      href="/deals"
+      className="flex items-center gap-3 rounded-2xl bg-card p-4 ring-1 ring-foreground/10 transition hover:bg-secondary/40 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+    >
+      <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+        <FileText className="size-5" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-semibold">Hợp đồng của tôi</span>
+        <span className="text-sm text-muted-foreground">Phòng bạn cho thuê và phòng bạn thuê</span>
+      </span>
+      <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+    </Link>
   );
 }
 
