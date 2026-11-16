@@ -2,6 +2,7 @@
 pragma solidity 0.8.24;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
@@ -13,14 +14,10 @@ import {IDepositEscrow} from "./IDepositEscrow.sol";
 
 /// @title DepositEscrow
 /// @notice Két giữ tiền cọc thuê trọ. Đặc tả: docs/contract-spec.md.
-/// @dev KHUNG BAN ĐẦU. Đã chạy thật: constructor, createDeal, cancelDeal, getDeal, dealCount,
-///      addJuror, removeJuror, kiểm tra con dấu AI. Các hàm còn lại revert NotImplemented()
-///      và có TODO trỏ tới đúng mục trong spec. Xóa lỗi NotImplemented khi viết xong hết.
+/// @dev Đủ P0 + P1 + phản đối ảnh nhận phòng (P2). Vault (P2) đã có đường _toVault/_fromVault,
+///      bật khi deploy với địa chỉ vault khác 0.
 contract DepositEscrow is IDepositEscrow, EIP712, ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;
-
-    /// Chỉ dùng trong giai đoạn khung; không thuộc spec.
-    error NotImplemented();
 
     // ------------------------------------------------------------ hằng số con dấu AI (EIP-712)
 
@@ -120,87 +117,282 @@ contract DepositEscrow is IDepositEscrow, EIP712, ReentrancyGuard, Ownable {
 
     // ------------------------------------------------------------ gửi cọc (P0)
 
-    function deposit(uint256, bool) external pure {
-        // TODO(spec): docs/contract-spec.md > Hàm > deposit
-        revert NotImplemented();
+    function deposit(uint256 id, bool wantYield) external nonReentrant {
+        _deposit(id, wantYield);
     }
 
-    function depositWithPermit(uint256, bool, uint256, uint8, bytes32, bytes32) external pure {
-        // TODO(spec): gọi permit trong try/catch rồi chạy như deposit
-        revert NotImplemented();
+    /// Gửi cọc bằng 1 giao dịch: chữ ký permit (ERC-2612) thay cho bước approve riêng.
+    /// permit nằm trong try/catch: nếu ai đó đã "dùng trước" chữ ký permit (front-run),
+    /// allowance vẫn đã được cấp nên transferFrom trong _deposit vẫn chạy được.
+    function depositWithPermit(uint256 id, bool wantYield, uint256 permitDeadline, uint8 v, bytes32 r, bytes32 s)
+        external
+        nonReentrant
+    {
+        try IERC20Permit(address(token))
+            .permit(msg.sender, address(this), deals[id].deposit, permitDeadline, v, r, s) {}
+            catch {}
+        _deposit(id, wantYield);
+    }
+
+    function _deposit(uint256 id, bool wantYield) internal {
+        Deal storage d = deals[id];
+        _requireState(d, State.OPEN);
+        if (msg.sender == d.landlord) revert LandlordCannotRent();
+        if (block.timestamp > d.deadline) revert DeadlinePassed();
+
+        // Đổi trạng thái trước, chuyển tiền sau.
+        d.tenant = msg.sender;
+        bool useVault = wantYield && d.yieldEnabled && address(vault) != address(0);
+        _setState(id, d, State.RESERVED, d.moveInDate + moveInGrace);
+
+        token.safeTransferFrom(msg.sender, address(this), d.deposit);
+        if (useVault) _toVault(d);
+
+        emit Deposited(id, msg.sender, d.deposit, d.yieldOn);
     }
 
     // ------------------------------------------------------------ nhận phòng
 
-    function submitCheckIn(uint256, bytes32) external pure {
-        // TODO(spec, P0): docs/contract-spec.md > Hàm > submitCheckIn
-        revert NotImplemented();
+    function submitCheckIn(uint256 id, bytes32 checkInHash) external {
+        Deal storage d = deals[id];
+        if (msg.sender != d.tenant) revert NotTenant();
+        _requireState(d, State.RESERVED);
+        if (d.checkInHash != bytes32(0)) revert CheckInAlreadySubmitted();
+        if (block.timestamp > d.deadline) revert DeadlinePassed();
+
+        d.checkInHash = checkInHash;
+        // Vẫn RESERVED; hạn mới là hạn chủ trọ phản đối ảnh. Quá hạn -> poke đưa sang ACTIVE.
+        _setState(id, d, State.RESERVED, uint64(block.timestamp) + checkInObjection);
+        emit CheckInSubmitted(id, checkInHash);
     }
 
-    function contestCheckIn(uint256) external pure {
-        // TODO(spec, P2): chủ trọ phản đối 1 lần
-        revert NotImplemented();
+    /// Chủ trọ phản đối ảnh nhận phòng, chỉ 1 lần. Ảnh bị xóa, người thuê có thêm moveInGrace để chụp lại;
+    /// không chụp lại kịp thì poke xử lý như không đến (NO_SHOW).
+    function contestCheckIn(uint256 id) external {
+        Deal storage d = deals[id];
+        if (msg.sender != d.landlord) revert NotLandlord();
+        _requireState(d, State.RESERVED);
+        if (d.checkInHash == bytes32(0)) revert WrongState(State.RESERVED, d.state);
+        if (block.timestamp > d.deadline) revert DeadlinePassed();
+        if (d.checkInContested) revert AlreadyContested();
+
+        d.checkInHash = bytes32(0);
+        d.checkInContested = true;
+        _setState(id, d, State.RESERVED, uint64(block.timestamp) + moveInGrace);
+        emit CheckInContested(id);
     }
 
-    function reportMismatch(uint256, uint8, bytes32, bytes32, bytes calldata) external pure {
-        // TODO(spec, P1): dùng _verifyMismatchSeal; verdict 2 -> MISMATCH_REPORTED, 1 -> DISPUTED, 0 -> BadVerdict
-        revert NotImplemented();
+    /// Người thuê báo phòng không đúng mô tả, trước khi gửi ảnh nhận phòng.
+    /// verdict: 0 = giống (revert), 1 = không rõ (mở tranh chấp, không có phiếu AI), 2 = khác rõ.
+    /// Không có con dấu AI thì luôn coi là "không rõ".
+    function reportMismatch(uint256 id, uint8 verdict, bytes32 evidenceHash, bytes32 reportHash, bytes calldata aiSig)
+        external
+    {
+        Deal storage d = deals[id];
+        if (msg.sender != d.tenant) revert NotTenant();
+        _requireState(d, State.RESERVED);
+        if (d.checkInHash != bytes32(0)) revert CheckInAlreadySubmitted();
+        if (block.timestamp > d.deadline) revert DeadlinePassed();
+
+        if (aiSig.length == 0) {
+            verdict = 1;
+        } else {
+            if (verdict == 0 || verdict > 2) revert BadVerdict();
+            _verifyMismatchSeal(id, d, evidenceHash, verdict, reportHash, aiSig);
+            d.aiReportHash = reportHash;
+            d.hasAiSeal = true;
+        }
+        emit MismatchReported(id, verdict, evidenceHash, reportHash);
+
+        if (verdict == 2) {
+            _setState(id, d, State.MISMATCH_REPORTED, uint64(block.timestamp) + mismatchWindow);
+        } else {
+            _openDispute(id, d, DisputeKind.MISMATCH, Side.NONE, 0);
+        }
     }
 
-    function contestMismatch(uint256) external pure {
-        // TODO(spec, P1)
-        revert NotImplemented();
+    /// Chủ trọ phản đối báo cáo phòng sai. Con dấu AI ghi "khác rõ" nên phiếu AI về người thuê.
+    function contestMismatch(uint256 id) external {
+        Deal storage d = deals[id];
+        if (msg.sender != d.landlord) revert NotLandlord();
+        _requireState(d, State.MISMATCH_REPORTED);
+        if (block.timestamp > d.deadline) revert DeadlinePassed();
+
+        _openDispute(id, d, DisputeKind.MISMATCH, d.hasAiSeal ? Side.TENANT : Side.NONE, 0);
     }
 
     // ------------------------------------------------------------ đang ở, trả phòng
 
-    function submitCheckOut(uint256, bytes32) external pure {
-        // TODO(spec, P0): người thuê bất cứ lúc nào; chủ trọ khi now > leaseEnd + checkOutGrace (P1)
-        revert NotImplemented();
+    /// Người thuê trả phòng bất cứ lúc nào; chủ trọ trả thay khi đã quá leaseEnd + checkOutGrace.
+    /// Nếu hợp đồng còn RESERVED nhưng hạn phản đối ảnh đã qua mà chưa ai poke, tự sang ACTIVE trước.
+    function submitCheckOut(uint256 id, bytes32 checkOutHash) external nonReentrant {
+        Deal storage d = deals[id];
+        if (msg.sender != d.tenant) {
+            if (msg.sender != d.landlord) revert NotTenant();
+            if (block.timestamp <= uint256(d.leaseEnd) + checkOutGrace) revert DeadlineNotReached();
+        }
+        _activateIfDue(id, d);
+        _requireState(d, State.ACTIVE);
+
+        d.checkOutHash = checkOutHash;
+        _fromVault(d);
+        _setState(id, d, State.CHECKED_OUT, uint64(block.timestamp) + proposeWindow);
+        emit CheckedOut(id, msg.sender, checkOutHash, d.yieldGross);
     }
 
-    function reportAbandon(uint256) external pure {
-        // TODO(spec, P1)
-        revert NotImplemented();
+    /// Chủ trọ báo người thuê đã bỏ đi. Người thuê im lặng tới hạn thì chủ trọ nhận cọc (ABANDONED).
+    function reportAbandon(uint256 id) external {
+        Deal storage d = deals[id];
+        if (msg.sender != d.landlord) revert NotLandlord();
+        _activateIfDue(id, d);
+        _requireState(d, State.ACTIVE);
+
+        _setState(id, d, State.ABANDON_REPORTED, uint64(block.timestamp) + abandonWindow);
+        emit AbandonReported(id);
     }
 
-    function contestAbandon(uint256) external pure {
-        // TODO(spec, P1): quay lại ACTIVE, deadline = 0
-        revert NotImplemented();
+    /// Người thuê báo "tôi vẫn đang ở": quay lại ACTIVE, không qua bồi thẩm.
+    function contestAbandon(uint256 id) external {
+        Deal storage d = deals[id];
+        if (msg.sender != d.tenant) revert NotTenant();
+        _requireState(d, State.ABANDON_REPORTED);
+        if (block.timestamp > d.deadline) revert DeadlinePassed();
+
+        _setState(id, d, State.ACTIVE, 0);
+        emit AbandonContested(id);
     }
 
     // ------------------------------------------------------------ đề xuất, tranh chấp
 
-    function proposeDeduction(uint256, uint256, uint256, bytes32, bytes calldata) external pure {
-        // TODO(spec, P0): dùng _verifyDamageSeal khi aiSig không rỗng
-        revert NotImplemented();
+    function proposeDeduction(uint256 id, uint256 amount, uint256 aiAmount, bytes32 reportHash, bytes calldata aiSig)
+        external
+        nonReentrant
+    {
+        Deal storage d = deals[id];
+        if (msg.sender != d.landlord) revert NotLandlord();
+        _requireState(d, State.CHECKED_OUT);
+        if (block.timestamp > d.deadline) revert DeadlinePassed();
+        if (amount > d.deposit) revert InvalidAmount();
+
+        if (aiSig.length > 0) {
+            _verifyDamageSeal(id, d, aiAmount, reportHash, aiSig);
+            d.aiAmount = aiAmount;
+            d.aiReportHash = reportHash;
+            d.hasAiSeal = true;
+        }
+        emit Proposed(id, amount, d.aiAmount, reportHash, d.hasAiSeal);
+
+        if (amount == 0) {
+            _payout(id, d, Outcome.NORMAL, 0);
+        } else {
+            d.proposedAmount = amount;
+            _setState(id, d, State.PROPOSED, uint64(block.timestamp) + respondWindow);
+        }
     }
 
-    function acceptProposal(uint256) external pure {
-        // TODO(spec, P0): _payout(id, Outcome.NORMAL, proposedAmount)
-        revert NotImplemented();
+    function acceptProposal(uint256 id) external nonReentrant {
+        Deal storage d = deals[id];
+        if (msg.sender != d.tenant) revert NotTenant();
+        _requireState(d, State.PROPOSED);
+        _payout(id, d, Outcome.NORMAL, d.proposedAmount);
     }
 
-    function disputeProposal(uint256, uint256) external pure {
-        // TODO(spec, P1): counterAmount < proposedAmount; phiếu AI về con số gần aiAmount hơn
-        revert NotImplemented();
+    /// Người thuê kháng nghị, kèm con số của mình (nhỏ hơn con số chủ trọ).
+    /// Có con dấu AI thì phiếu AI về bên có con số gần aiAmount hơn; bằng nhau thì về người thuê.
+    function disputeProposal(uint256 id, uint256 counterAmount) external {
+        Deal storage d = deals[id];
+        if (msg.sender != d.tenant) revert NotTenant();
+        _requireState(d, State.PROPOSED);
+        if (block.timestamp > d.deadline) revert DeadlinePassed();
+        if (counterAmount >= d.proposedAmount) revert InvalidAmount();
+
+        d.counterAmount = counterAmount;
+        Side aiSide = Side.NONE;
+        if (d.hasAiSeal) {
+            uint256 distLandlord = _dist(d.proposedAmount, d.aiAmount);
+            uint256 distTenant = _dist(counterAmount, d.aiAmount);
+            aiSide = distLandlord < distTenant ? Side.LANDLORD : Side.TENANT;
+        }
+        _openDispute(id, d, DisputeKind.DEDUCTION, aiSide, counterAmount);
     }
 
-    function vote(uint256, Side) external pure {
-        // TODO(spec, P1): bồi thẩm, không phải 2 bên; đủ 2 phiếu thì phân xử ngay
-        revert NotImplemented();
+    /// Bồi thẩm chỉ chọn bên. Bên nào đủ 2 phiếu (tính cả phiếu AI) thì phân xử ngay.
+    function vote(uint256 id, Side side) external nonReentrant {
+        Deal storage d = deals[id];
+        if (!isJuror[msg.sender]) revert NotJuror();
+        if (msg.sender == d.tenant || msg.sender == d.landlord) revert PartyCannotVote();
+        _requireState(d, State.DISPUTED);
+        if (block.timestamp > d.deadline) revert DeadlinePassed();
+        if (side == Side.NONE) revert BadVerdict();
+        if (hasVoted[id][msg.sender]) revert AlreadyVoted();
+
+        hasVoted[id][msg.sender] = true;
+        if (side == Side.LANDLORD) d.votesLandlord++;
+        else d.votesTenant++;
+        emit Voted(id, msg.sender, side);
+
+        if (d.votesLandlord >= 2) _resolve(id, d, Side.LANDLORD);
+        else if (d.votesTenant >= 2) _resolve(id, d, Side.TENANT);
     }
 
     // ------------------------------------------------------------ hạn chót
 
-    function poke(uint256) external pure {
-        // TODO(spec, P0): xử lý theo bảng "Tham số thời gian"; không có gì thì NothingToPoke
-        revert NotImplemented();
+    /// Việc poke sẽ làm, tính một chỗ để poke() và canPoke() không bao giờ lệch nhau.
+    enum PokeAction {
+        NONE,
+        CLOSE_LISTING, //   OPEN quá hạn dọn vào, chưa ai cọc -> CANCELLED
+        NO_SHOW, //         RESERVED quá hạn, chưa có ảnh nhận phòng -> hoàn cọc trừ phí giữ chỗ
+        ACTIVATE, //        RESERVED, có ảnh, hết hạn phản đối -> ACTIVE
+        LANDLORD_SILENT, // CHECKED_OUT quá hạn đề xuất -> người thuê nhận đủ cọc
+        TENANT_SILENT, //   PROPOSED quá hạn phản hồi -> chia theo mức chủ trọ đề xuất
+        MISMATCH_SILENT, // MISMATCH_REPORTED, chủ trọ im lặng -> hoàn đủ cọc
+        ABANDON_SILENT, //  ABANDON_REPORTED, người thuê im lặng -> chủ trọ nhận cọc
+        JURY_EXPIRED //     DISPUTED hết hạn bồi thẩm -> quy tắc hết hạn ở mục Tranh chấp
     }
 
-    function canPoke(uint256) external pure returns (bool) {
-        // TODO(spec, P0): trả true khi poke(id) sẽ làm được việc
-        return false;
+    function _pokeAction(Deal storage d) internal view returns (PokeAction) {
+        if (d.deadline == 0 || block.timestamp <= d.deadline) return PokeAction.NONE;
+        State s = d.state;
+        if (s == State.OPEN) return PokeAction.CLOSE_LISTING;
+        if (s == State.RESERVED) {
+            return d.checkInHash == bytes32(0) ? PokeAction.NO_SHOW : PokeAction.ACTIVATE;
+        }
+        if (s == State.CHECKED_OUT) return PokeAction.LANDLORD_SILENT;
+        if (s == State.PROPOSED) return PokeAction.TENANT_SILENT;
+        if (s == State.MISMATCH_REPORTED) return PokeAction.MISMATCH_SILENT;
+        if (s == State.ABANDON_REPORTED) return PokeAction.ABANDON_SILENT;
+        if (s == State.DISPUTED) return PokeAction.JURY_EXPIRED;
+        return PokeAction.NONE;
+    }
+
+    /// Ai cũng gọi được. Tiền chỉ đi tới 2 bên của hợp đồng (và phí sàn trên lãi), nên người gọi không lợi gì.
+    function poke(uint256 id) external nonReentrant {
+        Deal storage d = deals[id];
+        PokeAction a = _pokeAction(d);
+        if (a == PokeAction.NONE) revert NothingToPoke();
+
+        if (a == PokeAction.CLOSE_LISTING) {
+            _setState(id, d, State.CANCELLED, 0);
+            emit DealCancelled(id);
+        } else if (a == PokeAction.NO_SHOW) {
+            _payout(id, d, Outcome.NO_SHOW, 0);
+        } else if (a == PokeAction.ACTIVATE) {
+            _setState(id, d, State.ACTIVE, 0);
+        } else if (a == PokeAction.LANDLORD_SILENT) {
+            _payout(id, d, Outcome.LANDLORD_SILENT, 0);
+        } else if (a == PokeAction.TENANT_SILENT) {
+            _payout(id, d, Outcome.NORMAL, d.proposedAmount);
+        } else if (a == PokeAction.MISMATCH_SILENT) {
+            _payout(id, d, Outcome.MISMATCH, 0);
+        } else if (a == PokeAction.ABANDON_SILENT) {
+            _payout(id, d, Outcome.ABANDONED, 0);
+        } else {
+            _juryExpired(id, d);
+        }
+    }
+
+    function canPoke(uint256 id) external view returns (bool) {
+        return _pokeAction(deals[id]) != PokeAction.NONE;
     }
 
     // ------------------------------------------------------------ đọc dữ liệu
@@ -243,9 +435,8 @@ contract DepositEscrow is IDepositEscrow, EIP712, ReentrancyGuard, Ownable {
         internal
         view
     {
-        bytes32 structHash = keccak256(
-            abi.encode(DAMAGE_REPORT_TYPEHASH, id, d.checkInHash, d.checkOutHash, aiAmount, reportHash)
-        );
+        bytes32 structHash =
+            keccak256(abi.encode(DAMAGE_REPORT_TYPEHASH, id, d.checkInHash, d.checkOutHash, aiAmount, reportHash));
         if (ECDSA.recover(_hashTypedDataV4(structHash), sig) != aiSigner) revert BadSignature();
     }
 
@@ -264,8 +455,111 @@ contract DepositEscrow is IDepositEscrow, EIP712, ReentrancyGuard, Ownable {
         if (ECDSA.recover(_hashTypedDataV4(structHash), sig) != aiSigner) revert BadSignature();
     }
 
-    // TODO(spec): _payout(id, outcome, D), _toVault(id), _fromVault(id) theo mục "Chia tiền".
-    // Nhớ: đổi state trước, chuyển tiền sau; dùng token.safeTransfer; người thuê + chủ trọ + phí = C + G.
+    /// Mở tranh chấp: ghi loại, cộng sẵn phiếu AI (nếu có), hạn = now + juryWindow.
+    function _openDispute(uint256 id, Deal storage d, DisputeKind kind, Side aiSide, uint256 counterAmount) internal {
+        d.disputeKind = kind;
+        if (aiSide == Side.LANDLORD) d.votesLandlord = 1;
+        else if (aiSide == Side.TENANT) d.votesTenant = 1;
+        _setState(id, d, State.DISPUTED, uint64(block.timestamp) + juryWindow);
+        emit DisputeOpened(id, kind, counterAmount);
+    }
+
+    /// Phân xử khi một bên thắng.
+    function _resolve(uint256 id, Deal storage d, Side winner) internal {
+        if (d.disputeKind == DisputeKind.DEDUCTION) {
+            _payout(id, d, Outcome.NORMAL, winner == Side.LANDLORD ? d.proposedAmount : d.counterAmount);
+        } else {
+            _payout(id, d, winner == Side.LANDLORD ? Outcome.NO_SHOW : Outcome.MISMATCH, 0);
+        }
+    }
+
+    /// Hết hạn bồi thẩm mà chưa bên nào đủ 2 phiếu.
+    /// DEDUCTION: có con dấu thì D = min(aiAmount, C), không có thì D = trung bình hai con số.
+    /// MISMATCH: bên nhiều phiếu hơn thắng, bằng nhau thì người thuê thắng.
+    function _juryExpired(uint256 id, Deal storage d) internal {
+        if (d.disputeKind == DisputeKind.DEDUCTION) {
+            uint256 D;
+            if (d.hasAiSeal) D = d.aiAmount < d.deposit ? d.aiAmount : d.deposit;
+            else D = (d.proposedAmount + d.counterAmount) / 2;
+            _payout(id, d, Outcome.NORMAL, D);
+        } else {
+            _resolve(id, d, d.votesLandlord > d.votesTenant ? Side.LANDLORD : Side.TENANT);
+        }
+    }
+
+    function _dist(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a > b ? a - b : b - a;
+    }
+
+    /// Nếu RESERVED, đã có ảnh nhận phòng và hết hạn phản đối thì chuyển sang ACTIVE ngay.
+    function _activateIfDue(uint256 id, Deal storage d) internal {
+        if (_pokeAction(d) == PokeAction.ACTIVATE) _setState(id, d, State.ACTIVE, 0);
+    }
+
+    /// Chia tiền theo docs/contract-spec.md > Chia tiền. Mọi kết thúc có tiền đều đi qua đây.
+    /// C = deposit, R = reserveFee, G = yieldGross, F = phí sàn = G * feeBps / 10000, L = G - F.
+    /// Phần lẻ khi chia đôi L thuộc về người thuê. Luôn đúng: toTenant + toLandlord + fee = C + G.
+    function _payout(uint256 id, Deal storage d, Outcome outcome, uint256 D) internal {
+        _fromVault(d);
+
+        uint256 C = d.deposit;
+        if (D > C) D = C; // chỉ xảy ra khi vault lỗ làm C giảm sau lúc đề xuất
+        uint256 G = d.yieldGross;
+        uint256 fee = (G * feeBps) / 10_000;
+        uint256 L = G - fee;
+        uint256 half = L / 2;
+
+        uint256 toTenant;
+        uint256 toLandlord;
+        State end = State.SETTLED;
+
+        if (outcome == Outcome.NORMAL || outcome == Outcome.LANDLORD_SILENT) {
+            toTenant = C - D + (L - half);
+            toLandlord = D + half;
+        } else if (outcome == Outcome.ABANDONED) {
+            toTenant = L - half;
+            toLandlord = C + half;
+        } else if (outcome == Outcome.NO_SHOW) {
+            toTenant = C - d.reserveFee + L;
+            toLandlord = d.reserveFee;
+            end = State.REFUNDED;
+        } else {
+            // MISMATCH
+            toTenant = C + L;
+            end = State.REFUNDED;
+        }
+
+        // Đổi trạng thái trước, chuyển tiền sau (chống reentrancy).
+        _setState(id, d, end, 0);
+        emit Paid(id, outcome, toTenant, toLandlord, fee);
+
+        if (toTenant > 0) token.safeTransfer(d.tenant, toTenant);
+        if (toLandlord > 0) token.safeTransfer(d.landlord, toLandlord);
+        if (fee > 0) token.safeTransfer(feeRecipient, fee);
+    }
+
+    /// Gửi cọc vào vault (P2). Chỉ được gọi từ _deposit.
+    function _toVault(Deal storage d) internal {
+        token.forceApprove(address(vault), d.deposit);
+        d.vaultShares = vault.deposit(d.deposit, address(this));
+        d.yieldOn = true;
+    }
+
+    /// Rút gốc và lãi khỏi vault (P2). Gọi nhiều lần vẫn an toàn.
+    /// Nếu vault lỗ, C được hạ xuống đúng số rút về, để không bao giờ chi tiền của hợp đồng khác.
+    function _fromVault(Deal storage d) internal {
+        if (!d.yieldOn) return;
+        d.yieldOn = false;
+        uint256 shares = d.vaultShares;
+        d.vaultShares = 0;
+        uint256 assets = vault.redeem(shares, address(this), address(this));
+        if (assets >= d.deposit) {
+            d.yieldGross = assets - d.deposit;
+        } else {
+            d.deposit = assets;
+            if (d.reserveFee > assets) d.reserveFee = assets;
+        }
+    }
 
     /// Domain separator cho server ký con dấu và cho test.
     function domainSeparator() external view returns (bytes32) {

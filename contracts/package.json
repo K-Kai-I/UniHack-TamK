@@ -5,7 +5,8 @@
     "setup": "forge install foundry-rs/forge-std --no-git",
     "build": "forge build",
     "test": "forge test -vv",
-    "export-abi": "forge build && node ../scripts/export-abi.mjs"
+    "export-abi": "forge build && node ../scripts/export-abi.mjs",
+    "deploy:fuji": "forge script script/Deploy.s.sol --rpc-url fuji --broadcast --verify && node ../scripts/update-deployments.mjs && npm run export-abi"
   },
   "dependencies": {
     "@openzeppelin/contracts": "5.1.0"

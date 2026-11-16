@@ -1,13 +1,13 @@
 {
   "chainId": 43113,
-  "abiVersion": 1,
-  "deployedAt": null,
-  "deployBlock": 0,
+  "abiVersion": 2,
+  "deployedAt": "2026-11-16T06:27:02.786Z",
+  "deployBlock": 61159966,
   "contracts": {
-    "DepositEscrow": "0x0000000000000000000000000000000000000000",
-    "MockUSDC": "0x0000000000000000000000000000000000000000",
+    "DepositEscrow": "0x05c387ef3730ce48371f3a0232ffdeaffa4dc5fe",
+    "MockUSDC": "0xf78ce5e0a1c56bc3c90131915fd361fbe369c633",
     "MockVault": null
   },
-  "aiSigner": "0x0000000000000000000000000000000000000000",
-  "feeRecipient": "0x0000000000000000000000000000000000000000"
+  "aiSigner": "0x7B2D9d2c4634A4858781E37d1f18186A93cF2BF9",
+  "feeRecipient": "0xadeEB72755298fB29f5C3ff3faAe15db68a2C28e"
 }
