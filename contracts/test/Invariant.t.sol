@@ -157,6 +157,7 @@ contract Handler is Test {
     /// Đẩy một deal đi đúng bước kế tiếp của nó, để các lượt ngẫu nhiên tới được trạng thái sâu
     /// (chia tiền, tranh chấp) thay vì chỉ quanh quẩn ở đầu luồng.
     function advance(uint256 seed, uint256 amount, bool choice) external {
+        steps++;
         uint256 id = _id(seed);
         if (id == 0) return;
         IDepositEscrow.Deal memory d = escrow.getDeal(id);
@@ -195,6 +196,17 @@ contract Handler is Test {
         vm.warp(block.timestamp + bound(secs, 1, 150));
     }
 
+    /// Kẻ phá đám in tiền miễn phí rồi "tặng" khoản khổng lồ: 1 lần mỗi lượt, sau khi đã có nhiều thao tác,
+    /// để vừa có deal đang nằm trong vault lúc bị tặng, vừa có deal gửi sau đó (phải bị chặn).
+    function grief(uint256 amount) external {
+        if (griefed || steps < 15) return;
+        vault.simulateYield(bound(amount, 1e15, 1e21));
+        griefed = true;
+    }
+
+    bool public griefed;
+    uint256 public steps;
+
     function yield(uint256 amount) external {
         vault.simulateYield(bound(amount, 0, 1e7));
     }
@@ -215,8 +227,8 @@ contract InvariantTest is Test {
             3 minutes, 2 minutes, 2 minutes, 2 minutes, 2 minutes, 3 minutes, 3 minutes, 5 minutes
         );
         escrow = new DepositEscrow(IERC20(address(usdc)), address(0xA1), fee, 1000, IERC4626(address(vault)), t);
-        // Gửi mồi 1.000 mUSDC vào vault cho địa chỉ chết, giống script deploy làm (xem Vault.t.sol:
-        // test_vault_emptyVaultDonation_*). Vault rỗng mà bị "tặng" tiền trước thì người gửi đầu tiên mất tiền.
+        // Gửi mồi như script deploy, để các lượt ngẫu nhiên thật sự đi qua vault. Hàm grief của handler thỉnh thoảng
+        // "tặng" một khoản khổng lồ vượt quá sức chặn của mồi: lúc đó chính contract phải tự từ chối gửi vào vault.
         usdc.mint(address(this), 1_000e6);
         usdc.approve(address(vault), 1_000e6);
         vault.deposit(1_000e6, address(0xdead));
@@ -277,5 +289,6 @@ contract InvariantTest is Test {
         emit log_named_uint("SETTLED", handler.reached(IDepositEscrow.State.SETTLED));
         emit log_named_uint("REFUNDED", handler.reached(IDepositEscrow.State.REFUNDED));
         emit log_named_uint("trong vault", handler.reachedVault());
+        emit log_named_uint("co pha dam", handler.griefed() ? 1 : 0);
     }
 }

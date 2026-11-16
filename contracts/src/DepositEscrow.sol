@@ -14,7 +14,7 @@ import {IDepositEscrow} from "./IDepositEscrow.sol";
 
 /// @title DepositEscrow
 /// @notice Két giữ tiền cọc thuê trọ. Đặc tả: docs/contract-spec.md.
-/// @dev Đủ P0 + P1 + phản đối ảnh nhận phòng (P2). Vault (P2) đã có đường _toVault/_fromVault,
+/// @dev Đủ P0 + P1 + phản đối ảnh nhận phòng (P2). Vault (P2) đi qua _toVault/_fromVault (có chặn lạm phát cổ phần),
 ///      bật khi deploy với địa chỉ vault khác 0.
 contract DepositEscrow is IDepositEscrow, EIP712, ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;
@@ -541,7 +541,13 @@ contract DepositEscrow is IDepositEscrow, EIP712, ReentrancyGuard, Ownable {
     }
 
     /// Gửi cọc vào vault (P2). Chỉ được gọi từ _deposit.
+    /// Chặn lỗi "lạm phát cổ phần" của ERC-4626: nếu giá một cổ phần đã bị đẩy lên bất thường (vd vault rỗng
+    /// bị chuyển thẳng tiền vào), số cổ phần nhận về bị làm tròn xuống và người gửi mất tiền. Khi đó cọc
+    /// KHÔNG gửi vào vault mà nằm yên trong két như hợp đồng không sinh lãi: người thuê chỉ mất phần lãi,
+    /// không mất gốc. Ngưỡng: phần làm tròn mất tối đa 0,01% số cọc.
     function _toVault(Deal storage d) internal {
+        uint256 shares = vault.previewDeposit(d.deposit);
+        if (shares == 0 || vault.previewRedeem(shares) * 10_000 < d.deposit * 9_999) return;
         token.forceApprove(address(vault), d.deposit);
         d.vaultShares = vault.deposit(d.deposit, address(this));
         d.yieldOn = true;
