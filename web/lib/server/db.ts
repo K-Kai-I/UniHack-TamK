@@ -13,7 +13,12 @@ export interface Db {
 const g = globalThis as unknown as { __kctDb?: Promise<Db> };
 
 export function db(): Promise<Db> {
-  g.__kctDb ??= open();
+  // Mở lỗi (database tạm không vào được) thì bỏ kết nối hỏng, lần gọi sau thử lại,
+  // thay vì giữ mãi một promise lỗi cho tới khi hàm khởi động lại.
+  g.__kctDb ??= open().catch((e) => {
+    g.__kctDb = undefined;
+    throw e;
+  });
   return g.__kctDb;
 }
 

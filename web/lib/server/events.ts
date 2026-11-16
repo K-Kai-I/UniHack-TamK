@@ -69,6 +69,23 @@ export async function syncEvents(maxChunks = 10): Promise<number> {
   return added;
 }
 
+let lastSyncAt = 0;
+let syncing: Promise<unknown> | null = null;
+
+/** Bản nhẹ cho các trang đọc: mỗi phiên bản hàm đọc sự kiện tối đa 1 lần / 15 giây, không chạy chồng nhau,
+ *  và không bắt người dùng chờ quá `waitMs` (đọc dở thì lần sau đọc tiếp nhờ con trỏ trong sync_state). */
+export async function syncEventsSoon(waitMs = 1500): Promise<void> {
+  if (!syncing && Date.now() - lastSyncAt > 15_000) {
+    lastSyncAt = Date.now();
+    syncing = syncEvents(3)
+      .catch((e) => console.error("[events]", (e as Error).message?.split("\n")[0]))
+      .finally(() => {
+        syncing = null;
+      });
+  }
+  if (syncing) await Promise.race([syncing, new Promise((r) => setTimeout(r, waitMs))]);
+}
+
 /** Lịch sử của một deal, cũ trước mới sau. StateChanged chỉ giữ khi giao dịch đó không có sự kiện nào khác
  *  (vd poke chuyển RESERVED → ACTIVE), vì các trường hợp còn lại đã có sự kiện chính nói rõ hơn. */
 export async function dealHistory(dealId: bigint): Promise<{ event: string; txHash: Hash; at: string }[]> {

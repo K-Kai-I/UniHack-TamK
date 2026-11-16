@@ -207,4 +207,52 @@ contract VaultTest is Test {
         assertEq(usdc.balanceOf(fee), 22_222, "phi san");
         assertEq(uint8(escrow.getDeal(id).state), uint8(IDepositEscrow.State.SETTLED));
     }
+
+    // ------------------------------------------------------------ vault rỗng bị "tặng" tiền (rà soát 16/11)
+
+    /// Lỗi lạm phát cổ phần: vault rỗng bị chuyển thẳng 500 mUSDC vào trước. Nếu vẫn gửi, người thuê nhận 0
+    /// cổ phần và mất cọc. Contract phát hiện giá cổ phần bất thường nên KHÔNG gửi vào vault: cọc nằm trong két,
+    /// người thuê chỉ mất phần lãi, không mất gốc.
+    function test_vault_inflatedShares_depositStaysInEscrow() public {
+        vault.simulateYield(500e6); // "tặng" 500 mUSDC vào vault rỗng
+        uint256 id = _deal(true);
+        _deposit(tenant, id, true);
+        IDepositEscrow.Deal memory d = escrow.getDeal(id);
+        assertFalse(d.yieldOn, "khong gui vao vault");
+        assertEq(d.vaultShares, 0);
+        assertEq(usdc.balanceOf(address(escrow)), C, "coc nam yen trong ket");
+
+        _toCheckedOut(tenant, id);
+        vm.prank(landlord);
+        escrow.proposeDeduction(id, 0, 0, bytes32(0), "");
+        assertEq(usdc.balanceOf(tenant), 1_000e6, "nhan lai du coc");
+    }
+
+    /// Kẻ phá đám in tiền miễn phí và "tặng" thật nhiều (1.000 tỉ mUSDC) dù vault đã có mồi:
+    /// mồi không còn đủ, nhưng contract vẫn chặn nên người thuê không mất gốc.
+    function test_vault_hugeGriefing_evenWithSeed_depositStaysInEscrow() public {
+        usdc.mint(address(this), 1_000e6);
+        usdc.approve(address(vault), 1_000e6);
+        vault.deposit(1_000e6, address(0xdead));
+        vault.simulateYield(1_000_000_000_000e6);
+        uint256 id = _deal(true);
+        _deposit(tenant, id, true);
+        assertFalse(escrow.getDeal(id).yieldOn);
+        assertEq(usdc.balanceOf(address(escrow)), C);
+    }
+
+    /// Lớp bảo vệ thứ hai (script deploy làm sẵn): gửi mồi 1.000 mUSDC cho địa chỉ chết ngay khi tạo vault.
+    /// Có mồi thì cú "tặng" 500 mUSDC chỉ còn là lãi chia đều: người thuê vẫn được gửi vào vault và rút đủ.
+    function test_vault_emptyVaultDonation_blockedBySeedDeposit() public {
+        usdc.mint(address(this), 1_000e6);
+        usdc.approve(address(vault), 1_000e6);
+        vault.deposit(1_000e6, address(0xdead));
+
+        vault.simulateYield(500e6);
+        uint256 id = _deal(true);
+        _deposit(tenant, id, true);
+        uint256 redeemable = vault.previewRedeem(escrow.getDeal(id).vaultShares);
+        assertTrue(escrow.getDeal(id).yieldOn, "co moi: van duoc gui vao vault");
+        assertApproxEqAbs(redeemable, C, 2, "co moi: rut lai du tien coc");
+    }
 }

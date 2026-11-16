@@ -35,6 +35,15 @@ export async function insertPhoto(
   );
 }
 
+/** Số ảnh một ví đã tải lên trong 24 giờ qua (để chặn lạm dụng kho ảnh). */
+export async function countRecentPhotos(owner: Address): Promise<number> {
+  const rows = await (await db()).query<{ n: number | string }>(
+    "SELECT count(*) AS n FROM photos WHERE owner = $1 AND created_at > now() - interval '24 hours'",
+    [owner],
+  );
+  return Number(rows[0]?.n ?? 0);
+}
+
 const META_COLS = "id, owner, sha256, mime, bytes, purpose, position_id, captured_at, lat, lng, accuracy_m";
 
 export async function getPhotoMetas(ids: string[]): Promise<Map<string, PhotoMeta>> {

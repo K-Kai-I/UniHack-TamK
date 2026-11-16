@@ -3,11 +3,13 @@
 import { hashImage } from "@/lib/hash";
 import { requireWallet } from "@/lib/server/auth";
 import { ApiErr, json, photoUrl, route } from "@/lib/server/http";
-import { insertPhoto, newId, type PhotoPurpose } from "@/lib/server/repo";
+import { countRecentPhotos, insertPhoto, newId, type PhotoPurpose } from "@/lib/server/repo";
 import { putPhoto } from "@/lib/server/storage";
 
 const PURPOSES: PhotoPurpose[] = ["listing", "example", "checkin", "checkout", "mismatch"];
 const MAX_BYTES = 5 * 1024 * 1024;
+/** Mỗi ví tối đa 300 ảnh / 24 giờ: đủ cho hàng chục lần chụp lại, chặn việc đổ rác vào kho ảnh. */
+const MAX_PHOTOS_PER_DAY = 300;
 
 function num(v: FormDataEntryValue | null): number | null {
   if (v === null || v === "") return null;
@@ -33,6 +35,10 @@ export const POST = route(async (req: Request) => {
 
   const file = form.get("file");
   if (!(file instanceof Blob)) throw new ApiErr("BAD_REQUEST", "Thiếu trường file");
+  if (file.size === 0) throw new ApiErr("BAD_REQUEST", "File ảnh rỗng");
+  if ((await countRecentPhotos(owner)) >= MAX_PHOTOS_PER_DAY) {
+    throw new ApiErr("RATE_LIMITED", "Ví này đã tải quá nhiều ảnh trong 24 giờ qua");
+  }
   if (file.size > MAX_BYTES) throw new ApiErr("FILE_TOO_LARGE", "Ảnh quá 5 MB");
   const purpose = String(form.get("purpose") ?? "") as PhotoPurpose;
   if (!PURPOSES.includes(purpose)) throw new ApiErr("BAD_REQUEST", `purpose phải là ${PURPOSES.join(" | ")}`);

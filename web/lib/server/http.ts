@@ -31,7 +31,19 @@ export class ApiErr extends Error {
   }
 }
 
-/** Bọc handler: ApiErr -> mã lỗi của spec; lỗi khác -> 400 kèm thông báo, không lộ stack. */
+/** Thông báo an toàn cho lỗi ngoài dự kiến. Lỗi gốc (có thể chứa URL RPC, câu SQL, đường dẫn kho ảnh)
+ *  chỉ ghi vào log của server, không trả cho trình duyệt. */
+function publicMessage(e: unknown): string {
+  const msg = ((e as Error)?.message ?? "").toLowerCase();
+  if (msg.includes("insufficient funds")) return "Ví hệ thống đang hết AVAX test. Hãy báo nhóm phát triển.";
+  if (msg.includes("thiếu biến môi trường")) return "Server chưa được cấu hình đủ. Hãy báo nhóm phát triển.";
+  if (msg.includes("timeout") || msg.includes("timed out") || msg.includes("fetch failed")) {
+    return "Mạng Fuji hoặc dịch vụ ngoài đang chậm. Hãy thử lại sau ít phút.";
+  }
+  return "Có lỗi phía máy chủ. Hãy thử lại.";
+}
+
+/** Bọc handler: ApiErr -> mã lỗi của spec; lỗi khác -> 400 kèm thông báo chung, chi tiết chỉ nằm trong log. */
 export function route<A extends unknown[]>(fn: (...args: A) => Promise<Response>) {
   return async (...args: A): Promise<Response> => {
     try {
@@ -39,7 +51,7 @@ export function route<A extends unknown[]>(fn: (...args: A) => Promise<Response>
     } catch (e) {
       if (e instanceof ApiErr) return apiError(e.code, e.message, e.extra);
       console.error(e);
-      return apiError("BAD_REQUEST", (e as Error)?.message ?? "Lỗi không xác định");
+      return apiError("BAD_REQUEST", publicMessage(e));
     }
   };
 }

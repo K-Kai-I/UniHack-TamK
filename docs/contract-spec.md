@@ -129,7 +129,7 @@ Mọi hàm kiểm tra theo thứ tự: ai gọi, trạng thái, hạn chót, r�
 | --- | --- | --- | --- | --- |
 | `createDeal(deposit, reserveFee, moveInDate, leaseEnd, yieldEnabled, termsHash) → id` | Bất kỳ (thành chủ trọ) | — | Kiểm tra `deposit > 0`, `reserveFee <= deposit`, `leaseEnd > moveInDate`, `termsHash != 0`. Tạo deal OPEN | P0 |
 | `cancelDeal(id)` | Chủ trọ | OPEN | Sang CANCELLED | P0 |
-| `deposit(id, wantYield)` | Bất kỳ, khác chủ trọ | OPEN, chưa quá `moveInDate + moveInGrace` | Kéo C từ người gọi (cần approve trước). Ghi `tenant`. `deadline = moveInDate + moveInGrace`. Nếu `wantYield && yieldEnabled && vault != 0` thì gửi vào vault. Sang RESERVED | P0 |
+| `deposit(id, wantYield)` | Bất kỳ, khác chủ trọ | OPEN, chưa quá `moveInDate + moveInGrace` | Kéo C từ người gọi (cần approve trước). Ghi `tenant`. `deadline = moveInDate + moveInGrace`. Nếu `wantYield && yieldEnabled && vault != 0` thì gửi vào vault, trừ khi giá cổ phần vault bất thường (gửi vào nhận 0 cổ phần, hoặc rút ra ngay hụt quá 0,01% C): khi đó cọc nằm trong két, `yieldOn = false`, giao dịch vẫn thành công. Sang RESERVED | P0 |
 | `depositWithPermit(id, wantYield, permitDeadline, v, r, s)` | Như trên | Như trên | Gọi `permit` trong `try/catch` rồi chạy như `deposit`. Người thuê chỉ ký 1 giao dịch | P0 |
 | `submitCheckIn(id, checkInHash)` | Người thuê | RESERVED, `checkInHash == 0`, chưa quá `deadline` | Lưu hash. `deadline = now + checkInObjection` | P0 |
 | `contestCheckIn(id)` | Chủ trọ | RESERVED, đã có `checkInHash`, chưa quá `deadline`, `checkInContested == false` | Xóa `checkInHash`, đặt `checkInContested = true`, `deadline = now + moveInGrace` để người thuê chụp lại | P2 |

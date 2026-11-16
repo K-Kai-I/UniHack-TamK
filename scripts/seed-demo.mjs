@@ -6,6 +6,7 @@
 //   3. Terminal 1:  cd web && AUTH_DEV_BYPASS=1 npm run dev
 //   4. Terminal 2:  cd web && node ../scripts/seed-demo.mjs
 //      Tạo lãi giả cho vault (để demo phần chia lãi):  node ../scripts/seed-demo.mjs --yield 5
+//      Gửi mồi vào vault (1 lần cho bản deploy v4):     node ../scripts/seed-demo.mjs --seed-vault
 //
 // Server local dùng cùng DATABASE_URL / Supabase / Fuji với Vercel, nên phòng tạo ra hiện luôn trên app thật.
 import { readFileSync, existsSync } from "node:fs";
@@ -33,6 +34,42 @@ const escrowAbi = JSON.parse(readFileSync(join(root, "shared/abi/DepositEscrow.j
 const vaultAbi = JSON.parse(readFileSync(join(root, "shared/abi/MockVault.json"), "utf8"));
 const chain = { ...avalancheFuji, rpcUrls: { default: { http: [RPC] } } };
 const pub = createPublicClient({ chain, transport: http(RPC) });
+
+// ---- gửi mồi vào vault (chạy 1 lần sau khi deploy bản có vault mà script deploy chưa tự gửi mồi)
+if (process.argv.includes("--seed-vault")) {
+  const vaultAddr = deployments.contracts.MockVault;
+  if (!vaultAddr) throw new Error("Bản deploy hiện tại không có vault");
+  const key = env.KEEPER_PRIVATE_KEY;
+  if (!key) throw new Error("Thiếu KEEPER_PRIVATE_KEY trong web/.env.local");
+  const usdcAbi = JSON.parse(readFileSync(join(root, "shared/abi/MockUSDC.json"), "utf8"));
+  const usdcAddr = deployments.contracts.MockUSDC;
+  const DEAD = "0x000000000000000000000000000000000000dEaD";
+  const read = (address, abi, functionName, args = []) => pub.readContract({ address, abi, functionName, args });
+  const [supply, assets, deadShares] = await Promise.all([
+    read(vaultAddr, vaultAbi, "totalSupply"),
+    read(vaultAddr, vaultAbi, "totalAssets"),
+    read(vaultAddr, vaultAbi, "balanceOf", [DEAD]),
+  ]);
+  if (deadShares > 0n) {
+    console.log("Vault đã có mồi rồi, không cần làm gì.");
+    process.exit(0);
+  }
+  if (supply === 0n && assets > 0n) {
+    throw new Error("Vault rỗng nhưng đã có tiền bị chuyển vào trước: gửi mồi không còn tác dụng. Cần deploy bản mới.");
+  }
+  const keeper = createWalletClient({ chain, transport: http(RPC), account: privateKeyToAccount(key) });
+  const amount = parseUnits("1000", 6);
+  const send = async (address, abi, functionName, args) => {
+    const hash = await keeper.writeContract({ address, abi, functionName, args });
+    await pub.waitForTransactionReceipt({ hash });
+    return hash;
+  };
+  await send(usdcAddr, usdcAbi, "mint", [keeper.account.address, amount]);
+  await send(usdcAddr, usdcAbi, "approve", [vaultAddr, amount]);
+  const hash = await send(vaultAddr, vaultAbi, "deposit", [amount, DEAD]);
+  console.log(`Đã gửi mồi 1.000 mUSDC vào vault. Giao dịch: https://testnet.snowtrace.io/tx/${hash}`);
+  process.exit(0);
+}
 
 // ---- tạo lãi giả
 const yieldIdx = process.argv.indexOf("--yield");

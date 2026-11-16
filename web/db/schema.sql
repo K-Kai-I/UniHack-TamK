@@ -98,3 +98,7 @@ ALTER TABLE ai_reports ADD COLUMN IF NOT EXISTS explanation JSONB;
 
 ALTER TABLE chain_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sync_state   ENABLE ROW LEVEL SECURITY;
+
+-- Chỉ mục cho các truy vấn hay chạy (thêm 16/11, không đổi dữ liệu).
+CREATE INDEX IF NOT EXISTS photos_owner_time ON photos (owner, created_at);
+CREATE INDEX IF NOT EXISTS ai_reports_deal ON ai_reports (deal_id, type, created_at);
