@@ -24,3 +24,10 @@ export function monthsBetween(fromIso: IsoTime, toIso: IsoTime): number {
   const ms = new Date(toIso).getTime() - new Date(fromIso).getTime();
   return Math.max(1, Math.round(ms / (30.44 * 24 * 3600 * 1000)));
 }
+
+/** "14:05 20/11/2026" */
+export function formatDateTime(iso: IsoTime): string {
+  const d = new Date(iso);
+  const time = new Intl.DateTimeFormat("vi-VN", { timeZone: TZ, hour: "2-digit", minute: "2-digit" }).format(d);
+  return `${time} ${formatDate(iso)}`;
+}

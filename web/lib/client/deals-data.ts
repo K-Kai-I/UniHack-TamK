@@ -4,6 +4,7 @@
 // API của Khải chưa xong thì chạy BẢN GIẢ (NEXT_PUBLIC_MOCK_API khác "0"), đủ 11 trạng thái để thử giao diện.
 import type {
   Address,
+  AiJobStatus,
   Amount,
   DamageReport,
   DealState,
@@ -42,16 +43,26 @@ export interface DealOnchain {
 }
 
 export interface PhotoSetView {
+  photoSetId?: string;
   setHash: Hash;
   items: { positionId: string; url: string }[];
 }
 
 export interface DealView {
   dealId: number;
+  listingId?: string;
   onchain: DealOnchain;
   terms: Terms;
+  /** URL ảnh đăng tin, cùng thứ tự với terms.listingPhotos. */
+  listingPhotoUrls: string[];
+  /** URL ảnh ví dụ theo positionId. */
+  examplePhotoUrls: Record<string, string>;
   photoSets: { checkin: PhotoSetView | null; checkout: PhotoSetView | null; mismatch: PhotoSetView | null };
   reports: { damage: DamageReport | null; mismatch: MismatchReport | null };
+  /** Tiến độ AI. null = chưa ai bấm chạy. */
+  aiStatus: { damage: AiJobStatus | null; mismatch: AiJobStatus | null };
+  /** Lời giải thích thêm của OpenAI: chỉ tham khảo, KHÔNG nằm trong báo cáo đã ký. */
+  explanation: string | null;
   /** P1: chưa kịp thì API trả mảng rỗng. */
   history: { event: string; txHash: Hash; at: IsoTime }[];
 }
@@ -66,6 +77,11 @@ export async function fetchDealView(dealId: number): Promise<DealView> {
   if (USE_MOCK) return mockDealView(dealId);
   try {
     const d = await apiFetch<DealView>(`/deals/${dealId}`);
+    // Bản API cũ chưa có các trường này: điền mặc định để UI không vỡ.
+    d.listingPhotoUrls ??= [];
+    d.examplePhotoUrls ??= {};
+    d.aiStatus ??= { damage: null, mismatch: null };
+    d.explanation ??= null;
     // address(0) nghĩa là chưa có người thuê; đổi về null để UI so sánh ví cho gọn.
     if (d.onchain.tenant && d.onchain.tenant.toLowerCase() === ZERO) d.onchain.tenant = null;
     return d;
@@ -91,8 +107,63 @@ type MockPatch = Partial<DealOnchain> & {
   state: DealState;
   checkin?: boolean;
   checkout?: boolean;
+  /** Tiến độ AI so ảnh (chỉ có nghĩa khi checkout = true). Mặc định "done". */
+  ai?: AiJobStatus | null;
   title: string;
 };
+
+/**
+ * Báo cáo AI giả theo đúng schema kct.report.damage/1 (mẫu ở docs/model ai report/report.damage.json),
+ * cho 3 vị trí của WALL_SAMPLE_TERMS: một hư hỏng mới có trong bảng giá, một hao mòn, một ảnh mờ.
+ */
+export function mockDamageReport(dealId: number): DamageReport {
+  return {
+    schema: "kct.report.damage/1",
+    dealId,
+    checkInHash: H("c"),
+    checkOutHash: H("d"),
+    model: "gemini-3.1-flash-lite",
+    promptVersion: "damage-v1",
+    createdAt: at(-600),
+    positions: [
+      {
+        positionId: "p1",
+        verdict: "NEW_DAMAGE",
+        confidence: 0.86,
+        description: "Ảnh trả phòng có một vết bẩn lớn ở góc phải mảng tường.",
+        priceItemId: "i1",
+        quantity: 1,
+        outsidePriceList: false,
+        amount: "16000000",
+      },
+      {
+        positionId: "p2",
+        verdict: "WEAR",
+        confidence: 0.74,
+        description: "Sơn cửa bạc màu đều, không thấy vết trầy mới.",
+        priceItemId: null,
+        quantity: 0,
+        outsidePriceList: false,
+        amount: "0",
+      },
+      {
+        positionId: "p3",
+        verdict: "UNCLEAR",
+        confidence: 0.4,
+        description: "Ảnh trả phòng bị mờ, không đủ rõ để so sánh.",
+        priceItemId: null,
+        quantity: 0,
+        outsidePriceList: false,
+        amount: "0",
+      },
+    ],
+    totalAmount: "16000000",
+    sealedAmount: "16000000",
+  };
+}
+
+export const MOCK_EXPLANATION =
+  "Chỉ tường đầu giường có hư hỏng mới. Cửa chỉ cũ đi theo thời gian nên không tính. Ảnh sàn bị mờ nên AI không kết luận.";
 
 const photoSet = (seed: string): PhotoSetView => ({
   setHash: H(seed),
@@ -152,7 +223,34 @@ const MOCK_STATES: Record<number, MockPatch> = {
     hasAiSeal: true,
     title: "Quá hạn trả lời (thử nút Xử lý quá hạn)",
   },
+  33: {
+    state: "CHECKED_OUT",
+    deadline: at(240),
+    checkin: true,
+    checkout: true,
+    ai: "processing",
+    title: "Đã trả phòng, AI đang so ảnh",
+  },
+  34: {
+    state: "CHECKED_OUT",
+    deadline: at(180),
+    checkin: true,
+    checkout: true,
+    ai: "failed",
+    title: "Đã trả phòng, AI bị lỗi",
+  },
 };
+
+/** Deal giả có AI chạy xong sau vài giây (deal 33), để thử màn chờ. */
+export const MOCK_AI_READY_AT = T0 + 12_000;
+
+/** Tiến độ AI của deal giả ở thời điểm hiện tại. */
+export function mockAiStatus(dealId: number): AiJobStatus | null {
+  const p = MOCK_STATES[dealId];
+  if (!p?.checkout) return null;
+  const ai = p.ai === undefined ? "done" : p.ai;
+  return ai === "processing" && Date.now() > MOCK_AI_READY_AT ? "done" : ai;
+}
 
 /** Danh sách id deal giả, cho trang thử và màn "Hợp đồng của tôi" sau này. */
 export const MOCK_DEAL_IDS = Object.keys(MOCK_STATES).map(Number);
@@ -170,11 +268,22 @@ async function mockDealView(dealId: number): Promise<DealView> {
     return base(d.dealId, d.terms, { state: d.onchain.state, tenant: d.onchain.tenant, deadline: null });
   }
   await delay(400);
-  const { title, checkin, checkout, ...onchain } = patch;
+  // `ai` không thuộc onchain: tách ra để không lọt vào DealOnchain (đọc lại bằng mockAiStatus bên dưới).
+  const { title, checkin, checkout, ai: aiPatch, ...onchain } = patch;
+  void aiPatch;
   const terms: Terms = { ...WALL_SAMPLE_TERMS, room: { ...WALL_SAMPLE_TERMS.room, title } };
   const view = base(dealId, terms, { tenant: A("9"), ...onchain });
   if (checkin) view.photoSets.checkin = photoSet("c");
   if (checkout) view.photoSets.checkout = photoSet("d");
+  const ai = mockAiStatus(dealId);
+  view.aiStatus.damage = ai;
+  if (ai === "done") {
+    view.reports.damage = mockDamageReport(dealId);
+    view.explanation = MOCK_EXPLANATION;
+  }
+  if (TERMINAL.includes(patch.state) && patch.state !== "CANCELLED") {
+    view.history = [{ event: "Paid", txHash: H("f"), at: at(-120) }];
+  }
   return view;
 }
 
@@ -202,8 +311,12 @@ function base(dealId: number, terms: Terms, patch: Partial<DealOnchain> & { stat
       deadline,
     },
     terms,
+    listingPhotoUrls: [],
+    examplePhotoUrls: {},
     photoSets: { checkin: null, checkout: null, mismatch: null },
     reports: { damage: null, mismatch: null },
+    aiStatus: { damage: null, mismatch: null },
+    explanation: null,
     history: [],
   };
 }
