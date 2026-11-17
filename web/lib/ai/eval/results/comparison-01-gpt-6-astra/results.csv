@@ -1,0 +1,12 @@
+﻿name,task,model,promptVersion,expected,predicted,labelStatus,labelMatch,fieldsMatch,durationMs,error
+"01 - Ghế xanh","damage","gpt-6-astra","damage-v1","NEW_DAMAGE","","provisional","false","false","5679","Dịch vụ AI trả HTTP 429. Đạt giới hạn tốc độ hoặc hạn mức; kiểm tra dashboard."
+"02 - Cửa gỗ","damage","gpt-6-astra","damage-v1","UNCLEAR","","provisional","false","false","0","SKIPPED after provider access/quota error; not tested"
+"03 - Khay cửa tủ lạnh","damage","gpt-6-astra","damage-v1","NEW_DAMAGE","","provisional","false","false","0","SKIPPED after provider access/quota error; not tested"
+"04 - Quạt đứng","damage","gpt-6-astra","damage-v1","UNCLEAR","","provisional","false","false","0","SKIPPED after provider access/quota error; not tested"
+"05 - Tường gần ổ điện","damage","gpt-6-astra","damage-v1","NEW_DAMAGE","","provisional","false","false","0","SKIPPED after provider access/quota error; not tested"
+"06 - Tường cạnh máy lạnh","damage","gpt-6-astra","damage-v1","NO_CHANGE","","provisional","false","false","0","SKIPPED after provider access/quota error; not tested"
+"07 - Mặt bàn","damage","gpt-6-astra","damage-v1","UNCLEAR","","provisional","false","false","0","SKIPPED after provider access/quota error; not tested"
+"08 - Tường dưới đèn","damage","gpt-6-astra","damage-v1","UNCLEAR","","provisional","false","false","0","SKIPPED after provider access/quota error; not tested"
+"09 - Tủ áo","damage","gpt-6-astra","damage-v1","UNCLEAR","","provisional","false","false","0","SKIPPED after provider access/quota error; not tested"
+"10 - Tường sau tranh","damage","gpt-6-astra","damage-v1","UNCLEAR","","provisional","false","false","0","SKIPPED after provider access/quota error; not tested"
+"11 - Bàn và màn hình","damage","gpt-6-astra","damage-v1","NO_CHANGE","","provisional","false","false","0","SKIPPED after provider access/quota error; not tested"

@@ -1,0 +1,198 @@
+{
+  "startedAt": "2026-11-17T03:21:44.188Z",
+  "run": "confirmation-01",
+  "provider": "google",
+  "model": "gemini-4-hydrogen",
+  "dataset": "reference/cases.json",
+  "qualification": "Provisional visual labels, not human ground truth. Missing WEAR coverage unless user confirms. Rerun is stability, not held-out accuracy.",
+  "summary": [
+    {
+      "group": "gemini-4-hydrogen/damage",
+      "total": 11,
+      "valid": 1,
+      "errors": 10,
+      "labelMatches": 1,
+      "fieldMatches": 1,
+      "labelAccuracyOnValid": 1,
+      "successAndLabelRate": 0.09090909090909091,
+      "reviewed": 0,
+      "medianMs": 54200,
+      "confusion": {
+        "NEW_DAMAGE": {
+          "ERROR": 2,
+          "NEW_DAMAGE": 1
+        },
+        "UNCLEAR": {
+          "ERROR": 6
+        },
+        "NO_CHANGE": {
+          "ERROR": 2
+        }
+      }
+    }
+  ],
+  "rows": [
+    {
+      "name": "01 - Ghế xanh",
+      "task": "damage",
+      "model": "gemini-4-hydrogen",
+      "promptVersion": "damage-v1",
+      "expected": "NEW_DAMAGE",
+      "predicted": null,
+      "labelStatus": "provisional",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 4375,
+      "error": "AI_FAILED: Dịch vụ AI trả HTTP 503. Dịch vụ AI đang lỗi hoặc quá tải; thử lại sau.",
+      "output": null
+    },
+    {
+      "name": "02 - Cửa gỗ",
+      "task": "damage",
+      "model": "gemini-4-hydrogen",
+      "promptVersion": "damage-v1",
+      "expected": "UNCLEAR",
+      "predicted": null,
+      "labelStatus": "provisional",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 5962,
+      "error": "AI_FAILED: Dịch vụ AI trả HTTP 503. Dịch vụ AI đang lỗi hoặc quá tải; thử lại sau.",
+      "output": null
+    },
+    {
+      "name": "03 - Khay cửa tủ lạnh",
+      "task": "damage",
+      "model": "gemini-4-hydrogen",
+      "promptVersion": "damage-v1",
+      "expected": "NEW_DAMAGE",
+      "predicted": null,
+      "labelStatus": "provisional",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 2769,
+      "error": "AI_FAILED: Dịch vụ AI trả HTTP 503. Dịch vụ AI đang lỗi hoặc quá tải; thử lại sau.",
+      "output": null
+    },
+    {
+      "name": "04 - Quạt đứng",
+      "task": "damage",
+      "model": "gemini-4-hydrogen",
+      "promptVersion": "damage-v1",
+      "expected": "UNCLEAR",
+      "predicted": null,
+      "labelStatus": "provisional",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 181027,
+      "error": "AI_FAILED: Không kết nối được AI hoặc quá 90 giây. Hãy thử lại. Đã thử 2 lần.",
+      "output": null
+    },
+    {
+      "name": "05 - Tường gần ổ điện",
+      "task": "damage",
+      "model": "gemini-4-hydrogen",
+      "promptVersion": "damage-v1",
+      "expected": "NEW_DAMAGE",
+      "predicted": "NEW_DAMAGE",
+      "labelStatus": "provisional",
+      "labelMatch": true,
+      "fieldsMatch": true,
+      "durationMs": 54200,
+      "error": null,
+      "output": {
+        "positionId": "p5",
+        "verdict": "NEW_DAMAGE",
+        "confidence": 0.95,
+        "description": "Trên bề mặt tường phía trên ổ điện ở ảnh sau xuất hiện vết vẽ nguệch ngoạc hình zíc zắc màu tối mà ở ảnh trước hoàn toàn không có.",
+        "priceItemId": "i1",
+        "quantity": 1,
+        "outsidePriceList": false
+      }
+    },
+    {
+      "name": "06 - Tường cạnh máy lạnh",
+      "task": "damage",
+      "model": "gemini-4-hydrogen",
+      "promptVersion": "damage-v1",
+      "expected": "NO_CHANGE",
+      "predicted": null,
+      "labelStatus": "provisional",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 5024,
+      "error": "AI_FAILED: Dịch vụ AI trả HTTP 503. Dịch vụ AI đang lỗi hoặc quá tải; thử lại sau.",
+      "output": null
+    },
+    {
+      "name": "07 - Mặt bàn",
+      "task": "damage",
+      "model": "gemini-4-hydrogen",
+      "promptVersion": "damage-v1",
+      "expected": "UNCLEAR",
+      "predicted": null,
+      "labelStatus": "provisional",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 5113,
+      "error": "AI_FAILED: Dịch vụ AI trả HTTP 503. Dịch vụ AI đang lỗi hoặc quá tải; thử lại sau.",
+      "output": null
+    },
+    {
+      "name": "08 - Tường dưới đèn",
+      "task": "damage",
+      "model": "gemini-4-hydrogen",
+      "promptVersion": "damage-v1",
+      "expected": "UNCLEAR",
+      "predicted": null,
+      "labelStatus": "provisional",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 299,
+      "error": "AI_FAILED: Dịch vụ AI trả HTTP 429. Đạt giới hạn tốc độ hoặc hạn mức; kiểm tra dashboard.",
+      "output": null
+    },
+    {
+      "name": "09 - Tủ áo",
+      "task": "damage",
+      "model": "gemini-4-hydrogen",
+      "promptVersion": "damage-v1",
+      "expected": "UNCLEAR",
+      "predicted": null,
+      "labelStatus": "provisional",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 0,
+      "error": "SKIPPED after provider access/quota error; not tested",
+      "output": null
+    },
+    {
+      "name": "10 - Tường sau tranh",
+      "task": "damage",
+      "model": "gemini-4-hydrogen",
+      "promptVersion": "damage-v1",
+      "expected": "UNCLEAR",
+      "predicted": null,
+      "labelStatus": "provisional",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 0,
+      "error": "SKIPPED after provider access/quota error; not tested",
+      "output": null
+    },
+    {
+      "name": "11 - Bàn và màn hình",
+      "task": "damage",
+      "model": "gemini-4-hydrogen",
+      "promptVersion": "damage-v1",
+      "expected": "NO_CHANGE",
+      "predicted": null,
+      "labelStatus": "provisional",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 0,
+      "error": "SKIPPED after provider access/quota error; not tested",
+      "output": null
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+﻿name,task,model,promptVersion,expected,predicted,labelStatus,labelMatch,fieldsMatch,durationMs,error
+"01 - Ghế xanh","damage","gemini-3.8-flash","damage-v1","NEW_DAMAGE","","provisional","false","false","2424","AI_FAILED: Dịch vụ AI trả HTTP 503. Dịch vụ AI đang lỗi hoặc quá tải; thử lại sau."
+"02 - Cửa gỗ","damage","gemini-3.8-flash","damage-v1","UNCLEAR","","provisional","false","false","1097","AI_FAILED: Dịch vụ AI trả HTTP 503. Dịch vụ AI đang lỗi hoặc quá tải; thử lại sau."
+"03 - Khay cửa tủ lạnh","damage","gemini-3.8-flash","damage-v1","NEW_DAMAGE","","provisional","false","false","799","AI_FAILED: Dịch vụ AI trả HTTP 503. Dịch vụ AI đang lỗi hoặc quá tải; thử lại sau."
+"04 - Quạt đứng","damage","gemini-3.8-flash","damage-v1","UNCLEAR","","provisional","false","false","949","AI_FAILED: Dịch vụ AI trả HTTP 503. Dịch vụ AI đang lỗi hoặc quá tải; thử lại sau."
+"05 - Tường gần ổ điện","damage","gemini-3.8-flash","damage-v1","NEW_DAMAGE","","provisional","false","false","745","AI_FAILED: Dịch vụ AI trả HTTP 503. Dịch vụ AI đang lỗi hoặc quá tải; thử lại sau."
+"06 - Tường cạnh máy lạnh","damage","gemini-3.8-flash","damage-v1","NO_CHANGE","","provisional","false","false","715","AI_FAILED: Dịch vụ AI trả HTTP 503. Dịch vụ AI đang lỗi hoặc quá tải; thử lại sau."
+"07 - Mặt bàn","damage","gemini-3.8-flash","damage-v1","UNCLEAR","","provisional","false","false","913","AI_FAILED: Dịch vụ AI trả HTTP 429. Đạt giới hạn tốc độ hoặc hạn mức; kiểm tra dashboard."
+"08 - Tường dưới đèn","damage","gemini-3.8-flash","damage-v1","UNCLEAR","","provisional","false","false","0","SKIPPED after provider access/quota error; not tested"
+"09 - Tủ áo","damage","gemini-3.8-flash","damage-v1","UNCLEAR","","provisional","false","false","0","SKIPPED after provider access/quota error; not tested"
+"10 - Tường sau tranh","damage","gemini-3.8-flash","damage-v1","UNCLEAR","","provisional","false","false","0","SKIPPED after provider access/quota error; not tested"
+"11 - Bàn và màn hình","damage","gemini-3.8-flash","damage-v1","NO_CHANGE","","provisional","false","false","0","SKIPPED after provider access/quota error; not tested"

@@ -1,0 +1,12 @@
+﻿name,task,model,promptVersion,expected,predicted,labelStatus,labelMatch,fieldsMatch,durationMs,error
+"01 - Ghế xanh","damage","gemini-3.5-flash-lite","damage-v1","NEW_DAMAGE","NEW_DAMAGE","provisional","true","true","11738",""
+"02 - Cửa gỗ","damage","gemini-3.5-flash-lite","damage-v1","UNCLEAR","NEW_DAMAGE","provisional","false","false","5892",""
+"03 - Khay cửa tủ lạnh","damage","gemini-3.5-flash-lite","damage-v1","NEW_DAMAGE","","provisional","false","false","5307","AI_FAILED: Gemini không trả kết quả hợp lệ sau 2 lần gọi."
+"04 - Quạt đứng","damage","gemini-3.5-flash-lite","damage-v1","UNCLEAR","UNCLEAR","provisional","true","true","2716",""
+"05 - Tường gần ổ điện","damage","gemini-3.5-flash-lite","damage-v1","NEW_DAMAGE","NEW_DAMAGE","provisional","true","true","2563",""
+"06 - Tường cạnh máy lạnh","damage","gemini-3.5-flash-lite","damage-v1","NO_CHANGE","NO_CHANGE","provisional","true","true","1817",""
+"07 - Mặt bàn","damage","gemini-3.5-flash-lite","damage-v1","UNCLEAR","WEAR","provisional","false","false","2447",""
+"08 - Tường dưới đèn","damage","gemini-3.5-flash-lite","damage-v1","UNCLEAR","NO_CHANGE","provisional","false","false","2105",""
+"09 - Tủ áo","damage","gemini-3.5-flash-lite","damage-v1","UNCLEAR","UNCLEAR","provisional","true","true","2045",""
+"10 - Tường sau tranh","damage","gemini-3.5-flash-lite","damage-v1","UNCLEAR","NEW_DAMAGE","provisional","false","false","2764",""
+"11 - Bàn và màn hình","damage","gemini-3.5-flash-lite","damage-v1","NO_CHANGE","NO_CHANGE","provisional","true","true","2496",""
