@@ -7,6 +7,7 @@ import { readDeals } from "@/lib/server/chain";
 import { env } from "@/lib/server/env";
 import { ApiErr, json, photoUrl, readJson, route } from "@/lib/server/http";
 import { getPhotoMetas, insertListing, listBoundListings } from "@/lib/server/repo";
+import { linkOrphanListingsSoon } from "@/lib/server/link-listings";
 import { DEAL_STATES, type Address, type DealState, type PhotoRef, type Terms } from "@/lib/types";
 
 interface Body {
@@ -121,6 +122,7 @@ export const GET = route(async (req: Request) => {
   const stateParam = (new URL(req.url).searchParams.get("state") ?? "OPEN").toUpperCase();
   if (!(DEAL_STATES as readonly string[]).includes(stateParam)) throw bad(`state phải là một trong ${DEAL_STATES.join(", ")}`);
 
+  await linkOrphanListingsSoon(); // gắn nốt tin đăng mồ côi (nếu có) trước khi liệt kê
   const rows = await listBoundListings();
   const deals = await readDeals(rows.map((r) => BigInt(r.deal_id!)));
   const items = rows
