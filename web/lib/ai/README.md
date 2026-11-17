@@ -33,7 +33,7 @@ node --conditions=react-server --import tsx lib/ai/eval/benchmark.ts --model gpt
 
 Kết quả ở `eval/results/<run>-<model>/`: JSON gốc đã parse/kiểm tra, CSV và snapshot đáp án. Không ghi đè một run đã có. Các trường `summary.errors` cũ bao gồm ca SKIPPED; báo cáo tổng hợp tách số lỗi thực và số ca bỏ qua. Không đọc SKIPPED thành đã gọi API. `--legacy` thử Gemini qua generateContent, chỉ dùng để kiểm tra tương thích; production vẫn dùng Interactions.
 
-Nhãn trong `reference/cases.json` được trợ lý ghi trước inference, ban đầu đều `labelStatus=provisional`; hiện cặp 03 là `reviewed`. Sau lượt chạy, người dùng bổ sung mô tả và xác nhận đáp án cặp 03; hiện 1/11 ca reviewed, 10 ca provisional. Kết quả lịch sử vẫn giữ snapshot nhãn trước xác nhận. Chưa có ca WEAR đủ rõ; cần người chụp xác nhận nhãn, bổ sung hao mòn và thêm bộ ảnh độc lập trước khi đánh giá thực tế. Không đổi đáp án theo dự đoán để nâng điểm. Các ảnh T/S giữ nguyên tên và byte gốc.
+Nhãn trong `reference/cases.json` được ghi trước inference và ban đầu đều có `labelStatus=provisional`. Sau lượt chạy, người chụp xác nhận đáp án cặp 03 và 07. Hiện có 2/11 ca reviewed và 9 ca provisional. Kết quả lịch sử vẫn giữ snapshot nhãn trước xác nhận. Chưa có ca WEAR đủ rõ; cần người chụp xác nhận nhãn, bổ sung hao mòn và thêm bộ ảnh độc lập trước khi đánh giá thực tế. Không đổi đáp án theo dự đoán để nâng điểm. Các ảnh T/S giữ nguyên tên và byte gốc.
 
 `run.ts` / `npm run ai:eval` vẫn dành cho bộ chuẩn: ít nhất 10 ca damage đủ bốn nhãn hoặc listing đủ ba nhãn. Bộ 11 ảnh hiện tại chưa đạt đủ bốn nhãn nên dùng `benchmark.ts` và đọc giới hạn trong báo cáo. Không nới kiểm tra của bộ chuẩn để giả vờ dữ liệu đã đầy đủ.
 

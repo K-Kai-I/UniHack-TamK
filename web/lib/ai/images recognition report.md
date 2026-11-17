@@ -4,9 +4,9 @@ Ngày báo cáo: 17/11/2026. Ảnh do người dùng tự chụp; T = trước, 
 
 ## Cập nhật xác nhận ngày 17/11/2026
 
-Đã đồng bộ mô tả người dùng sửa trong labels.csv sang cases.json. Cặp 03 được người chụp xác nhận mất khay dưới: NEW_DAMAGE, ngoài bảng giá, mã giá null, quantity 0; labelStatus=reviewed. Các cặp còn lại vẫn provisional. Cặp 02 xác nhận vết nứt bị băng dính che; 07 chỉ cần lau; 08 là hai bức tường khác nhau; 10 mất tranh. Chưa tự đổi nhãn 07/10 vì cần phân biệt mục tiêu đánh giá hư hỏng bề mặt với mất đồ. Giữ UNCLEAR ở hai ca này trong lúc chờ chốt tiêu chí.
+Người chụp xác nhận cặp 03 là NEW_DAMAGE ngoài bảng giá và cặp 07 là NO_CHANGE. Ảnh sau của cặp 07 có vụn bẩn lau được và không thấy hư hỏng mới trên mặt bàn. Bộ nhãn hiện tại có 2/11 ca reviewed và 9 ca provisional, gồm 3 NEW_DAMAGE, 3 NO_CHANGE và 5 UNCLEAR. Các điểm và bảng kết quả lịch sử dùng snapshot nhãn sơ bộ tại thời điểm chạy.
 
-Chỉ thay mô tả, nguồn và trạng thái xác nhận; không thay trường đáp án chấm điểm. Vì vậy điểm khớp các lượt đã chạy không đổi, không cần gọi lại API. Kết quả và cases.snapshot.json trong từng thư mục results được giữ nguyên: chúng phản ánh bộ nhãn ở thời điểm chạy, khi toàn bộ nhãn còn provisional. Hiện tại có 1/11 ca reviewed; chưa có ca WEAR xác nhận.
+Cặp 02 có băng dính che vết nứt, cặp 08 là hai bức tường khác nhau và cặp 10 mất tranh. Chưa có ca WEAR xác nhận.
 
 ## Phạm vi và cách đo
 
@@ -14,7 +14,7 @@ Khảo sát 12 model của Google/OpenAI bằng khóa dự án. Không đại di
 
 Cùng 22 ảnh gốc, prompt damage-v1, bảng giá `shared/samples/terms.json`, ngưỡng confidence 0.6. Không gửi nhãn mong đợi cho model. Gemini dùng compareDamage/Interactions API hiện có; OpenAI dùng Responses API và cùng schema/quy tắc, detail=high. Endpoint và thiết lập mặc định từng hãng khác nhau. Đo thời gian toàn bộ request và retry; không đo chi phí vì chưa thu token usage. Tối đa 2 lần gọi/ca. Khi lỗi quyền/404/429, các ca còn lại được ghi SKIPPED, không giả là đã test.
 
-Có 3 ca NEW_DAMAGE, 2 NO_CHANGE, 6 UNCLEAR theo nhãn sơ bộ; **chưa có ca WEAR xác nhận**. Các nhãn được ghi trước inference và giữ nguyên. Không đổi nhãn để tăng điểm. Tại thời điểm chạy, cặp 03 chưa xác nhận mất khay hay tháo tạm; nay người chụp đã xác nhận mất khay. Các ca 02/07/08/10 vẫn cần đọc cùng giới hạn quan sát và tiêu chí phân loại. Kết luận tốt nhất chỉ áp dụng bộ nhỏ này và điều kiện API tại thời điểm chạy.
+Có 3 ca NEW_DAMAGE, 2 NO_CHANGE, 6 UNCLEAR theo snapshot nhãn sơ bộ lúc chạy. **Chưa có ca WEAR xác nhận**. Không đổi nhãn để tăng điểm. Tại thời điểm chạy, cặp 03 chưa xác nhận mất khay hay tháo tạm; nay người chụp đã xác nhận mất khay. Các ca 02/08/10 vẫn cần đọc cùng giới hạn quan sát và tiêu chí phân loại. Kết luận tốt nhất chỉ áp dụng bộ nhỏ này và điều kiện API tại thời điểm chạy.
 
 ## So sánh lần đầu
 

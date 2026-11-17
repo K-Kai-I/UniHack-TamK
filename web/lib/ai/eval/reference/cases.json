@@ -96,13 +96,13 @@
     "positionName": "Mặt bàn",
     "before": "images/ảnh7T.jpg",
     "after": "images/ảnh7S.jpg",
-    "expectVerdict": "UNCLEAR",
+    "expectVerdict": "NO_CHANGE",
     "expectPriceItemId": null,
     "expectQuantity": 0,
     "expectOutsidePriceList": false,
-    "labelStatus": "provisional",
-    "source": "Người dùng tự chụp và bổ sung mô tả ngày 17/11/2026; nhãn phân loại vẫn sơ bộ, chưa xác nhận đầy đủ.",
-    "labelReason": "Có vụn/chất bẩn mới; chỉ cần lau."
+    "labelStatus": "reviewed",
+    "source": "Người chụp xác nhận nhãn NO_CHANGE ngày 17/11/2026.",
+    "labelReason": "Vụn bẩn có thể lau sạch. Không thấy hư hỏng mới trên mặt bàn."
   },
   {
     "name": "08 - Tường dưới đèn",
