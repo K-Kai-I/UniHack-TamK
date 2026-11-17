@@ -8,6 +8,7 @@ import { FINAL_STATES, readCanPokeMany, readDealCount, readDeals } from "@/lib/s
 import { ApiErr, json, route } from "@/lib/server/http";
 import { keeperSend } from "@/lib/server/wallets";
 import { syncEvents } from "@/lib/server/events";
+import { linkOrphanListings } from "@/lib/server/link-listings";
 
 export const maxDuration = 60;
 
@@ -44,7 +45,12 @@ async function tick(req: Request) {
     console.error("[events]", e);
     return -1;
   });
-  return json({ checked: live.length, poked, errors, newEvents: events });
+  // Tin đăng đã lên chuỗi nhưng app chưa kịp báo máy chủ (mất bước POST /listings/:id/onchain): tự gắn.
+  const linkedListings = await linkOrphanListings().catch((e) => {
+    console.error("[link]", e);
+    return -1;
+  });
+  return json({ checked: live.length, poked, errors, newEvents: events, linkedListings });
 }
 
 export const POST = route(tick);

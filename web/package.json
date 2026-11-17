@@ -11,7 +11,7 @@
     "ai:eval": "node --conditions=react-server --import tsx lib/ai/eval/run.ts",
     "ai:demo": "node --conditions=react-server --import tsx lib/ai/demo.ts",
     "ai:test": "node --conditions=react-server --import tsx --test lib/ai/ai.test.ts",
-    "be:test": "node --conditions=react-server --import tsx --test lib/server/__tests__/consistency.test.ts"
+    "be:test": "node --conditions=react-server --import tsx --test lib/server/__tests__/consistency.test.ts lib/server/__tests__/link-listings.test.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.16",
