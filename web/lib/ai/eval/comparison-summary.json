@@ -1,0 +1,158 @@
+{
+  "selectionRule": "Max label matches / all 11, then field matches, fewer false NEW_DAMAGE, more valid outputs, lower median latency. Provisional labels only.",
+  "selected": "gemini-4-hydrogen",
+  "results": [
+    {
+      "model": "gemini-2.5-flash",
+      "valid": 0,
+      "attempted": 1,
+      "skipped": 10,
+      "errors": 1,
+      "matches": 0,
+      "fields": 0,
+      "falseDamage": 0,
+      "median": null
+    },
+    {
+      "model": "gemini-3.1-flash-lite",
+      "valid": 11,
+      "attempted": 11,
+      "skipped": 0,
+      "errors": 0,
+      "matches": 5,
+      "fields": 5,
+      "falseDamage": 2,
+      "median": 2774
+    },
+    {
+      "model": "gemini-3.5-flash-lite",
+      "valid": 10,
+      "attempted": 11,
+      "skipped": 0,
+      "errors": 1,
+      "matches": 6,
+      "fields": 6,
+      "falseDamage": 2,
+      "median": 2529.5
+    },
+    {
+      "model": "gemini-3.8-flash",
+      "valid": 0,
+      "attempted": 7,
+      "skipped": 4,
+      "errors": 7,
+      "matches": 0,
+      "fields": 0,
+      "falseDamage": 0,
+      "median": null
+    },
+    {
+      "model": "gemini-4-argon",
+      "valid": 0,
+      "attempted": 1,
+      "skipped": 10,
+      "errors": 1,
+      "matches": 0,
+      "fields": 0,
+      "falseDamage": 0,
+      "median": null
+    },
+    {
+      "model": "gemini-4-carbon",
+      "valid": 0,
+      "attempted": 1,
+      "skipped": 10,
+      "errors": 1,
+      "matches": 0,
+      "fields": 0,
+      "falseDamage": 0,
+      "median": null
+    },
+    {
+      "model": "gemini-4-hydrogen",
+      "valid": 7,
+      "attempted": 11,
+      "skipped": 0,
+      "errors": 4,
+      "matches": 7,
+      "fields": 7,
+      "falseDamage": 0,
+      "median": 39363
+    },
+    {
+      "model": "gpt-4.1-mini",
+      "valid": 0,
+      "attempted": 1,
+      "skipped": 10,
+      "errors": 1,
+      "matches": 0,
+      "fields": 0,
+      "falseDamage": 0,
+      "median": null
+    },
+    {
+      "model": "gpt-4o-mini",
+      "valid": 0,
+      "attempted": 1,
+      "skipped": 10,
+      "errors": 1,
+      "matches": 0,
+      "fields": 0,
+      "falseDamage": 0,
+      "median": null
+    },
+    {
+      "model": "gpt-6-astra",
+      "valid": 0,
+      "attempted": 1,
+      "skipped": 10,
+      "errors": 1,
+      "matches": 0,
+      "fields": 0,
+      "falseDamage": 0,
+      "median": null
+    },
+    {
+      "model": "gpt-6-luna",
+      "valid": 0,
+      "attempted": 1,
+      "skipped": 10,
+      "errors": 1,
+      "matches": 0,
+      "fields": 0,
+      "falseDamage": 0,
+      "median": null
+    },
+    {
+      "model": "gpt-6.1-sol",
+      "valid": 0,
+      "attempted": 1,
+      "skipped": 10,
+      "errors": 1,
+      "matches": 0,
+      "fields": 0,
+      "falseDamage": 0,
+      "median": null
+    }
+  ],
+  "missingProviders": [
+    "Anthropic/Claude: no API key",
+    "xAI/Grok: no API key",
+    "Qwen/Llama: no endpoint/key or local model configured"
+  ],
+  "confirmation": [
+    {
+      "model": "gemini-4-hydrogen",
+      "valid": 1,
+      "attempted": 8,
+      "skipped": 3,
+      "errors": 7,
+      "matches": 1,
+      "fields": 1,
+      "falseDamage": 0,
+      "median": 54200
+    }
+  ],
+  "selectionStatus": "Provisional comparison leader; failed service reliability confirmation. No production switch.",
+  "productionModelUnchanged": "gemini-3.1-flash-lite"
+}

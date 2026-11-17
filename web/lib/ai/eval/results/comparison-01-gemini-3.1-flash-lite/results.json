@@ -1,0 +1,280 @@
+{
+  "startedAt": "2026-11-17T03:14:03.846Z",
+  "run": "comparison-01",
+  "provider": "google",
+  "model": "gemini-3.1-flash-lite",
+  "dataset": "reference/cases.json",
+  "qualification": "Provisional visual labels, not human ground truth. Missing WEAR coverage unless user confirms. Rerun is stability, not held-out accuracy.",
+  "summary": [
+    {
+      "group": "gemini-3.1-flash-lite/damage",
+      "total": 11,
+      "valid": 11,
+      "errors": 0,
+      "labelMatches": 5,
+      "fieldMatches": 5,
+      "labelAccuracyOnValid": 0.45454545454545453,
+      "successAndLabelRate": 0.45454545454545453,
+      "reviewed": 0,
+      "medianMs": 2774,
+      "confusion": {
+        "NEW_DAMAGE": {
+          "NEW_DAMAGE": 2,
+          "NO_CHANGE": 1
+        },
+        "UNCLEAR": {
+          "NEW_DAMAGE": 2,
+          "NO_CHANGE": 3,
+          "UNCLEAR": 1
+        },
+        "NO_CHANGE": {
+          "NO_CHANGE": 2
+        }
+      }
+    }
+  ],
+  "rows": [
+    {
+      "name": "01 - Ghế xanh",
+      "task": "damage",
+      "model": "gemini-3.1-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "NEW_DAMAGE",
+      "predicted": "NEW_DAMAGE",
+      "labelStatus": "provisional",
+      "labelMatch": true,
+      "fieldsMatch": true,
+      "durationMs": 3715,
+      "error": null,
+      "output": {
+        "positionId": "p1",
+        "verdict": "NEW_DAMAGE",
+        "confidence": 0.95,
+        "description": "Bề mặt ghế bị bong tróc một phần lớp bọc màu xanh ở phía cạnh bên phải.",
+        "priceItemId": null,
+        "quantity": 0,
+        "outsidePriceList": true
+      }
+    },
+    {
+      "name": "02 - Cửa gỗ",
+      "task": "damage",
+      "model": "gemini-3.1-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "UNCLEAR",
+      "predicted": "NEW_DAMAGE",
+      "labelStatus": "provisional",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 3067,
+      "error": null,
+      "output": {
+        "positionId": "p2",
+        "verdict": "NEW_DAMAGE",
+        "confidence": 1,
+        "description": "Trên bề mặt cánh cửa gỗ xuất hiện dấu dán băng keo hình chữ X tại vị trí trả phòng.",
+        "priceItemId": null,
+        "quantity": 0,
+        "outsidePriceList": true
+      }
+    },
+    {
+      "name": "03 - Khay cửa tủ lạnh",
+      "task": "damage",
+      "model": "gemini-3.1-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "NEW_DAMAGE",
+      "predicted": "NO_CHANGE",
+      "labelStatus": "provisional",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 3381,
+      "error": null,
+      "output": {
+        "positionId": "p3",
+        "verdict": "NO_CHANGE",
+        "confidence": 0.95,
+        "description": "Khay cửa tủ lạnh vẫn giữ nguyên tình trạng như ban đầu.",
+        "priceItemId": null,
+        "quantity": 0,
+        "outsidePriceList": false
+      }
+    },
+    {
+      "name": "04 - Quạt đứng",
+      "task": "damage",
+      "model": "gemini-3.1-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "UNCLEAR",
+      "predicted": "NO_CHANGE",
+      "labelStatus": "provisional",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 3009,
+      "error": null,
+      "output": {
+        "positionId": "p4",
+        "verdict": "NO_CHANGE",
+        "confidence": 0.9,
+        "description": "Quạt đứng vẫn ở tình trạng nguyên vẹn, không có hư hỏng mới so với ảnh trước.",
+        "priceItemId": null,
+        "quantity": 0,
+        "outsidePriceList": false
+      }
+    },
+    {
+      "name": "05 - Tường gần ổ điện",
+      "task": "damage",
+      "model": "gemini-3.1-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "NEW_DAMAGE",
+      "predicted": "NEW_DAMAGE",
+      "labelStatus": "provisional",
+      "labelMatch": true,
+      "fieldsMatch": true,
+      "durationMs": 2565,
+      "error": null,
+      "output": {
+        "positionId": "p5",
+        "verdict": "NEW_DAMAGE",
+        "confidence": 1,
+        "description": "Trên tường xuất hiện vết vẽ nguệch ngoạc mới.",
+        "priceItemId": "i1",
+        "quantity": 1,
+        "outsidePriceList": false
+      }
+    },
+    {
+      "name": "06 - Tường cạnh máy lạnh",
+      "task": "damage",
+      "model": "gemini-3.1-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "NO_CHANGE",
+      "predicted": "NO_CHANGE",
+      "labelStatus": "provisional",
+      "labelMatch": true,
+      "fieldsMatch": true,
+      "durationMs": 2262,
+      "error": null,
+      "output": {
+        "positionId": "p6",
+        "verdict": "NO_CHANGE",
+        "confidence": 1,
+        "description": "Vị trí lắp đặt máy lạnh và mảng tường xung quanh không có sự thay đổi đáng kể giữa hai ảnh.",
+        "priceItemId": null,
+        "quantity": 0,
+        "outsidePriceList": false
+      }
+    },
+    {
+      "name": "07 - Mặt bàn",
+      "task": "damage",
+      "model": "gemini-3.1-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "UNCLEAR",
+      "predicted": "NO_CHANGE",
+      "labelStatus": "provisional",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 3287,
+      "error": null,
+      "output": {
+        "positionId": "p7",
+        "verdict": "NO_CHANGE",
+        "confidence": 0.9,
+        "description": "Mặt bàn xuất hiện vết bẩn vụn thức ăn trên bề mặt nhưng không phải là hư hỏng bề mặt vĩnh viễn.",
+        "priceItemId": null,
+        "quantity": 0,
+        "outsidePriceList": false
+      }
+    },
+    {
+      "name": "08 - Tường dưới đèn",
+      "task": "damage",
+      "model": "gemini-3.1-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "UNCLEAR",
+      "predicted": "NO_CHANGE",
+      "labelStatus": "provisional",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 1842,
+      "error": null,
+      "output": {
+        "positionId": "p8",
+        "verdict": "NO_CHANGE",
+        "confidence": 0.9,
+        "description": "Bề mặt tường dưới đèn ở cả hai ảnh không có sự thay đổi đáng kể về hiện trạng.",
+        "priceItemId": null,
+        "quantity": 0,
+        "outsidePriceList": false
+      }
+    },
+    {
+      "name": "09 - Tủ áo",
+      "task": "damage",
+      "model": "gemini-3.1-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "UNCLEAR",
+      "predicted": "UNCLEAR",
+      "labelStatus": "provisional",
+      "labelMatch": true,
+      "fieldsMatch": true,
+      "durationMs": 1971,
+      "error": null,
+      "output": {
+        "positionId": "p9",
+        "verdict": "UNCLEAR",
+        "confidence": 0.9,
+        "description": "Ảnh sau trả phòng bị nhòe nên không thể xác định rõ tình trạng của tủ áo so với ảnh trước.",
+        "priceItemId": null,
+        "quantity": 0,
+        "outsidePriceList": false
+      }
+    },
+    {
+      "name": "10 - Tường sau tranh",
+      "task": "damage",
+      "model": "gemini-3.1-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "UNCLEAR",
+      "predicted": "NEW_DAMAGE",
+      "labelStatus": "provisional",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 2368,
+      "error": null,
+      "output": {
+        "positionId": "p10",
+        "verdict": "NEW_DAMAGE",
+        "confidence": 1,
+        "description": "Xuất hiện các lỗ thủng trên tường tại vị trí tranh đã bị tháo bỏ.",
+        "priceItemId": "i1",
+        "quantity": 1,
+        "outsidePriceList": false
+      }
+    },
+    {
+      "name": "11 - Bàn và màn hình",
+      "task": "damage",
+      "model": "gemini-3.1-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "NO_CHANGE",
+      "predicted": "NO_CHANGE",
+      "labelStatus": "provisional",
+      "labelMatch": true,
+      "fieldsMatch": true,
+      "durationMs": 2774,
+      "error": null,
+      "output": {
+        "positionId": "p11",
+        "verdict": "NO_CHANGE",
+        "confidence": 1,
+        "description": "Bàn và màn hình máy tính không có thay đổi đáng kể so với ảnh trước khi nhận phòng.",
+        "priceItemId": null,
+        "quantity": 0,
+        "outsidePriceList": false
+      }
+    }
+  ]
+}

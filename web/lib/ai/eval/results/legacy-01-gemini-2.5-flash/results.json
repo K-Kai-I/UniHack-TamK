@@ -1,0 +1,189 @@
+{
+  "startedAt": "2026-11-17T03:21:17.020Z",
+  "run": "legacy-01",
+  "provider": "google",
+  "model": "gemini-2.5-flash",
+  "dataset": "reference/cases.json",
+  "qualification": "Provisional visual labels, not human ground truth. Missing WEAR coverage unless user confirms. Rerun is stability, not held-out accuracy.",
+  "summary": [
+    {
+      "group": "gemini-2.5-flash/damage",
+      "total": 11,
+      "valid": 0,
+      "errors": 11,
+      "labelMatches": 0,
+      "fieldMatches": 0,
+      "labelAccuracyOnValid": null,
+      "successAndLabelRate": 0,
+      "reviewed": 0,
+      "medianMs": null,
+      "confusion": {
+        "NEW_DAMAGE": {
+          "ERROR": 3
+        },
+        "UNCLEAR": {
+          "ERROR": 6
+        },
+        "NO_CHANGE": {
+          "ERROR": 2
+        }
+      }
+    }
+  ],
+  "rows": [
+    {
+      "name": "01 - Ghế xanh",
+      "task": "damage",
+      "model": "gemini-2.5-flash",
+      "promptVersion": "damage-v1",
+      "expected": "NEW_DAMAGE",
+      "predicted": null,
+      "labelStatus": "provisional",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 854,
+      "error": "Dịch vụ AI trả HTTP 404. Kiểm tra model và định dạng yêu cầu.",
+      "output": null
+    },
+    {
+      "name": "02 - Cửa gỗ",
+      "task": "damage",
+      "model": "gemini-2.5-flash",
+      "promptVersion": "damage-v1",
+      "expected": "UNCLEAR",
+      "predicted": null,
+      "labelStatus": "provisional",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 0,
+      "error": "SKIPPED after provider access/quota error; not tested",
+      "output": null
+    },
+    {
+      "name": "03 - Khay cửa tủ lạnh",
+      "task": "damage",
+      "model": "gemini-2.5-flash",
+      "promptVersion": "damage-v1",
+      "expected": "NEW_DAMAGE",
+      "predicted": null,
+      "labelStatus": "provisional",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 0,
+      "error": "SKIPPED after provider access/quota error; not tested",
+      "output": null
+    },
+    {
+      "name": "04 - Quạt đứng",
+      "task": "damage",
+      "model": "gemini-2.5-flash",
+      "promptVersion": "damage-v1",
+      "expected": "UNCLEAR",
+      "predicted": null,
+      "labelStatus": "provisional",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 0,
+      "error": "SKIPPED after provider access/quota error; not tested",
+      "output": null
+    },
+    {
+      "name": "05 - Tường gần ổ điện",
+      "task": "damage",
+      "model": "gemini-2.5-flash",
+      "promptVersion": "damage-v1",
+      "expected": "NEW_DAMAGE",
+      "predicted": null,
+      "labelStatus": "provisional",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 0,
+      "error": "SKIPPED after provider access/quota error; not tested",
+      "output": null
+    },
+    {
+      "name": "06 - Tường cạnh máy lạnh",
+      "task": "damage",
+      "model": "gemini-2.5-flash",
+      "promptVersion": "damage-v1",
+      "expected": "NO_CHANGE",
+      "predicted": null,
+      "labelStatus": "provisional",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 0,
+      "error": "SKIPPED after provider access/quota error; not tested",
+      "output": null
+    },
+    {
+      "name": "07 - Mặt bàn",
+      "task": "damage",
+      "model": "gemini-2.5-flash",
+      "promptVersion": "damage-v1",
+      "expected": "UNCLEAR",
+      "predicted": null,
+      "labelStatus": "provisional",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 0,
+      "error": "SKIPPED after provider access/quota error; not tested",
+      "output": null
+    },
+    {
+      "name": "08 - Tường dưới đèn",
+      "task": "damage",
+      "model": "gemini-2.5-flash",
+      "promptVersion": "damage-v1",
+      "expected": "UNCLEAR",
+      "predicted": null,
+      "labelStatus": "provisional",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 0,
+      "error": "SKIPPED after provider access/quota error; not tested",
+      "output": null
+    },
+    {
+      "name": "09 - Tủ áo",
+      "task": "damage",
+      "model": "gemini-2.5-flash",
+      "promptVersion": "damage-v1",
+      "expected": "UNCLEAR",
+      "predicted": null,
+      "labelStatus": "provisional",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 0,
+      "error": "SKIPPED after provider access/quota error; not tested",
+      "output": null
+    },
+    {
+      "name": "10 - Tường sau tranh",
+      "task": "damage",
+      "model": "gemini-2.5-flash",
+      "promptVersion": "damage-v1",
+      "expected": "UNCLEAR",
+      "predicted": null,
+      "labelStatus": "provisional",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 0,
+      "error": "SKIPPED after provider access/quota error; not tested",
+      "output": null
+    },
+    {
+      "name": "11 - Bàn và màn hình",
+      "task": "damage",
+      "model": "gemini-2.5-flash",
+      "promptVersion": "damage-v1",
+      "expected": "NO_CHANGE",
+      "predicted": null,
+      "labelStatus": "provisional",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 0,
+      "error": "SKIPPED after provider access/quota error; not tested",
+      "output": null
+    }
+  ]
+}

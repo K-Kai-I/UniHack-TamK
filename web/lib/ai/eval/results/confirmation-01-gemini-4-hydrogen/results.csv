@@ -1,0 +1,12 @@
+﻿name,task,model,promptVersion,expected,predicted,labelStatus,labelMatch,fieldsMatch,durationMs,error
+"01 - Ghế xanh","damage","gemini-4-hydrogen","damage-v1","NEW_DAMAGE","","provisional","false","false","4375","AI_FAILED: Dịch vụ AI trả HTTP 503. Dịch vụ AI đang lỗi hoặc quá tải; thử lại sau."
+"02 - Cửa gỗ","damage","gemini-4-hydrogen","damage-v1","UNCLEAR","","provisional","false","false","5962","AI_FAILED: Dịch vụ AI trả HTTP 503. Dịch vụ AI đang lỗi hoặc quá tải; thử lại sau."
+"03 - Khay cửa tủ lạnh","damage","gemini-4-hydrogen","damage-v1","NEW_DAMAGE","","provisional","false","false","2769","AI_FAILED: Dịch vụ AI trả HTTP 503. Dịch vụ AI đang lỗi hoặc quá tải; thử lại sau."
+"04 - Quạt đứng","damage","gemini-4-hydrogen","damage-v1","UNCLEAR","","provisional","false","false","181027","AI_FAILED: Không kết nối được AI hoặc quá 90 giây. Hãy thử lại. Đã thử 2 lần."
+"05 - Tường gần ổ điện","damage","gemini-4-hydrogen","damage-v1","NEW_DAMAGE","NEW_DAMAGE","provisional","true","true","54200",""
+"06 - Tường cạnh máy lạnh","damage","gemini-4-hydrogen","damage-v1","NO_CHANGE","","provisional","false","false","5024","AI_FAILED: Dịch vụ AI trả HTTP 503. Dịch vụ AI đang lỗi hoặc quá tải; thử lại sau."
+"07 - Mặt bàn","damage","gemini-4-hydrogen","damage-v1","UNCLEAR","","provisional","false","false","5113","AI_FAILED: Dịch vụ AI trả HTTP 503. Dịch vụ AI đang lỗi hoặc quá tải; thử lại sau."
+"08 - Tường dưới đèn","damage","gemini-4-hydrogen","damage-v1","UNCLEAR","","provisional","false","false","299","AI_FAILED: Dịch vụ AI trả HTTP 429. Đạt giới hạn tốc độ hoặc hạn mức; kiểm tra dashboard."
+"09 - Tủ áo","damage","gemini-4-hydrogen","damage-v1","UNCLEAR","","provisional","false","false","0","SKIPPED after provider access/quota error; not tested"
+"10 - Tường sau tranh","damage","gemini-4-hydrogen","damage-v1","UNCLEAR","","provisional","false","false","0","SKIPPED after provider access/quota error; not tested"
+"11 - Bàn và màn hình","damage","gemini-4-hydrogen","damage-v1","NO_CHANGE","","provisional","false","false","0","SKIPPED after provider access/quota error; not tested"

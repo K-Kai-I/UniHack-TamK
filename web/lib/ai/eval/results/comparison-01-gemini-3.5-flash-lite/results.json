@@ -1,0 +1,273 @@
+{
+  "startedAt": "2026-11-17T03:14:34.292Z",
+  "run": "comparison-01",
+  "provider": "google",
+  "model": "gemini-3.5-flash-lite",
+  "dataset": "reference/cases.json",
+  "qualification": "Provisional visual labels, not human ground truth. Missing WEAR coverage unless user confirms. Rerun is stability, not held-out accuracy.",
+  "summary": [
+    {
+      "group": "gemini-3.5-flash-lite/damage",
+      "total": 11,
+      "valid": 10,
+      "errors": 1,
+      "labelMatches": 6,
+      "fieldMatches": 6,
+      "labelAccuracyOnValid": 0.6,
+      "successAndLabelRate": 0.5454545454545454,
+      "reviewed": 0,
+      "medianMs": 2529.5,
+      "confusion": {
+        "NEW_DAMAGE": {
+          "NEW_DAMAGE": 2,
+          "ERROR": 1
+        },
+        "UNCLEAR": {
+          "NEW_DAMAGE": 2,
+          "UNCLEAR": 2,
+          "WEAR": 1,
+          "NO_CHANGE": 1
+        },
+        "NO_CHANGE": {
+          "NO_CHANGE": 2
+        }
+      }
+    }
+  ],
+  "rows": [
+    {
+      "name": "01 - Ghế xanh",
+      "task": "damage",
+      "model": "gemini-3.5-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "NEW_DAMAGE",
+      "predicted": "NEW_DAMAGE",
+      "labelStatus": "provisional",
+      "labelMatch": true,
+      "fieldsMatch": true,
+      "durationMs": 11738,
+      "error": null,
+      "output": {
+        "positionId": "p1",
+        "verdict": "NEW_DAMAGE",
+        "confidence": 0.95,
+        "description": "Ghế xanh xuất hiện vết rách hoặc bong tróc bề mặt ở cạnh bên phải trong ảnh sau.",
+        "priceItemId": null,
+        "quantity": 0,
+        "outsidePriceList": true
+      }
+    },
+    {
+      "name": "02 - Cửa gỗ",
+      "task": "damage",
+      "model": "gemini-3.5-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "UNCLEAR",
+      "predicted": "NEW_DAMAGE",
+      "labelStatus": "provisional",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 5892,
+      "error": null,
+      "output": {
+        "positionId": "p2",
+        "verdict": "NEW_DAMAGE",
+        "confidence": 0.95,
+        "description": "Cửa gỗ xuất hiện vết dán băng keo hình chữ thập ở mặt cánh cửa phía dưới.",
+        "priceItemId": null,
+        "quantity": 0,
+        "outsidePriceList": true
+      }
+    },
+    {
+      "name": "03 - Khay cửa tủ lạnh",
+      "task": "damage",
+      "model": "gemini-3.5-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "NEW_DAMAGE",
+      "predicted": null,
+      "labelStatus": "provisional",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 5307,
+      "error": "AI_FAILED: Gemini không trả kết quả hợp lệ sau 2 lần gọi.",
+      "output": null
+    },
+    {
+      "name": "04 - Quạt đứng",
+      "task": "damage",
+      "model": "gemini-3.5-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "UNCLEAR",
+      "predicted": "UNCLEAR",
+      "labelStatus": "provisional",
+      "labelMatch": true,
+      "fieldsMatch": true,
+      "durationMs": 2716,
+      "error": null,
+      "output": {
+        "positionId": "p4",
+        "verdict": "UNCLEAR",
+        "confidence": 0.8,
+        "description": "Ảnh sau quá tối không thể quan sát rõ chi tiết quạt đứng.",
+        "priceItemId": null,
+        "quantity": 0,
+        "outsidePriceList": false
+      }
+    },
+    {
+      "name": "05 - Tường gần ổ điện",
+      "task": "damage",
+      "model": "gemini-3.5-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "NEW_DAMAGE",
+      "predicted": "NEW_DAMAGE",
+      "labelStatus": "provisional",
+      "labelMatch": true,
+      "fieldsMatch": true,
+      "durationMs": 2563,
+      "error": null,
+      "output": {
+        "positionId": "p5",
+        "verdict": "NEW_DAMAGE",
+        "confidence": 0.95,
+        "description": "Tường có vết vẽ nguệch ngoạc mới xuất hiện.",
+        "priceItemId": "i1",
+        "quantity": 1,
+        "outsidePriceList": false
+      }
+    },
+    {
+      "name": "06 - Tường cạnh máy lạnh",
+      "task": "damage",
+      "model": "gemini-3.5-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "NO_CHANGE",
+      "predicted": "NO_CHANGE",
+      "labelStatus": "provisional",
+      "labelMatch": true,
+      "fieldsMatch": true,
+      "durationMs": 1817,
+      "error": null,
+      "output": {
+        "positionId": "p6",
+        "verdict": "NO_CHANGE",
+        "confidence": 1,
+        "description": "Không có thay đổi đáng kể trên tường cạnh máy lạnh giữa hai thời điểm.",
+        "priceItemId": null,
+        "quantity": 0,
+        "outsidePriceList": false
+      }
+    },
+    {
+      "name": "07 - Mặt bàn",
+      "task": "damage",
+      "model": "gemini-3.5-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "UNCLEAR",
+      "predicted": "WEAR",
+      "labelStatus": "provisional",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 2447,
+      "error": null,
+      "output": {
+        "positionId": "p7",
+        "verdict": "WEAR",
+        "confidence": 0.9,
+        "description": "Mặt bàn có dính vụn thức ăn và vết bẩn nhỏ ở ảnh sau so với ảnh trước.",
+        "priceItemId": null,
+        "quantity": 0,
+        "outsidePriceList": false
+      }
+    },
+    {
+      "name": "08 - Tường dưới đèn",
+      "task": "damage",
+      "model": "gemini-3.5-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "UNCLEAR",
+      "predicted": "NO_CHANGE",
+      "labelStatus": "provisional",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 2105,
+      "error": null,
+      "output": {
+        "positionId": "p8",
+        "verdict": "NO_CHANGE",
+        "confidence": 0.95,
+        "description": "Hai bức ảnh tường dưới đèn cho thấy bề mặt không có thay đổi đáng kể.",
+        "priceItemId": null,
+        "quantity": 0,
+        "outsidePriceList": false
+      }
+    },
+    {
+      "name": "09 - Tủ áo",
+      "task": "damage",
+      "model": "gemini-3.5-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "UNCLEAR",
+      "predicted": "UNCLEAR",
+      "labelStatus": "provisional",
+      "labelMatch": true,
+      "fieldsMatch": true,
+      "durationMs": 2045,
+      "error": null,
+      "output": {
+        "positionId": "p9",
+        "verdict": "UNCLEAR",
+        "confidence": 0.9,
+        "description": "Ảnh chụp ở trạng thái sau bị mờ nhòe, không thể so sánh chi tiết với ảnh trước.",
+        "priceItemId": null,
+        "quantity": 0,
+        "outsidePriceList": false
+      }
+    },
+    {
+      "name": "10 - Tường sau tranh",
+      "task": "damage",
+      "model": "gemini-3.5-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "UNCLEAR",
+      "predicted": "NEW_DAMAGE",
+      "labelStatus": "provisional",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 2764,
+      "error": null,
+      "output": {
+        "positionId": "p10",
+        "verdict": "NEW_DAMAGE",
+        "confidence": 0.95,
+        "description": "Bức tranh treo tường đã bị tháo bỏ, để lại các lỗ khoan và vết trầy xước trên bề mặt tường.",
+        "priceItemId": "i1",
+        "quantity": 1,
+        "outsidePriceList": false
+      }
+    },
+    {
+      "name": "11 - Bàn và màn hình",
+      "task": "damage",
+      "model": "gemini-3.5-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "NO_CHANGE",
+      "predicted": "NO_CHANGE",
+      "labelStatus": "provisional",
+      "labelMatch": true,
+      "fieldsMatch": true,
+      "durationMs": 2496,
+      "error": null,
+      "output": {
+        "positionId": "p11",
+        "verdict": "NO_CHANGE",
+        "confidence": 1,
+        "description": "Vùng bàn và màn hình nhìn rõ ở cả hai ảnh, không thấy thay đổi đáng kể.",
+        "priceItemId": null,
+        "quantity": 0,
+        "outsidePriceList": false
+      }
+    }
+  ]
+}
