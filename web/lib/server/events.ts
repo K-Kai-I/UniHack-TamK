@@ -6,7 +6,7 @@ import "server-only";
 import { decodeEventLog, numberToHex, type Log } from "viem";
 import deployments from "@shared/deployments.json";
 import { addresses, escrowAbi } from "../chain";
-import { publicClient } from "./chain";
+import { logsClient, publicClient } from "./chain";
 import { db } from "./db";
 import { DEAL_STATES, type Hash } from "../types";
 
@@ -74,7 +74,7 @@ export async function syncEvents(maxChunks = 10, budgetMs = Infinity): Promise<n
     const results = await Promise.allSettled(
       ranges.map(
         (r) =>
-          publicClient.request({
+          logsClient.request({
             method: "eth_getLogs",
             params: [{ address: addresses.escrow, fromBlock: numberToHex(r.from), toBlock: numberToHex(r.to) }],
           }) as Promise<Log[]>,
