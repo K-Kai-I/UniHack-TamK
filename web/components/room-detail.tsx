@@ -16,6 +16,7 @@ import { PageHeader } from "@/components/page-header";
 import { PageColumns, PageShell } from "@/components/page-shell";
 import { RoomCover } from "@/components/room-cover";
 import { WalletChip } from "@/components/wallet-chip";
+import { isServerError } from "@/lib/client/api";
 import { fetchDeal, NotFoundError, type DealDetail } from "@/lib/client/rooms-data";
 import { useAppConfig } from "@/lib/client/use-config";
 import { useCountdown } from "@/lib/client/use-countdown";
@@ -51,6 +52,7 @@ export function RoomDetail({ dealId }: { dealId: string }) {
         loading={query.isPending}
         fetching={query.isFetching}
         error={!!query.error}
+        serverError={isServerError(query.error)}
         notFound={id === null || query.error instanceof NotFoundError}
         onRetry={() => { void query.refetch(); void queryClient.invalidateQueries({ queryKey: ["config"] }); }}
         imageVersion={query.dataUpdatedAt}
@@ -64,8 +66,8 @@ export function RoomDetail({ dealId }: { dealId: string }) {
 }
 
 /** Cùng view cho route thật và trang mẫu; trang mẫu không gọi ví hoặc gửi giao dịch. */
-export function RoomDetailView({ deal, loading = false, fetching = false, error = false, notFound = false, onRetry, deadline = null, expired = false, mock = false, action, imageVersion = 0 }: {
-  deal?: DealDetail; loading?: boolean; fetching?: boolean; error?: boolean; notFound?: boolean;
+export function RoomDetailView({ deal, loading = false, fetching = false, error = false, serverError = false, notFound = false, onRetry, deadline = null, expired = false, mock = false, action, imageVersion = 0 }: {
+  deal?: DealDetail; loading?: boolean; fetching?: boolean; error?: boolean; serverError?: boolean; notFound?: boolean;
   onRetry: () => void; deadline?: string | null; expired?: boolean; mock?: boolean; action?: ReactNode; imageVersion?: number;
 }) {
   const rate = useVndRate();
@@ -95,7 +97,7 @@ export function RoomDetailView({ deal, loading = false, fetching = false, error 
           {error && (
             <section role="alert" className="mb-6 space-y-2 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
               {deal ? <h2 className="font-bold">Chưa cập nhật được thông tin phòng</h2> : <h1 className="text-xl font-bold">{title}</h1>}
-              <p className="text-sm">{deal ? "Đang hiển thị lần tải thành công gần nhất. Phòng có thể đã có người cọc. Tải lại trước khi tiếp tục." : "Kiểm tra kết nối mạng rồi thử lại."}</p>
+              <p className="text-sm">{deal ? "Đang hiển thị lần tải thành công gần nhất. Phòng có thể đã có người cọc. Tải lại trước khi tiếp tục." : serverError ? "Máy chủ đang gặp sự cố, không phải lỗi mạng của bạn. Thử lại sau ít phút." : "Kiểm tra kết nối mạng rồi thử lại."}</p>
               <Button variant="outline" onClick={onRetry} disabled={fetching}>{fetching ? "Đang thử lại…" : "Thử lại"}</Button>
             </section>
           )}
