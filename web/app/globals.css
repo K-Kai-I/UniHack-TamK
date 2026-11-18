@@ -225,3 +225,8 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Trang "/": script đầu trang đặt data-session khi thấy phiên Privy, để không nháy landing (app/page.tsx). */
+[data-session-skeleton] { display: none; }
+html[data-session] [data-session-skeleton] { display: block; }
+html[data-session] [data-landing] { display: none; }

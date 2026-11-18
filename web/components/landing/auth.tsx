@@ -15,6 +15,10 @@ import { cn } from "@/lib/utils";
  */
 export function HomeGate({ children }: { children: ReactNode }) {
   const { ready, authenticated } = usePrivy();
+  // Script đầu trang đoán "có phiên" để giấu landing; Privy xong mà chưa đăng nhập thì gỡ dấu đó ra.
+  useEffect(() => {
+    if (ready && !authenticated) delete document.documentElement.dataset.session;
+  }, [ready, authenticated]);
   if (ready && authenticated) {
     return (
       <>
