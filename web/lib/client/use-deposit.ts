@@ -24,6 +24,10 @@ export function useDeposit() {
   /** Trả true khi giao dịch gửi cọc thành công. */
   const deposit = useCallback(
     async (dealId: number, depositAmount: Amount, wantYield: boolean): Promise<boolean> => {
+      // Đã có hash nhưng chưa biết kết quả: chỉ chờ lại giao dịch cũ,
+      // kể cả số dư/phòng đã đổi sau khi giao dịch được gửi.
+      const sent = tx.outcome.current;
+      if (sent.hash && !sent.reverted) return (await tx.resume(sent.hash)) !== null;
       if (!address || !publicClient) {
         setPermitError("Chưa có ví. Đăng nhập rồi thử lại.");
         return false;
@@ -92,5 +96,5 @@ export function useDeposit() {
     tx.reset();
   }, [tx]);
 
-  return { state, deposit, reset };
+  return { state, deposit, reset, signingStep: stage === "permit" ? "permit" as const : "transaction" as const };
 }

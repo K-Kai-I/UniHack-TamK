@@ -2,6 +2,7 @@
 // 6 bước của form Đăng phòng. Mỗi bước nhận `draft`, `set` (vá một phần) và `errors` từ listing-wizard.
 import { useState } from "react";
 import { Info, Plus, Trash2, X } from "lucide-react";
+import { formatUnits } from "viem";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, inputClass, MoneyInput, PhotoSlot } from "@/components/listing-fields";
@@ -19,7 +20,7 @@ import {
   type Errors,
   type ListingDraft,
 } from "@/lib/client/listing-form";
-import { formatToken, formatVnd, parseVndInput, vndToAmount } from "@/lib/client/money";
+import { formatVnd, parseVndInput, vndToAmount } from "@/lib/client/money";
 
 export interface StepProps {
   draft: ListingDraft;
@@ -68,7 +69,7 @@ export function InfoStep({ draft, set, errors }: StepProps) {
           onChange={(e) => set({ address: e.target.value })}
         />
       </Field>
-      <Field label="Giá thuê mỗi tháng" htmlFor="rent" error={errors.rentVnd} hint="Chỉ để hiển thị, không đi qua smart contract.">
+      <Field label="Giá thuê mỗi tháng" htmlFor="rent" error={errors.rentVnd} hint="Giá thuê chỉ để tham khảo. App không thu tiền thuê hằng tháng.">
         <Input
           id="rent"
           className={inputClass + " tabular-nums"}
@@ -95,7 +96,7 @@ export function InfoStep({ draft, set, errors }: StepProps) {
                   aria-pressed={on}
                   onClick={() => toggle(a)}
                   className={
-                    "h-10 rounded-full border px-4 text-sm font-medium transition " +
+                    "min-h-11 rounded-full border px-4 text-sm font-medium transition " +
                     (on ? "border-primary bg-primary text-primary-foreground" : "bg-card text-foreground hover:bg-secondary")
                   }
                 >
@@ -108,6 +109,7 @@ export function InfoStep({ draft, set, errors }: StepProps) {
         <div className="flex gap-2 pt-1">
           <Input
             className={inputClass}
+            aria-label="Tiện nghi khác"
             value={custom}
             placeholder="Thêm tiện nghi khác"
             maxLength={40}
@@ -119,21 +121,23 @@ export function InfoStep({ draft, set, errors }: StepProps) {
               }
             }}
           />
-          <Button type="button" variant="secondary" className="h-12" onClick={addCustom} aria-label="Thêm tiện nghi">
+          <Button type="button" variant="secondary" className="size-12 shrink-0" onClick={addCustom} aria-label="Thêm tiện nghi">
             <Plus />
           </Button>
         </div>
       </Field>
 
       <Field
+        id="photos"
         label={`Ảnh phòng (${draft.photos.length}/${MAX_LISTING_PHOTOS})`}
         hint="Chụp trực tiếp bằng camera trong app. Người thuê sẽ thấy các ảnh này, và AI dùng chúng để so khi có tranh chấp “phòng sai mô tả”."
         error={errors.photos}
       >
-        <ul className="grid grid-cols-3 gap-2">
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {draft.photos.map((p, i) => (
-            <li key={p.previewUrl} className="relative aspect-square">
+            <li key={p.id} className="relative aspect-square">
               <PhotoSlot
+                id={`photo-slot-${i}`}
                 photo={p}
                 label={`Ảnh phòng ${i + 1}`}
                 className="size-full"
@@ -142,10 +146,11 @@ export function InfoStep({ draft, set, errors }: StepProps) {
               <button
                 type="button"
                 aria-label={`Xóa ảnh phòng ${i + 1}`}
-                className="absolute top-1 left-1 grid size-8 place-items-center rounded-full bg-black/60 text-white"
+                className="absolute top-1 left-1 grid size-11 place-items-center rounded-full bg-black/60 text-white"
                 onClick={() => {
                   URL.revokeObjectURL(p.previewUrl);
                   set({ photos: draft.photos.filter((_, j) => j !== i) });
+                  focusField(i < draft.photos.length - 1 ? `photo-slot-${i}` : "photo-add");
                 }}
               >
                 <X className="size-4" />
@@ -155,10 +160,12 @@ export function InfoStep({ draft, set, errors }: StepProps) {
           {draft.photos.length < MAX_LISTING_PHOTOS && (
             <li className="aspect-square">
               <PhotoSlot
+                id="photo-add"
                 photo={null}
                 label="Ảnh phòng mới"
                 className="size-full border-2 border-dashed border-primary/30"
                 invalid={!!errors.photos}
+                describedBy="photos-hint photos-error"
                 onChange={(np) => set({ photos: [...draft.photos, np] })}
               />
             </li>
@@ -179,7 +186,7 @@ export function MoneyStep({ draft, set, errors, vndPerToken }: StepProps) {
         label="Tiền cọc"
         htmlFor="deposit"
         error={errors.depositVnd}
-        hint="Người thuê gửi vào smart contract. Không ai tự rút được, kể cả bạn."
+        hint="Người thuê gửi cọc vào két. Tiền chỉ chia theo điều kiện hợp đồng."
       >
         <MoneyInput
           id="deposit"
@@ -194,7 +201,7 @@ export function MoneyStep({ draft, set, errors, vndPerToken }: StepProps) {
         label="Phí giữ chỗ"
         htmlFor="reserve"
         error={errors.reserveVnd}
-        hint="Nếu người thuê cọc rồi không đến nhận phòng đúng hạn, phần này thuộc về bạn. Không lớn hơn tiền cọc."
+        hint="Là một phần trong tiền cọc, không thu thêm. Nếu người thuê không gửi ảnh nhận phòng tới hạn, bạn nhận phần này; phần cọc còn lại trả người thuê. Có thể nhập 0."
       >
         <MoneyInput
           id="reserve"
@@ -208,7 +215,7 @@ export function MoneyStep({ draft, set, errors, vndPerToken }: StepProps) {
 
       <label
         className={
-          "flex items-start gap-3 rounded-2xl p-4 ring-1 ring-foreground/10 " + (vaultReady ? "bg-card" : "bg-muted opacity-70")
+          "flex items-start gap-3 rounded-2xl p-4 ring-1 ring-foreground/10 " + (vaultReady ? "bg-card" : "bg-muted")
         }
       >
         <input
@@ -223,7 +230,7 @@ export function MoneyStep({ draft, set, errors, vndPerToken }: StepProps) {
           <span className="block text-sm text-muted-foreground">
             {vaultReady
               ? "Người thuê được chọn gửi cọc vào kho sinh lãi trong lúc thuê."
-              : "Chưa mở: kho sinh lãi (vault) chưa được triển khai."}
+              : "Chưa mở tính năng sinh lãi."}
           </span>
         </span>
       </label>
@@ -269,8 +276,8 @@ export function DatesStep({ draft, set, errors }: StepProps) {
       </Field>
       {months && <p className="rounded-xl bg-secondary px-4 py-3 text-sm text-primary">Thời hạn khoảng {months} tháng.</p>}
       <p className="flex items-start gap-2 text-sm text-muted-foreground">
-        <Info className="mt-0.5 size-4 shrink-0" />
-        Hai ngày này được ghi lên chuỗi khi đăng và không sửa được sau khi có người cọc.
+        <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+        Hai ngày này là một phần của điều khoản khi đăng phòng. Hãy kiểm tra kỹ trước khi ký.
       </p>
     </div>
   );
@@ -288,7 +295,7 @@ export function PositionsStep({ draft, set, errors }: StepProps) {
         một ảnh ví dụ để họ đứng đúng góc.
       </p>
       {errors.positions && (
-        <p role="alert" className="text-sm font-medium text-destructive">
+        <p data-field-error tabIndex={-1} role="alert" className="text-sm font-medium text-destructive">
           {errors.positions}
         </p>
       )}
@@ -296,46 +303,44 @@ export function PositionsStep({ draft, set, errors }: StepProps) {
         {draft.positions.map((p, i) => {
           const err = errors[`positions.${p.key}`];
           return (
-            <li key={p.key} className="space-y-3 rounded-2xl bg-card p-4 ring-1 ring-foreground/10">
-              <div className="flex items-start gap-3">
+            <li key={p.key} className="min-w-0 space-y-4 rounded-2xl border border-border p-4">
+              <h2 className="font-semibold">Vị trí {i + 1}</h2>
+              <div className="grid gap-4 sm:grid-cols-[8rem_minmax(0,1fr)]">
                 <PhotoSlot
                   photo={p.photo}
                   label={`Ảnh ví dụ: ${p.name || `vị trí ${i + 1}`}`}
-                  className="size-24 shrink-0"
-                  invalid={!!err && !p.photo}
+                  className="aspect-[4/3] w-full sm:aspect-square"
+                  invalid={!!err && !!p.name.trim() && !!p.instruction.trim() && !p.photo}
+                  describedBy={err ? `position-${p.key}-error` : undefined}
                   onChange={(np) => patch(p.key, { photo: np })}
                 />
                 <div className="min-w-0 flex-1 space-y-2">
-                  <Input
-                    className={inputClass}
-                    aria-label={`Tên vị trí ${i + 1}`}
-                    placeholder="Tên vị trí"
-                    maxLength={60}
-                    value={p.name}
-                    onChange={(e) => patch(p.key, { name: e.target.value })}
-                  />
-                  <Input
-                    className={inputClass}
-                    aria-label={`Cách chụp vị trí ${i + 1}`}
-                    placeholder="Đứng ở cửa, chụp ngang"
-                    maxLength={120}
-                    value={p.instruction}
-                    onChange={(e) => patch(p.key, { instruction: e.target.value })}
-                  />
+                  <Field label="Tên vị trí" htmlFor={`position-${p.key}`}>
+                    <Input id={`position-${p.key}`} className={inputClass} placeholder="Tường đầu giường" maxLength={60}
+                      value={p.name} aria-invalid={!!err && !p.name.trim()} aria-describedby={err ? `position-${p.key}-error` : undefined}
+                      onChange={e => patch(p.key, { name: e.target.value })} />
+                  </Field>
+                  <Field label="Cách đứng chụp" htmlFor={`instruction-${p.key}`}>
+                    <Input id={`instruction-${p.key}`} className={inputClass} placeholder="Đứng ở cửa, chụp ngang" maxLength={120}
+                      value={p.instruction} aria-invalid={!!err && !!p.name.trim() && !p.instruction.trim()} aria-describedby={err ? `position-${p.key}-error` : undefined}
+                      onChange={e => patch(p.key, { instruction: e.target.value })} />
+                  </Field>
                 </div>
               </div>
               {err && (
-                <p role="alert" className="text-sm font-medium text-destructive">
-                  {err}
-                </p>
+                <p id={`position-${p.key}-error`} role="alert" className="text-sm font-medium text-destructive">{err}</p>
               )}
               {draft.positions.length > MIN_POSITIONS && (
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="text-destructive"
-                  onClick={() => set({ positions: draft.positions.filter((x) => x.key !== p.key) })}
+                  className="min-h-11 text-destructive"
+                  aria-label={`Xóa vị trí ${i + 1}: ${p.name || "chưa đặt tên"}`}
+                  onClick={() => {
+                    set({ positions: draft.positions.filter(x => x.key !== p.key) });
+                    focusField(`position-${draft.positions[i + 1]?.key ?? draft.positions[i - 1]?.key}`);
+                  }}
                 >
                   <Trash2 /> Xóa vị trí
                 </Button>
@@ -350,7 +355,11 @@ export function PositionsStep({ draft, set, errors }: StepProps) {
           variant="outline"
           size="lg"
           className="h-12 w-full"
-          onClick={() => set({ positions: [...draft.positions, { key: newKey(), name: "", instruction: "", photo: null }] })}
+          onClick={() => {
+            const key = newKey();
+            set({ positions: [...draft.positions, { key, name: "", instruction: "", photo: null }] });
+            focusField(`position-${key}`);
+          }}
         >
           <Plus /> Thêm vị trí
         </Button>
@@ -371,7 +380,7 @@ export function PricesStep({ draft, set, errors, vndPerToken }: StepProps) {
         bảng thì bạn tự định giá khi đề xuất.
       </p>
       {errors.prices && (
-        <p role="alert" className="text-sm font-medium text-destructive">
+        <p data-field-error tabIndex={-1} role="alert" className="text-sm font-medium text-destructive">
           {errors.prices}
         </p>
       )}
@@ -379,43 +388,39 @@ export function PricesStep({ draft, set, errors, vndPerToken }: StepProps) {
         {draft.prices.map((it, i) => {
           const err = errors[`prices.${it.key}`];
           return (
-            <li key={it.key} className="space-y-3 rounded-2xl bg-card p-4 ring-1 ring-foreground/10">
-              <div className="flex gap-2">
-                <Input
-                  className={inputClass}
-                  aria-label={`Hạng mục ${i + 1}`}
-                  placeholder="Sơn lại 1 mảng tường"
-                  maxLength={80}
-                  value={it.item}
-                  onChange={(e) => patch(it.key, { item: e.target.value })}
-                />
-                <Input
-                  className={inputClass + " w-24 shrink-0"}
-                  aria-label={`Đơn vị hạng mục ${i + 1}`}
-                  placeholder="mảng"
-                  maxLength={20}
-                  value={it.unit}
-                  onChange={(e) => patch(it.key, { unit: e.target.value })}
-                />
+            <li key={it.key} className="min-w-0 space-y-4 rounded-2xl border border-border p-4">
+              <h2 className="font-semibold">Hạng mục {i + 1}</h2>
+              <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_8rem]">
+                <Field label="Tên hạng mục" htmlFor={`item-${it.key}`}>
+                  <Input id={`item-${it.key}`} className={inputClass} placeholder="Sơn lại 1 mảng tường" maxLength={80}
+                    value={it.item} aria-invalid={!!err && !it.item.trim()} aria-describedby={err ? `price-${it.key}-error` : undefined}
+                    onChange={e => patch(it.key, { item: e.target.value })} />
+                </Field>
+                <Field label="Đơn vị" htmlFor={`unit-${it.key}`}>
+                  <Input id={`unit-${it.key}`} className={inputClass} placeholder="mảng" maxLength={20}
+                    value={it.unit} aria-invalid={!!err && !!it.item.trim() && !it.unit.trim()} aria-describedby={err ? `price-${it.key}-error` : undefined}
+                    onChange={e => patch(it.key, { unit: e.target.value })} />
+                </Field>
               </div>
-              <MoneyInput
-                value={it.priceVnd}
-                vndPerToken={vndPerToken}
-                placeholder="Đơn giá"
-                invalid={!!err}
-                onChange={(v) => patch(it.key, { priceVnd: v })}
-              />
+              <Field label="Đơn giá" htmlFor={`amount-${it.key}`}>
+                <MoneyInput id={`amount-${it.key}`} value={it.priceVnd} vndPerToken={vndPerToken} placeholder="400.000"
+                  invalid={!!err && !!it.item.trim() && !!it.unit.trim()}
+                  aria-describedby={err ? `price-${it.key}-error` : undefined}
+                  onChange={v => patch(it.key, { priceVnd: v })} />
+              </Field>
               {err && (
-                <p role="alert" className="text-sm font-medium text-destructive">
-                  {err}
-                </p>
+                <p id={`price-${it.key}-error`} role="alert" className="text-sm font-medium text-destructive">{err}</p>
               )}
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="text-destructive"
-                onClick={() => set({ prices: draft.prices.filter((x) => x.key !== it.key) })}
+                className="min-h-11 text-destructive"
+                aria-label={`Xóa hạng mục ${i + 1}: ${it.item || "chưa đặt tên"}`}
+                onClick={() => {
+                  set({ prices: draft.prices.filter(x => x.key !== it.key) });
+                  focusField(draft.prices.length === 1 ? "add-price" : `item-${draft.prices[i + 1]?.key ?? draft.prices[i - 1]?.key}`);
+                }}
               >
                 <Trash2 /> Xóa dòng
               </Button>
@@ -429,7 +434,12 @@ export function PricesStep({ draft, set, errors, vndPerToken }: StepProps) {
           variant="outline"
           size="lg"
           className="h-12 w-full"
-          onClick={() => set({ prices: [...draft.prices, { key: newKey(), item: "", unit: "", priceVnd: "" }] })}
+          id="add-price"
+          onClick={() => {
+            const key = newKey();
+            set({ prices: [...draft.prices, { key, item: "", unit: "", priceVnd: "" }] });
+            focusField(`item-${key}`);
+          }}
         >
           <Plus /> Thêm dòng
         </Button>
@@ -442,77 +452,76 @@ export function PricesStep({ draft, set, errors, vndPerToken }: StepProps) {
 
 export function ReviewStep({ draft, vndPerToken, goto }: StepProps & { goto: (id: "info" | "money" | "dates" | "positions" | "prices") => void }) {
   const vnd = (s: string) => parseVndInput(s) ?? 0n;
-  const tok = (s: string) => formatToken(vndToAmount(vnd(s), vndPerToken));
+  // Số mUSDC thực sự ghi lên chuỗi (làm tròn xuống, 6 số lẻ), cùng công thức với buildListingBody.
+  const token = (s: string) => `${formatUnits(BigInt(vndToAmount(vnd(s), vndPerToken)), 6)} mUSDC`;
   const Section = ({ id, title, children }: { id: Parameters<typeof goto>[0]; title: string; children: React.ReactNode }) => (
-    <section className="space-y-2 rounded-2xl bg-card p-4 ring-1 ring-foreground/10">
-      <div className="flex items-center justify-between">
-        <h3 className="font-bold">{title}</h3>
-        <Button type="button" variant="ghost" size="sm" onClick={() => goto(id)}>
-          Sửa
-        </Button>
+    <section className="space-y-3 py-6 first:pt-0">
+      <div className="flex items-start justify-between gap-3">
+        <h2 className="pt-2 font-bold">{title}</h2>
+        <Button type="button" variant="ghost" className="min-h-11 shrink-0" aria-label={`Sửa ${title.toLowerCase()}`} onClick={() => goto(id)}>Sửa</Button>
       </div>
       {children}
     </section>
   );
-  return (
-    <div className="space-y-4">
-      <Section id="info" title="Phòng">
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {draft.photos.map((p) => (
-            <div key={p.previewUrl} className="aspect-[4/3] h-20 shrink-0 overflow-hidden rounded-lg">
-              <RoomCover url={p.previewUrl} alt="Ảnh phòng" />
-            </div>
-          ))}
-        </div>
-        <p className="font-semibold">{draft.title}</p>
-        <p className="text-sm text-muted-foreground">{draft.address}</p>
-        <p className="text-sm">
-          Thuê {formatVnd(vnd(draft.rentVnd))}/tháng
-          {draft.amenities.length > 0 && <> · {draft.amenities.join(", ")}</>}
-        </p>
-      </Section>
-      <Section id="money" title="Tiền (khóa trên chuỗi)">
-        <p className="text-sm">
-          Cọc <b>{formatVnd(vnd(draft.depositVnd))}</b> <span className="text-muted-foreground">({tok(draft.depositVnd)})</span>
-        </p>
-        <p className="text-sm">
-          Phí giữ chỗ <b>{formatVnd(vnd(draft.reserveVnd))}</b>{" "}
-          <span className="text-muted-foreground">({tok(draft.reserveVnd)})</span>
-        </p>
-        <p className="text-sm text-muted-foreground">Cọc sinh lãi: {draft.yieldEnabled ? "bật" : "tắt"}</p>
-      </Section>
-      <Section id="dates" title="Ngày (khóa trên chuỗi)">
-        <p className="text-sm">
-          {formatDate(dateToIso(draft.moveIn))} → {formatDate(dateToIso(draft.leaseEnd))}
-        </p>
-      </Section>
-      <Section id="positions" title={`${draft.positions.length} vị trí chụp`}>
-        <ul className="flex gap-2 overflow-x-auto pb-1">
-          {draft.positions.map((p) => (
-            <li key={p.key} className="w-20 shrink-0 text-center text-xs">
-              <div className="mb-1 aspect-square overflow-hidden rounded-lg">
-                <RoomCover url={p.photo?.previewUrl ?? null} alt={`Ảnh ví dụ: ${p.name}`} />
-              </div>
-              <span className="line-clamp-2">{p.name}</span>
-            </li>
-          ))}
-        </ul>
-      </Section>
-      <Section id="prices" title="Bảng giá sửa chữa">
-        <ul className="divide-y text-sm">
-          {draft.prices.map((it) => (
-            <li key={it.key} className="flex justify-between gap-3 py-1.5">
-              <span>
-                {it.item} <span className="text-muted-foreground">/ {it.unit}</span>
-              </span>
-              <b className="tabular-nums">{formatVnd(vnd(it.priceVnd))}</b>
-            </li>
-          ))}
-        </ul>
-      </Section>
-      <p className="text-sm text-muted-foreground">
-        Bấm “Đăng phòng” sẽ ký 1 giao dịch. Sau khi có người cọc, bạn không sửa được ảnh, giá và điều khoản.
-      </p>
-    </div>
-  );
+  return <div className="divide-y divide-border [overflow-wrap:anywhere]">
+    <Section id="info" title="Thông tin phòng">
+      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {draft.photos.map((p, i) => <li key={p.id}><ReviewPhoto url={p.previewUrl} label={`Ảnh phòng ${i + 1}`} /></li>)}
+      </ul>
+      <p className="font-semibold">{draft.title}</p>
+      <p className="text-sm text-muted-foreground">{draft.address}</p>
+      <p className="text-sm">Thuê {formatVnd(vnd(draft.rentVnd))}/tháng</p>
+      {draft.amenities.length > 0 && <p className="text-sm text-muted-foreground">{draft.amenities.join(", ")}</p>}
+    </Section>
+    <Section id="money" title="Tiền cọc và phí giữ chỗ">
+      <dl className="space-y-3 text-sm">
+        <div className="flex flex-wrap justify-between gap-2"><dt>Tiền cọc người thuê gửi</dt><dd className="font-bold tabular-nums">{formatVnd(vnd(draft.depositVnd))}</dd></div>
+        <div className="flex flex-wrap justify-between gap-2"><dt>Phí giữ chỗ (nằm trong cọc)</dt><dd className="font-bold tabular-nums">{formatVnd(vnd(draft.reserveVnd))}</dd></div>
+      </dl>
+      <p className="text-sm text-muted-foreground">Nếu người thuê không gửi ảnh nhận phòng tới hạn, bạn nhận phí giữ chỗ; phần cọc còn lại trả người thuê. Phí này không thu thêm.</p>
+      <details className="text-sm text-muted-foreground">
+        <summary className="min-h-11 cursor-pointer py-3">Xem quy đổi tiền test sẽ ghi vào hợp đồng</summary>
+        <dl className="space-y-2 pb-2 tabular-nums">
+          <div className="flex flex-wrap justify-between gap-2"><dt>Tiền cọc</dt><dd>{token(draft.depositVnd)}</dd></div>
+          <div className="flex flex-wrap justify-between gap-2"><dt>Phí giữ chỗ</dt><dd>{token(draft.reserveVnd)}</dd></div>
+        </dl>
+      </details>
+      <p className="text-sm">Cọc sinh lãi: {draft.yieldEnabled ? "bật" : "tắt"}</p>
+    </Section>
+    <Section id="dates" title="Ngày nhận và hết hạn thuê">
+      <dl className="space-y-3 text-sm">
+        <div className="flex flex-wrap justify-between gap-2"><dt>Dọn vào</dt><dd className="font-semibold tabular-nums">{draft.moveIn ? formatDate(dateToIso(draft.moveIn)) : "Chưa chọn"}</dd></div>
+        <div className="flex flex-wrap justify-between gap-2"><dt>Hết hạn thuê</dt><dd className="font-semibold tabular-nums">{draft.leaseEnd ? formatDate(dateToIso(draft.leaseEnd)) : "Chưa chọn"}</dd></div>
+      </dl>
+    </Section>
+    <Section id="positions" title={`${draft.positions.length} vị trí chụp`}>
+      <ul className="grid gap-5 sm:grid-cols-2">
+        {draft.positions.map((p, i) => <li key={p.key} className="min-w-0 space-y-2">
+          <ReviewPhoto url={p.photo?.previewUrl} label={`Ảnh ví dụ vị trí ${i + 1}: ${p.name}`} />
+          <p className="text-sm font-semibold">{i + 1}. {p.name}</p>
+          <p className="text-sm text-muted-foreground">{p.instruction}</p>
+        </li>)}
+      </ul>
+    </Section>
+    <Section id="prices" title="Bảng giá sửa chữa">
+      <ul className="divide-y text-sm">
+        {draft.prices.map(it => <li key={it.key} className="flex flex-wrap justify-between gap-x-4 gap-y-1 py-3">
+          <span className="min-w-0 flex-1">{it.item} <span className="text-muted-foreground">/ {it.unit}</span></span>
+          <b className="tabular-nums">{formatVnd(vnd(it.priceVnd))}</b>
+        </li>)}
+      </ul>
+    </Section>
+    <p className="py-6 text-sm text-muted-foreground">Bấm “Đăng phòng” sẽ ký một giao dịch. Sau khi có người cọc, bạn không sửa được ảnh, giá và điều khoản.</p>
+  </div>;
+}
+
+function ReviewPhoto({ url, label }: { url?: string; label: string }) {
+  return url ? <a href={url} target="_blank" rel="noreferrer" aria-label={`Xem ảnh đầy đủ: ${label}`} className="block overflow-hidden rounded-xl border border-border bg-muted">
+    <div className="relative aspect-[4/3]"><RoomCover url={url} alt={label} fit="contain" className="absolute inset-0" /></div>
+    <span className="block px-3 py-3 text-xs text-primary">Xem ảnh đầy đủ</span>
+  </a> : <p className="rounded-xl bg-muted p-4 text-sm text-muted-foreground">Chưa có ảnh ví dụ</p>;
+}
+
+function focusField(id: string) {
+  requestAnimationFrame(() => document.getElementById(id)?.focus());
 }

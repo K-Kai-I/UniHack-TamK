@@ -1,8 +1,9 @@
 "use client";
 // Chụp ảnh bằng camera TRONG APP (AGENTS.md: không cho chọn ảnh từ thư viện).
 // Đường chính: getUserMedia (camera sau) → vẽ khung hình ra canvas → JPEG. Cần HTTPS hoặc localhost.
-// Dự phòng: <input type="file" accept="image/*" capture="environment"> khi getUserMedia không dùng được
-// (trình duyệt chặn, HTTP trên mạng LAN, từ chối quyền). Input này mở thẳng app camera, không có thư viện ảnh.
+// Dự phòng chỉ trên màn cảm ứng (điện thoại/máy tính bảng): <input type="file" accept="image/*" capture="environment">
+// mở thẳng app camera của máy. Trên máy tính, `capture` bị bỏ qua và input sẽ mở hộp chọn file (= thư viện ảnh),
+// nên máy tính KHÔNG có đường dự phòng này: chỉ giải thích và hướng dẫn dùng điện thoại có camera.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, Layers, RefreshCw, SwitchCamera } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -17,7 +18,86 @@ export interface CapturedPhoto {
   source: "getUserMedia" | "input-capture";
 }
 
-type CamState = "starting" | "live" | "fallback";
+/** Vì sao camera trong app không dùng được. Mỗi loại có lời giải thích và cách xử lý riêng. */
+type Problem = "denied" | "no-camera" | "busy" | "insecure" | "unsupported" | "failed" | "ended";
+type CamState = { kind: "starting" } | { kind: "live" } | { kind: "problem"; why: Problem };
+
+const PROBLEMS: Record<Problem, { title: string; body: string; retry: boolean }> = {
+  denied: {
+    title: "Chưa cho phép dùng camera",
+    body: "Hãy bật quyền Camera cho trang này trong cài đặt trình duyệt (biểu tượng ổ khóa cạnh địa chỉ), rồi bấm Thử lại.",
+    retry: true,
+  },
+  "no-camera": {
+    title: "Không tìm thấy camera",
+    body: "Máy này chưa có camera hoặc camera đang tắt. Hãy mở trang này trên điện thoại có camera.",
+    retry: true,
+  },
+  busy: {
+    title: "Camera đang bận",
+    body: "App khác đang dùng camera. Đóng app đó rồi bấm Thử lại.",
+    retry: true,
+  },
+  insecure: {
+    title: "Trang chưa dùng HTTPS",
+    body: "Trình duyệt chặn camera trên trang không có HTTPS. Hãy mở lại bằng địa chỉ bắt đầu bằng https://.",
+    retry: false,
+  },
+  unsupported: {
+    title: "Trình duyệt không hỗ trợ camera",
+    body: "Hãy dùng Chrome hoặc Safari bản mới, tốt nhất trên điện thoại.",
+    retry: false,
+  },
+  failed: {
+    title: "Không mở được camera",
+    body: "Bấm Thử lại. Nếu vẫn lỗi, hãy mở trang này trên thiết bị khác có camera.",
+    retry: true,
+  },
+  ended: {
+    title: "Camera bị ngắt giữa chừng",
+    body: "Thiết bị camera bị rút hoặc app khác chiếm mất. Bấm Thử lại.",
+    retry: true,
+  },
+};
+
+/** API nhận tối đa 5 MB/ảnh (docs/api-contract.md > POST /uploads). Chừa lề cho phần bao multipart. */
+const MAX_BYTES = 4.5 * 1024 * 1024;
+/** Ảnh từ input dự phòng phải mới chụp: ảnh cũ trong thư viện bị từ chối. */
+const FRESH_MS = 10 * 60 * 1000;
+
+/** Nén dần cho tới khi vừa giới hạn: giảm chất lượng trước, rồi giảm kích thước. */
+async function encodeJpeg(src: CanvasImageSource, w: number, h: number): Promise<{ blob: Blob; w: number; h: number } | null> {
+  for (const [scale, quality] of [[1, 0.85], [1, 0.7], [0.75, 0.7], [0.5, 0.7]] as const) {
+    const cw = Math.max(1, Math.round(w * scale));
+    const ch = Math.max(1, Math.round(h * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = cw;
+    canvas.height = ch;
+    canvas.getContext("2d")?.drawImage(src, 0, 0, cw, ch);
+    const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/jpeg", quality));
+    if (blob && blob.size <= MAX_BYTES) return { blob, w: cw, h: ch };
+    if (!blob) return null;
+  }
+  return null;
+}
+
+function classify(e: unknown): Problem {
+  switch ((e as DOMException)?.name) {
+    case "NotAllowedError":
+    case "SecurityError":
+    case "PermissionDeniedError":
+      return "denied";
+    case "NotFoundError":
+    case "DevicesNotFoundError":
+      return "no-camera";
+    case "NotReadableError":
+    case "TrackStartError":
+    case "AbortError":
+      return "busy";
+    default:
+      return "failed";
+  }
+}
 
 export function CameraCapture({
   onCapture,
@@ -31,12 +111,19 @@ export function CameraCapture({
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [cam, setCam] = useState<CamState>("starting");
+  const [cam, setCam] = useState<CamState>({ kind: "starting" });
+  const camRef = useRef(cam);
+  camRef.current = cam;
   const [facing, setFacing] = useState<"environment" | "user">("environment");
-  const [reason, setReason] = useState("");
-  const [attempt, setAttempt] = useState(0); // tăng để mở lại camera sau khi bị từ chối
+  const [attempt, setAttempt] = useState(0); // tăng để mở lại camera sau khi bị từ chối/ngắt
   const [ghost, setGhost] = useState(true);
-  const showGhost = !!overlayUrl && ghost && cam === "live";
+  const [cameraCount, setCameraCount] = useState(0);
+  const [touch, setTouch] = useState(false); // màn cảm ứng chính: mới có app camera của máy để dự phòng
+  const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState("");
+  const live = cam.kind === "live";
+  const showGhost = !!overlayUrl && ghost && live;
+  const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
   const stop = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -44,46 +131,56 @@ export function CameraCapture({
   }, []);
 
   useEffect(() => {
+    setTouch(window.matchMedia("(pointer: coarse)").matches);
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
     async function start() {
-      setCam("starting");
+      setCam({ kind: "starting" });
+      setNotice("");
       stop();
       if (!navigator.mediaDevices?.getUserMedia) {
-        setReason(
-          window.isSecureContext
-            ? "Trình duyệt không hỗ trợ camera trực tiếp."
-            : "Trang chưa chạy HTTPS nên trình duyệt chặn camera trực tiếp.",
-        );
-        setCam("fallback");
+        setCam({ kind: "problem", why: window.isSecureContext ? "unsupported" : "insecure" });
         return;
       }
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: facing }, width: { ideal: 1920 }, height: { ideal: 1080 } },
-          audio: false,
-        });
+        let stream: MediaStream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: facing }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+            audio: false,
+          });
+        } catch (e) {
+          // Máy không đáp ứng được ràng buộc (độ phân giải, hướng camera): thử lại với yêu cầu tối thiểu.
+          if ((e as DOMException).name !== "OverconstrainedError") throw e;
+          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        }
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());
           return;
         }
         streamRef.current = stream;
+        // Camera bị rút hoặc app khác chiếm giữa chừng: báo thay vì để khung đen đứng im.
+        stream.getVideoTracks()[0]?.addEventListener("ended", () => {
+          if (!cancelled && streamRef.current === stream) {
+            stop();
+            setCam({ kind: "problem", why: "ended" });
+          }
+        });
         const v = videoRef.current;
         if (v) {
           v.srcObject = stream;
           await v.play().catch(() => {});
         }
-        setCam("live");
+        setCam({ kind: "live" });
+        // Nhãn thiết bị chỉ có sau khi được cấp quyền; ở đây chỉ cần đếm để biết có đổi camera được không.
+        navigator.mediaDevices
+          .enumerateDevices()
+          .then((d) => !cancelled && setCameraCount(d.filter((x) => x.kind === "videoinput").length))
+          .catch(() => {});
       } catch (e) {
-        if (cancelled) return;
-        const name = (e as DOMException).name;
-        setReason(
-          name === "NotAllowedError"
-            ? "Bạn chưa cho phép dùng camera. Bấm biểu tượng ổ khóa trên thanh địa chỉ để bật lại."
-            : name === "NotFoundError"
-              ? "Không tìm thấy camera."
-              : "Không mở được camera trực tiếp.",
-        );
-        setCam("fallback");
+        if (!cancelled) setCam({ kind: "problem", why: classify(e) });
       }
     }
     start();
@@ -93,54 +190,128 @@ export function CameraCapture({
     };
   }, [facing, attempt, stop]);
 
-  function snap() {
+  // Quay lại tab hoặc app sau khi đã mở camera: tắt camera lúc ẩn (riêng tư, tiết kiệm pin), bật lại khi hiện.
+  useEffect(() => {
+    let wasLive = false;
+    function onVisibility() {
+      if (document.hidden) {
+        wasLive = camRef.current.kind === "live";
+        if (wasLive) stop();
+      } else if (wasLive) {
+        wasLive = false;
+        retry();
+      }
+    }
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [stop, retry]);
+
+  // Người dùng bật quyền trong cài đặt trình duyệt: tự mở lại, không bắt bấm Thử lại.
+  useEffect(() => {
+    let status: PermissionStatus | null = null;
+    let gone = false;
+    navigator.permissions
+      ?.query({ name: "camera" as PermissionName })
+      .then((s) => {
+        if (gone) return;
+        status = s;
+        s.onchange = () => {
+          const c = camRef.current;
+          if (s.state === "granted" && c.kind === "problem" && c.why === "denied") retry();
+        };
+      })
+      .catch(() => {}); // Safari/Firefox chưa hỗ trợ truy vấn quyền camera
+    return () => {
+      gone = true;
+      if (status) status.onchange = null;
+    };
+  }, [retry]);
+
+  async function snap() {
     const v = videoRef.current;
-    if (!v || !v.videoWidth) return;
-    const canvas = document.createElement("canvas");
-    canvas.width = v.videoWidth;
-    canvas.height = v.videoHeight;
-    canvas.getContext("2d")?.drawImage(v, 0, 0);
-    canvas.toBlob(
-      (blob) => {
-        if (!blob) return;
-        onCapture({
-          blob,
-          capturedAt: new Date().toISOString(),
-          width: canvas.width,
-          height: canvas.height,
-          source: "getUserMedia",
-        });
-      },
-      "image/jpeg",
-      0.85, // API nhận tối đa 5 MB/ảnh (docs/api-contract.md > POST /uploads)
-    );
+    if (!v || !v.videoWidth || saving) return;
+    setSaving(true);
+    setNotice("");
+    try {
+      const out = await encodeJpeg(v, v.videoWidth, v.videoHeight);
+      if (!out) {
+        setNotice("Không lưu được ảnh. Bấm Chụp lại.");
+        return;
+      }
+      onCapture({
+        blob: out.blob,
+        capturedAt: new Date().toISOString(),
+        width: out.w,
+        height: out.h,
+        source: "getUserMedia",
+      });
+    } finally {
+      setSaving(false);
+    }
   }
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    // Hộp chọn file của một số trình duyệt vẫn cho lấy ảnh cũ: chỉ nhận ảnh vừa chụp.
+    if (Date.now() - file.lastModified > FRESH_MS) {
+      setNotice("Ảnh này không phải ảnh vừa chụp. Hãy chụp ảnh mới.");
+      return;
+    }
+    setNotice("");
     const url = URL.createObjectURL(file);
     const img = new Image();
-    img.onload = () => {
-      onCapture({
-        blob: file,
-        capturedAt: new Date().toISOString(),
-        width: img.naturalWidth,
-        height: img.naturalHeight,
-        source: "input-capture",
-      });
-      URL.revokeObjectURL(url);
+    img.onload = async () => {
+      const w = img.naturalWidth;
+      const h = img.naturalHeight;
+      try {
+        if (file.size <= MAX_BYTES) {
+          onCapture({ blob: file, capturedAt: new Date().toISOString(), width: w, height: h, source: "input-capture" });
+          return;
+        }
+        // Ảnh từ app camera của máy thường lớn hơn giới hạn 5 MB của API: nén lại.
+        const out = await encodeJpeg(img, w, h);
+        if (!out) setNotice("Ảnh quá lớn, không nén được. Hãy chụp lại.");
+        else
+          onCapture({
+            blob: out.blob,
+            capturedAt: new Date().toISOString(),
+            width: out.w,
+            height: out.h,
+            source: "input-capture",
+          });
+      } finally {
+        URL.revokeObjectURL(url);
+      }
     };
-    img.onerror = () => URL.revokeObjectURL(url);
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      setNotice("Không đọc được ảnh này. Hãy chụp lại.");
+    };
     img.src = url;
   }
 
+  const problem = cam.kind === "problem" ? PROBLEMS[cam.why] : null;
+
   return (
     <div className="space-y-3">
-      <div className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-black">
+      {/* Khung 3:4 nhưng không cao quá 70% màn hình, để nút Chụp luôn nằm trong tầm nhìn khi xoay ngang. */}
+      <div
+        className={cn(
+          "relative mx-auto aspect-[3/4] w-full max-w-[min(100%,calc(70dvh*0.75))] overflow-hidden rounded-2xl",
+          problem ? "bg-muted text-foreground ring-1 ring-foreground/10" : "bg-black",
+        )}
+      >
         {/* playsInline + muted: bắt buộc trên iOS Safari để video không bật toàn màn hình */}
-        <video ref={videoRef} playsInline muted className="size-full object-cover" />
+        <video
+          ref={videoRef}
+          playsInline
+          muted
+          disablePictureInPicture
+          aria-label="Khung nhìn camera"
+          className={cn("size-full object-cover", !live && "invisible")}
+        />
         {showGhost && (
           // Cùng object-cover và cùng khung 3:4 với video, nên ảnh cũ trùng khít vị trí trên màn hình.
           // eslint-disable-next-line @next/next/no-img-element
@@ -156,70 +327,97 @@ export function CameraCapture({
             Canh cho khớp ảnh mờ lúc nhận phòng
           </p>
         )}
-        {cam === "starting" && (
+        {cam.kind === "starting" && (
           <p className="absolute inset-0 grid place-items-center text-sm text-white/80">Đang mở camera…</p>
         )}
-        {cam === "fallback" && (
-          <div className="absolute inset-0 grid place-items-center p-6 text-center text-sm text-white/90">
-            <div className="space-y-2">
-              <Camera className="mx-auto size-8" />
-              <p>{reason}</p>
-              <p className="text-white/70">Bấm nút bên dưới để mở app camera của máy.</p>
+        {problem && (
+          <div role="alert" className="absolute inset-0 grid place-items-center overflow-y-auto p-5 text-center">
+            <div className="max-w-xs space-y-2">
+              <Camera aria-hidden className="mx-auto size-8 text-muted-foreground" />
+              <p className="text-base font-semibold text-balance">{problem.title}</p>
+              <p className="text-sm text-foreground/80">{problem.body}</p>
+              <p className="text-sm text-muted-foreground">
+                {touch
+                  ? "Bạn cũng có thể mở app camera của máy để chụp."
+                  : "Ảnh phải chụp trực tiếp trong app, không chọn từ thư viện."}
+              </p>
             </div>
           </div>
         )}
       </div>
 
-      <div className="flex gap-2">
-        {cam === "live" ? (
-          <>
-            <Button size="lg" className="h-14 flex-1 text-base" onClick={snap}>
-              <Camera /> Chụp
+      {/* Báo trạng thái cho trình đọc màn hình; lỗi đã có role="alert" ở khung trên */}
+      <p role="status" className="sr-only">
+        {cam.kind === "starting" ? "Đang mở camera" : live ? "Camera đã sẵn sàng" : ""}
+      </p>
+      {notice && (
+        <p role="alert" className="text-sm font-medium text-destructive">
+          {notice}
+        </p>
+      )}
+
+      {live || cam.kind === "starting" ? (
+        <div className="space-y-2">
+          <Button size="lg" className="h-14 w-full text-base" onClick={snap} disabled={!live || saving}>
+            <Camera aria-hidden /> {saving ? "Đang lưu ảnh…" : live ? "Chụp" : "Đang mở camera…"}
+          </Button>
+          {live && (overlayUrl || cameraCount > 1) && (
+            <div className="flex gap-2">
+              {overlayUrl && (
+                <Button
+                  variant="secondary"
+                  className={cn("flex-1", ghost && "ring-2 ring-primary/40")}
+                  aria-pressed={ghost}
+                  onClick={() => setGhost((g) => !g)}
+                >
+                  <Layers aria-hidden /> Ảnh mờ lúc nhận phòng
+                </Button>
+              )}
+              {cameraCount > 1 && (
+                <Button
+                  variant="secondary"
+                  className="flex-1"
+                  onClick={() => setFacing((f) => (f === "environment" ? "user" : "environment"))}
+                >
+                  <SwitchCamera aria-hidden /> Đổi camera
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2 sm:flex-row">
+          {touch && (
+            <Button size="lg" className="h-14 flex-1 text-base" onClick={() => inputRef.current?.click()}>
+              <Camera aria-hidden /> Mở app camera của máy
             </Button>
-            {overlayUrl && (
-              <Button
-                size="lg"
-                variant="secondary"
-                className={cn("h-14", ghost && "ring-2 ring-primary/40")}
-                aria-label={ghost ? "Ẩn ảnh mờ lúc nhận phòng" : "Hiện ảnh mờ lúc nhận phòng"}
-                aria-pressed={ghost}
-                onClick={() => setGhost((g) => !g)}
-              >
-                <Layers />
-              </Button>
-            )}
+          )}
+          {problem?.retry && (
             <Button
               size="lg"
-              variant="secondary"
-              className="h-14"
-              aria-label="Đổi camera trước/sau"
-              onClick={() => setFacing((f) => (f === "environment" ? "user" : "environment"))}
+              variant={touch ? "secondary" : "default"}
+              className="h-14 flex-1 text-base"
+              onClick={retry}
             >
-              <SwitchCamera />
+              <RefreshCw aria-hidden /> Thử lại camera
             </Button>
-          </>
-        ) : (
-          <>
-            <Button size="lg" className="h-14 flex-1 text-base" onClick={() => inputRef.current?.click()}>
-              <Camera /> Mở camera máy
-            </Button>
-            {cam === "fallback" && (
-              <Button
-                size="lg"
-                variant="secondary"
-                className="h-14"
-                aria-label="Thử lại camera trực tiếp"
-                onClick={() => setAttempt((n) => n + 1)}
-              >
-                <RefreshCw />
-              </Button>
-            )}
-          </>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
-      {/* capture="environment": mở thẳng camera sau, không có thư viện ảnh */}
-      <input ref={inputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onFile} />
+      {/* capture="environment": mở thẳng camera sau, không có thư viện ảnh. Chỉ dùng được khi `touch` (xem đầu file). */}
+      {touch && (
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          tabIndex={-1}
+          aria-hidden
+          onChange={onFile}
+        />
+      )}
     </div>
   );
 }

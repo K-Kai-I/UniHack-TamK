@@ -1,23 +1,33 @@
 ---
 name: Két Cọc Trọ
-description: Két giữ tiền cọc thuê trọ bằng smart contract, cho người thuê cầm điện thoại đứng trong phòng.
+description: "Hướng A — Căn phòng qua từng mốc: ảnh thật, tiền cọc và việc cần làm rõ ràng."
 colors:
-  vault-navy: "#0b2545"
-  vault-navy-foreground: "#ffffff"
-  navy-mist: "#e8eef6"
-  safe-emerald: "#10b981"
-  emerald-wash: "#e7f8f1"
-  emerald-ink: "#065f46"
-  deadline-amber: "#f59e0b"
-  deadline-amber-ink: "#451a03"
-  pending-blue: "#3b82f6"
-  dispute-red: "#dc2626"
-  ledger-paper: "#f7f9fc"
-  card-white: "#ffffff"
-  slate-ink: "#0f172a"
-  slate-muted: "#64748b"
-  muted-fill: "#eef2f7"
-  hairline: "#e2e8f0"
+  background: "#ffffff"
+  foreground: "#241f30"
+  card: "#ffffff"
+  card-foreground: "#241f30"
+  popover: "#ffffff"
+  popover-foreground: "#241f30"
+  primary: "#30254b"
+  primary-foreground: "#ffffff"
+  primary-hover: "#241b3a"
+  secondary: "#f2eff8"
+  secondary-foreground: "#30254b"
+  muted: "#f5f3f8"
+  muted-foreground: "#655f73"
+  accent: "#ebe6f4"
+  accent-foreground: "#30254b"
+  success: "#16634a"
+  success-foreground: "#ffffff"
+  warning: "#f4c36a"
+  warning-foreground: "#65420c"
+  info: "#245da8"
+  info-foreground: "#ffffff"
+  destructive: "#b42336"
+  destructive-foreground: "#ffffff"
+  border: "#ded9e8"
+  input: "#898092"
+  ring: "#6e5597"
 typography:
   display:
     fontFamily: "Be Vietnam Pro, system-ui, sans-serif"
@@ -25,37 +35,48 @@ typography:
     fontWeight: 800
     lineHeight: 1.2
     fontFeature: "\"tnum\""
+  headline-lg:
+    fontFamily: "Be Vietnam Pro, system-ui, sans-serif"
+    fontSize: "1.875rem"
+    fontWeight: 800
+    lineHeight: 1.375
+    letterSpacing: "-0.025em"
   headline:
     fontFamily: "Be Vietnam Pro, system-ui, sans-serif"
     fontSize: "1.5rem"
     fontWeight: 800
-    lineHeight: 1.25
+    lineHeight: 1.375
     letterSpacing: "-0.025em"
+  title-lg:
+    fontFamily: "Be Vietnam Pro, system-ui, sans-serif"
+    fontSize: "1.25rem"
+    fontWeight: 800
+    lineHeight: 1.375
   title:
     fontFamily: "Be Vietnam Pro, system-ui, sans-serif"
     fontSize: "1.125rem"
     fontWeight: 700
-    lineHeight: 1.55
+    lineHeight: 1.5
   body:
     fontFamily: "Be Vietnam Pro, system-ui, sans-serif"
     fontSize: "1rem"
     fontWeight: 400
-    lineHeight: 1.5
+    lineHeight: 1.6
   body-sm:
     fontFamily: "Be Vietnam Pro, system-ui, sans-serif"
     fontSize: "0.875rem"
     fontWeight: 400
-    lineHeight: 1.43
+    lineHeight: 1.6
   label:
     fontFamily: "Be Vietnam Pro, system-ui, sans-serif"
-    fontSize: "0.6875rem"
+    fontSize: "0.75rem"
     fontWeight: 600
-    lineHeight: 1.25
+    lineHeight: 1.5
   mono:
     fontFamily: "JetBrains Mono, ui-monospace, monospace"
     fontSize: "0.875rem"
     fontWeight: 400
-    lineHeight: 1.43
+    lineHeight: 1.6
 rounded:
   sm: "8.4px"
   md: "11.2px"
@@ -69,205 +90,242 @@ spacing:
   3: "12px"
   4: "16px"
   5: "20px"
-  7: "28px"
+  6: "24px"
+  8: "32px"
+  12: "48px"
 components:
-  button-primary:
-    backgroundColor: "{colors.vault-navy}"
-    textColor: "{colors.vault-navy-foreground}"
+  button-default:
+    backgroundColor: "{colors.primary}"
+    textColor: "{colors.primary-foreground}"
     typography: "{typography.body}"
     rounded: "{rounded.lg}"
+    height: "48px"
+    padding: "8px 16px"
+  button-default-hover:
+    backgroundColor: "{colors.primary-hover}"
+    textColor: "{colors.primary-foreground}"
+  button-lg:
+    backgroundColor: "{colors.primary}"
+    textColor: "{colors.primary-foreground}"
+    rounded: "{rounded.lg}"
     height: "56px"
-    width: "100%"
+    padding: "12px 24px"
+  button-action-area:
+    rounded: "{rounded.lg}"
+    height: "56px"
   button-secondary:
-    backgroundColor: "{colors.navy-mist}"
-    textColor: "{colors.vault-navy}"
+    backgroundColor: "{colors.secondary}"
+    textColor: "{colors.secondary-foreground}"
     rounded: "{rounded.lg}"
     height: "48px"
+    padding: "8px 16px"
+  button-secondary-hover:
+    backgroundColor: "{colors.accent}"
   button-outline:
-    backgroundColor: "{colors.ledger-paper}"
-    textColor: "{colors.slate-ink}"
+    backgroundColor: "{colors.background}"
+    textColor: "{colors.foreground}"
     rounded: "{rounded.lg}"
-    height: "56px"
-    padding: "0 24px"
+    height: "48px"
+    padding: "8px 16px"
+  button-outline-hover:
+    backgroundColor: "{colors.accent}"
+    textColor: "{colors.accent-foreground}"
   button-destructive:
-    backgroundColor: "#dc26261a"
-    textColor: "{colors.dispute-red}"
+    backgroundColor: "#b423361a"
+    textColor: "{colors.destructive}"
     rounded: "{rounded.lg}"
     height: "48px"
-  card-ledger:
-    backgroundColor: "{colors.card-white}"
-    textColor: "{colors.slate-ink}"
-    rounded: "{rounded.2xl}"
-    padding: "12px 16px"
+    padding: "8px 16px"
+  button-icon:
+    rounded: "{rounded.lg}"
+    size: "44px"
+  back-link:
+    textColor: "{colors.primary}"
+    rounded: "{rounded.full}"
+    size: "44px"
   input:
-    backgroundColor: "transparent"
-    textColor: "{colors.slate-ink}"
+    backgroundColor: "{colors.background}"
+    textColor: "{colors.foreground}"
+    typography: "{typography.body}"
     rounded: "{rounded.lg}"
     height: "48px"
-    padding: "4px 10px"
+    padding: "8px 12px"
   status-badge:
     rounded: "{rounded.full}"
     typography: "{typography.label}"
-    height: "20px"
-    padding: "2px 8px"
+    height: "24px"
+    padding: "4px 10px"
   wallet-chip:
-    backgroundColor: "{colors.card-white}"
+    backgroundColor: "{colors.card}"
+    textColor: "{colors.foreground}"
     typography: "{typography.mono}"
     rounded: "{rounded.full}"
+    height: "44px"
     padding: "6px 12px"
+  card-ledger:
+    backgroundColor: "{colors.card}"
+    textColor: "{colors.foreground}"
+    rounded: "{rounded.2xl}"
+    padding: "12px 20px"
+  status-panel:
+    backgroundColor: "{colors.secondary}"
+    textColor: "{colors.foreground}"
+    rounded: "{rounded.2xl}"
+    padding: "20px"
+  evidence-frame:
+    backgroundColor: "{colors.muted}"
+    rounded: "{rounded.xl}"
+  tx-status:
+    rounded: "{rounded.xl}"
+    typography: "{typography.body-sm}"
+    padding: "12px"
+  action-area-content:
+    backgroundColor: "{colors.background}"
+    width: "640px"
 ---
 
 # Design System: Két Cọc Trọ
 
 ## Overview
 
-**Creative North Star: "Két sắt công chứng"**
+**Creative North Star: "Căn phòng qua từng mốc"**
 
-Chắc như một cái két, minh bạch như một bảng niêm yết công khai. Cửa két màu navy đậm làm nút chính, đầu trang và tiêu đề. Màu emerald chỉ xuất hiện khi tiền đang an toàn hoặc đã về đúng chỗ. Mỗi con số được trình bày như một dòng biên bản: nhãn bên trái, giá trị bên phải, số thẳng cột. Giao diện không nghiêng về bên nào. Nó chỉ cho biết tiền đang nằm đâu, ai phải làm gì và còn bao lâu.
+Ảnh thật của cùng căn phòng nối các mốc gửi cọc, nhận phòng, trả phòng và chia tiền. Tên phòng, vị trí chụp và nhãn nguồn ảnh giúp người dùng nhận ra nơi ở của mình. Tiền, việc cần làm, hạn và hệ quả nằm cạnh một vùng hành động duy nhất. Khi chưa có ảnh, khung "Chưa có ảnh" cùng tên phòng và việc tiếp theo vẫn tạo thành một màn dùng được.
 
-Mật độ thấp, một cột, mobile-first. Màn hình được viết cho người đứng trong phòng trọ và bấm bằng một tay. Mỗi màn có một hành động chính, nằm trong thanh đáy dính chân màn và cao 56px. Bề mặt phẳng: tách lớp bằng nền xanh rất nhạt so với thẻ trắng và viền mảnh, không dùng bóng đổ. Chuyển động chỉ để báo trạng thái (đang ký, đang chờ chuỗi). Hiệu ứng lấp lánh chỉ có ở màn chào đầu tiên.
+Nền trắng, chữ và nút mực tím than, vùng phụ tím rất nhạt. Be Vietnam Pro mang mọi chữ đọc, nút và số; JetBrains Mono chỉ cho địa chỉ ví và mã giao dịch. Bề mặt phẳng, không đổ bóng; nhóm tách bằng nền phụ, viền 1px hoặc ring mảnh. Chế độ vận hành: mật độ vừa phải, điều hướng bằng nút quay lại và lối "Hợp đồng của tôi"; cá tính đến từ ảnh và các mốc có căn cứ. Chuyển động chỉ phản hồi thao tác hoặc trạng thái.
 
-Chỉ có giao diện sáng. Thuật ngữ crypto (hash, địa chỉ ví, Snowtrace) hiện bằng font mono, nhỏ, ở vị trí phụ, cho ai muốn kiểm chứng.
+**Trạng thái tài liệu — task UI 21, ngày 18/11/2026:** tài liệu mô tả bản build đã giao sau các task UI 02–20, đọc từ `web/app/globals.css`, `web/app/layout.tsx`, `web/components/` và `web/lib/client/`. Bằng chứng nghiệm thu đặt ở [.planning/ui-task-21/](.planning/ui-task-21/). Nghiệm thu UI dùng dữ liệu giả, Firefox headless và trang xem thử `/dev/*`; kiểm tra TypeScript, lint, build production và 26 test hành vi frontend đã qua. Ma trận kết quả, lỗi tích hợp Privy và các bước còn chờ có trong [bàn giao task 21](.planning/ui-task-21/README.md); **chưa nghiệm thu** trên điện thoại thật (camera, bàn phím, safe-area), Privy đăng nhập thật, ký ví thật, giao dịch Fuji và faucet thật, ảnh phòng/kho ảnh thật và trình đọc màn hình. Nghiệp vụ theo ba spec trong `docs/` và `docs/user-flow.md`; tài liệu này không thay các spec đó.
 
 **Key Characteristics:**
-- Một cột rộng tối đa 448px, lề 20px, các khối cách nhau 28px.
-- Nút chính 56px full width, dính đáy, có lớp nền mờ và khoảng an toàn dưới (safe-area).
-- Thẻ kiểu biên bản: nền trắng, viền 1px màu `slate-ink` ở 10% độ đậm, bo 25px, các dòng chia bằng vạch mảnh.
-- Tiền hiển thị VND to và đậm; số token nhỏ và mờ ngay bên dưới.
-- Màu trạng thái lấy từ một bảng tone duy nhất (`web/lib/client/deal-status.ts`).
+- Ảnh nhận/trả ghép theo `positionId`, nhãn "Lúc nhận phòng" / "Lúc trả phòng", ảnh `contain` trong khung 4:3 và link "Xem ảnh gốc".
+- Ba khung trang: rộng 1200px, đọc 768px, form 640px; từ 1024px nội dung trái, cột tóm tắt/hành động 320px bên phải.
+- Dưới 1024px vùng hành động là thanh đáy cố định; từ 1024px nó trở về luồng nội dung.
+- Tím than cho hành động và bước hiện tại; xanh, hổ phách, đỏ chỉ báo trạng thái và luôn đi cùng chữ.
+- Mốc hoàn tất, tiền đã trả và kết luận chỉ hiện khi có dữ liệu xác nhận; tiền trước payout luôn ghi "dự kiến".
 
 ## Colors
 
-Navy trầm làm khung, emerald làm tín hiệu "an toàn", ba màu cảnh báo chỉ để báo trạng thái, trên nền giấy xanh rất nhạt.
+Một màu nhận diện tím than trên nền trắng, ba màu trạng thái có tiết chế. Frontmatter là nguồn token; giá trị trùng biến trong `web/app/globals.css`. Component dùng class token (`bg-primary`, `text-success`…), không viết mã màu trực tiếp. `themeColor` trong `web/app/layout.tsx` trùng `primary`. Biến chart/sidebar có sẵn chỉ trỏ lại palette này; app không có biểu đồ hay sidebar. Chỉ có giao diện sáng.
 
 ### Primary
-- **Vault Navy** (`vault-navy`): nút chính, tiêu đề trang (h1), tiêu đề đầu trang, đồng hồ đếm ngược khi còn hạn, bước đang làm trên thanh tiến trình. Đây là màu của "cửa két". Cũng là `themeColor` của trình duyệt.
-- **Navy Mist** (`navy-mist`): nền nút phụ, vùng hover của nút quay lại, nền khung ảnh giữ chỗ.
+- **Mực tím than** (`primary`): nút chính, tiêu đề màn (h1 tô `text-primary`), link thao tác, icon mốc hiện tại. Hover chuyển sang **tím than sâu** (`primary-hover`), nền vẫn đặc.
+- **Tím viền focus** (`ring`): outline focus toàn cục 2px, cách phần tử 3px, độc lập với màu thành công.
 
 ### Secondary
-- **Safe Emerald** (`safe-emerald`): tiền đã khóa, giao dịch thành công, bước đã xong, vòng focus (`ring`). Chỉ dùng khi tin tốt là sự thật.
-- **Emerald Wash** (`emerald-wash`): nền hover và mục đang chọn.
-- **Emerald Ink** (`emerald-ink`): chữ trên nền emerald nhạt. Nhãn "thành công" dùng `emerald-700` để đủ tương phản.
+- **Tím sương** (`secondary`): nền bảng "Việc cần làm", hộp hướng dẫn, nút phụ, hover của nút quay lại.
+- **Tím phấn** (`accent`): hover của nút outline/phụ, wallet chip và vùng chọn chữ (`::selection`).
 
-### Tertiary (chỉ cho trạng thái)
-- **Deadline Amber** (`deadline-amber`): sắp hết hạn, đang chờ một bên phản hồi. Chữ trên nền amber dùng **Deadline Amber Ink** (`deadline-amber-ink`), không dùng amber làm màu chữ.
-- **Pending Blue** (`pending-blue`): đang chờ ký, đang chờ chuỗi xác nhận, phòng đang trống.
-- **Dispute Red** (`dispute-red`): kháng nghị, báo sai mô tả, báo bỏ ngang, lỗi, hạn đã qua.
+### Tertiary
+- **Xanh rêu** (`success`): giao dịch xong, mốc đã hoàn tất, kết quả đã xác nhận; không dùng làm màu thương hiệu.
+- **Hổ phách** (`warning`): chờ phản hồi, sai mạng, đã trả phòng. Chữ trên nền hổ phách luôn dùng `warning-foreground` nâu đậm.
+- **Xanh tín hiệu** (`info`): đang chờ ký/xác nhận và trạng thái OPEN.
+- **Đỏ son** (`destructive`): lỗi, kháng nghị, phân xử, đã quá hạn.
 
 ### Neutral
-- **Ledger Paper** (`ledger-paper`): nền trang.
-- **Card White** (`card-white`): thẻ, popover, chip ví.
-- **Slate Ink** (`slate-ink`): chữ chính.
-- **Slate Muted** (`slate-muted`): nhãn dòng, chú thích, số token phụ.
-- **Muted Fill** (`muted-fill`): nền khối thông báo trống/lỗi, nền skeleton, bước chưa tới.
-- **Hairline** (`hairline`): viền, vạch chia, viền ô nhập.
+- **Trắng** (`background`, `card`, `popover`) và **mực đen tím** (`foreground`): nền và chữ chính.
+- **Sương nhạt** (`muted`) / **xám tím** (`muted-foreground`): skeleton, khung ảnh trống, chú thích, placeholder.
+- **Viền nhạt** (`border`): đường chia thụ động. **Viền điều khiển** (`input`): viền ô nhập và nút outline, đậm hơn để nhận ra chỗ thao tác được.
 
-### Named Rules
-**The Earned Emerald Rule.** Emerald chỉ xuất hiện khi tiền thật sự an toàn hoặc một bước thật sự đã xong. Không dùng emerald cho trang trí hay cho nút kêu gọi hành động.
+**The Tone Table Rule.** Ánh xạ state → nhãn/tone nằm trong `web/lib/client/deal-status.ts` (`DEAL_STATUS`, `TONE_CLASS`). Tint: info/primary/danger/success 10%, warning 15%, muted dùng `muted`; chữ cùng tone (`text-success`, `text-info`…), riêng warning dùng `warning-foreground`. Không đặt foreground trắng trên tint, không suy quyền từ màu.
 
-**The Tone Table Rule.** Màu trạng thái của hợp đồng chỉ lấy từ `TONE_CLASS` (nền ở 10–15%, viền ở 20–30%, chữ đậm cùng hue). Không viết mã màu thẳng trong component. Đổi màu thì sửa `app/globals.css`.
+**The Earned State Rule.** Xanh chỉ đi với kết quả đã xác nhận; tím đánh dấu bước hiện tại; bước chưa tới dùng muted kèm chữ "Chưa tới". Không màu nào đứng một mình để diễn đạt trạng thái.
 
 ## Typography
 
-**Body Font:** Be Vietnam Pro (với system-ui)
-**Label/Mono Font:** JetBrains Mono (với ui-monospace)
+**Body / Heading:** Be Vietnam Pro (fallback system-ui, sans-serif), nạp qua `next/font` với subset `latin` + `vietnamese`, weight 400–800, `display: swap`.
+**Mono:** JetBrains Mono (ui-monospace, monospace), subset `latin` + `vietnamese`; chỉ cho địa chỉ ví, hash, mã giao dịch.
 
-**Character:** Một họ sans hình học, sinh ra cho tiếng Việt: dấu không đè lên nhau, nét đậm vẫn rõ dưới nắng. Font mono chỉ dành cho những thứ máy đọc (địa chỉ ví, hash, mã giao dịch), để chúng trông khác hẳn chữ người.
+**Character:** một họ chữ không chân dựng cho tiếng Việt, đậm 800 ở tiêu đề và số tiền; mono xuất hiện như dấu hiệu "đây là dữ liệu kiểm chứng được".
 
 ### Hierarchy
-- **Display** (800, 30px, 1.2, số thẳng cột): đồng hồ đếm ngược hạn chót, con số lớn nhất trên màn. Hết hạn thì chuyển sang `dispute-red`.
-- **Headline** (800, 24px, 1.25, tracking -0.025em, text-balance): tên phòng hoặc tiêu đề màn, màu `vault-navy`.
-- **Title** (700, 18px): tiêu đề từng khối ("Tiền cọc trong contract", "Hai bên").
-- **Body** (400, 16px, 1.5): nội dung, chữ nút chính (nút chính đặt 16px thay cho 14px mặc định).
-- **Body-sm** (400, 14px): nhãn dòng, chú thích, thông báo giao dịch. Đây là cỡ dùng nhiều nhất.
-- **Label** (600, 11px): nhãn bước trên thanh tiến trình, nhãn trạng thái.
-- **Mono** (400, 12–14px): địa chỉ rút gọn, hash giao dịch, link Snowtrace.
+- **Display** (`display`, 800, 30px, `tabular-nums`): số tiền chính (biên nhận, ô tiền nổi bật). Đồng hồ đếm ngược dùng 24px/800, nhỏ hơn số tiền.
+- **Headline** (`headline`, 800 hoặc 700, 24px, tracking chặt): h1 của mọi màn. Tên phòng/tiêu đề hợp đồng, báo cáo, phân xử lên `headline-lg` 30px từ 640px, giới hạn 36ch, `text-balance`. Màn chào duy nhất dùng 32px → 40px.
+- **Title** (`title-lg` 20px/800 cho tiêu đề bảng "Việc cần làm" và màn lỗi/trống; `title` 18px/700 cho h2 nhóm như "Các mốc của căn phòng").
+- **Body** (`body`, 400, 16px, line-height 1.6): nội dung, ô nhập, nút (nút 600). Đoạn giải thích dùng `max-w-prose`.
+- **Body-sm** (14px): chú thích, giờ hạn, nội dung TxStatus, nhãn ảnh (600).
+- **Label** (`label`, 600, 12px): badge trạng thái, bước "Bước 1/2", chú thích minh họa; luôn cho xuống dòng.
 
-### Named Rules
-**The Ledger Number Rule.** Mọi con số thay đổi theo thời gian hoặc xếp thành cột (tiền, đếm ngược) dùng `tabular-nums`. Số VND đậm (600–800) và đặt trước; số token nhỏ, màu `slate-muted`, nằm dưới.
+**The Ledger Number Rule.** Tiền và thời gian dùng `tabular-nums`; VND đứng trước, số token (mUSDC) là dòng phụ. Đổi bằng `vndPerToken` qua hàm định dạng sẵn có; UI không đổi cách tính hay kiểu dữ liệu tiền.
 
-**The Vietnamese Subset Rule.** Mọi font nạp phải có subset `vietnamese`. Nếu một font không có, không dùng font đó.
+**The Vietnamese Subset Rule.** Mọi font đều nạp subset `vietnamese`. Chuỗi kiểm tra: "Két Cọc Trọ — Đặng Thị Mỹ Duyên — Ảnh nhận phòng — Kháng nghị — 6.000.000 ₫ — 17/11/2026"; dấu không bị cắt ở đậm 800, trong nút và ở zoom 200%.
 
 ## Layout
 
-Một cột giữa màn, `max-width: 448px`, lề ngang 20px, trên cả điện thoại lẫn desktop (desktop chỉ là cột hẹp đặt giữa). Các khối dọc cách nhau 28px; trong một khối, tiêu đề cách nội dung 12px. Dòng trong thẻ có padding 12px × 16px.
+Khung dùng `.page-shell`: `width: 100%`, `box-sizing: border-box`, max-width **đã gồm lề**, lề ngang 16px → 24px từ 640px → 32px từ 1024px (cộng safe-area). Ba cỡ: rộng 1200px (mặc định), đọc 768px (`data-page-shell="read"`), form 640px (`"form"`). Breakpoint: `sm` 640px, `md` 768px, `lg` 1024px.
 
-Đầu trang con: nút quay lại tròn 44px sát lề trái (lùi -8px để icon thẳng lề), tiêu đề ngắn một dòng màu navy, chỗ trống bên phải cho thao tác phụ.
+| Màn | Khung | <1024px | ≥1024px |
+| --- | --- | --- | --- |
+| `/`, `/rooms`, `/deals`, `/jury` | rộng | Một cột; phòng 2 cột từ 640px | Phòng 3 cột (gap 24/32px); hợp đồng thành dòng `minmax(0,1fr) 160px 280px 20px` |
+| `/rooms/[id]`, `/deals/[id]`, report, mismatch, jury vote | rộng + `.page-columns` | Tên/việc/hạn trước, ảnh và nội dung dài sau | `minmax(0,1fr) 20rem`, gap 32px; tiền/hạn/hành động bên phải |
+| `/listings/new` | rộng, form trong 640px | Một form 640px | `minmax(0,40rem) 20rem`, gap 32px |
+| Biên nhận, lỗi, không tìm thấy, chi tiết lỗi tải | đọc 768px | Một cột | Một cột |
 
-Thanh hành động đáy: `position: fixed`, full width, viền trên mảnh, nền `ledger-paper` ở 80–95% kèm backdrop blur, padding dưới `max(1rem, safe-area-inset-bottom)`. Nội dung trang chừa padding dưới 160px để không bị che.
+Cặp ảnh nhận/trả xếp 2 cột từ 480px khi còn đọc được. Mọi con của lưới có `min-width: 0`; khung dùng `overflow-wrap: break-word`, địa chỉ/hash `break-all`. Nhịp: trong nhóm 8–12px, giữa nhóm 24–32px.
 
-Thanh tiến trình: lưới 5 cột đều, vạch cao 6px bo tròn, nhãn 11px bên dưới.
+**The One Action Area Rule.** Mỗi màn có đúng một `ActionArea`. Dưới 1024px: thanh đáy cố định, nền trắng đặc, viền trên 1px, nội dung tối đa 640px, padding dưới `max(1rem, safe-area)`, cao tối đa `min(45dvh, 100dvh − 1rem)` và cuộn bên trong; spacer chừa đúng chiều cao đo được + 16px. Khi bàn phím mở hoặc màn cao ≤520px, thanh trở về luồng trang. Từ 1024px thanh nằm trong luồng, tối đa 640px. Nút trong vùng này tối thiểu 56px (outline 48px). Không nhân đôi form/ID/live region theo viewport.
 
-### Named Rules
-**The One Thumb Rule.** Hành động chính của màn luôn nằm trong thanh đáy, trong tầm ngón cái. Không đặt hành động chính ở đầu trang.
+Điều hướng: không có thanh nav chung. Trang con mở bằng `PageHeader` (nút quay lại 44px có `aria-label`, tiêu đề ngắn, chỗ phụ bên phải tối đa 40%). Trang chủ có thương hiệu, nút đăng xuất và lối "Hợp đồng của tôi"; banner sai mạng dính trên cùng.
 
 ## Elevation & Depth
 
-Phẳng. Độ sâu đến từ nền: thẻ trắng nằm trên nền giấy xanh nhạt, viền là vòng 1px màu chữ ở 10% độ đậm. Bóng đổ chỉ có ở ba chỗ nhỏ: chip ví và thẻ chọn vai ở onboarding (`shadow-sm`), logo ở onboarding (`shadow-md`). Lớp nổi duy nhất là thanh hành động đáy: nền mờ kèm blur, không bóng.
+Hệ phẳng: không `box-shadow` nào trên thẻ phòng, bảng tiền, ảnh, biên nhận, wallet chip hay nút. Chiều sâu đến từ nền phụ (`secondary`, `muted`), ring 1px `foreground/10` quanh bảng tiền và dialog, viền `border`. Overlay dialog/drawer dùng lớp đen 10%. Thanh đáy tách nội dung bằng nền trắng đặc và viền trên, không bằng bóng.
 
-### Named Rules
-**The Flat Ledger Rule.** Thẻ và dòng biên bản không có bóng. Muốn tách lớp thì đổi nền (`card-white` / `muted-fill`) hoặc thêm vạch chia, không thêm bóng.
+**The Flat Evidence Rule.** Không ánh sáng chạy viền, shimmer, confetti hay số nhảy để diễn đạt sự an toàn của tiền. Spinner chỉ quay khi có tác vụ thật và luôn đi kèm chữ.
+
+Chuyển tiếp màu/viền 150ms (`transition-colors duration-150`); dialog mở/đóng fade + zoom 95% trong 100ms. Nội dung hiện ngay, không stagger. Quy tắc toàn cục `prefers-reduced-motion: reduce` đặt animation/transition 0.01ms, 1 lượt, tắt cuộn mượt; một phần spinner có thêm `motion-reduce:animate-none`, phần còn lại dựa vào quy tắc toàn cục này.
 
 ## Shapes
 
-Bo góc to, mềm, hợp ngón tay. Gốc là `--radius: 14px` (0.875rem); các bậc tính theo hệ số. Dùng nhiều nhất là 25px cho thẻ và khối nội dung. Khối trạng thái giao dịch, ảnh nhỏ và skeleton nút dùng 19.6px. Nút và ô nhập dùng 14px. Nút icon, chip ví, nhãn trạng thái và vạch tiến trình bo tròn hẳn.
+Bo góc lấy từ `--radius` 14px: nút, ô nhập, nút icon dùng `lg`; ảnh, khung ảnh, TxStatus, dialog dùng `xl`; bảng tiền, bảng "Việc cần làm", thẻ hợp đồng, hộp thông tin dùng `2xl`. Badge, wallet chip, nút quay lại và vòng icon mốc (32px) là hình tròn/pill. Đường nối mốc là vạch dọc 1px màu `border`.
 
-Ảnh phòng cắt theo khung (`object-cover`). Khi chưa có ảnh, khung giữ chỗ là gradient chéo từ `navy-mist` sang `emerald-wash`, giữa có icon giường nét mảnh (stroke 1.5).
+Ảnh bìa phòng và ảnh bằng chứng đều nằm trong khung 4:3 với `object-fit: contain`, nền `muted`, không crop/filter. Chỉ thumbnail ảnh bìa trong "Hợp đồng của tôi" dùng `cover`. Ảnh thiếu hoặc lỗi hiện icon và chữ "Chưa có ảnh" / "Không tải được ảnh", kèm nút "Tải lại ảnh" ≥44px.
 
 ## Components
 
 ### Buttons
-To, chắc, dễ bấm.
-- **Shape:** bo vừa (14px).
-- **Primary:** nền `vault-navy`, chữ trắng 16px. Ở màn sản phẩm luôn cao 56px và full width trong thanh đáy. Hover giảm còn 80% độ đậm; khi nhấn dịch xuống 1px.
-- **Secondary:** nền `navy-mist`, chữ navy, cao 48px cho hành động phụ.
-- **Outline:** viền `hairline` trên nền trang, dùng cho "Quay lại" cạnh nút chính trong wizard (56px, padding ngang 24px).
-- **Destructive:** nền đỏ 10%, chữ `dispute-red`. Không bao giờ dùng nền đỏ đặc.
-- **Focus:** viền đổi sang emerald, vòng 3px emerald ở 50%. **Disabled:** 50% độ đậm, không bấm được.
-- Kích thước mặc định 32px của shadcn chỉ dùng ở trang dev và chỗ phụ (ví dụ "Thử lại").
-
-### Cards / Containers
-- **Corner Style:** 25px.
-- **Background:** `card-white` trên `ledger-paper`.
-- **Shadow Strategy:** không bóng (xem Flat Ledger Rule).
-- **Border:** vòng 1px `slate-ink` ở 10%. Các dòng chia bằng `divide-y` màu `hairline`.
-- **Internal Padding:** 12px × 16px mỗi dòng; khối thông báo trống/lỗi dùng 48px × 24px trên nền `muted-fill`, chữ căn giữa.
-
-### Inputs / Fields
-- **Style:** viền 1px `hairline`, nền trong suốt, bo 14px, chữ 16px trên mobile (để iOS không tự phóng to).
-- **Focus:** viền emerald kèm vòng 3px emerald ở 50%.
-- **Error / Disabled:** viền và vòng đỏ (`aria-invalid`); disabled ở 50% độ đậm.
+- **Shape:** bo vừa (14px), chữ 16px/600, cho xuống dòng, căn giữa.
+- **Default:** nền tím than, chữ trắng, cao tối thiểu 48px, padding 8px 16px; `lg` 56px, padding 12px 24px. Trong `ActionArea` mọi nút ≥56px, outline ≥48px.
+- **Hover / Focus:** hover `primary-hover`; focus là outline `ring` 2px cách 3px; disabled mờ 50% và không bấm được; nút đang gửi giữ tên tác vụ kèm spinner.
+- **Secondary / Outline / Ghost / Destructive:** phụ nền `secondary`, hover `accent`; outline viền `input` nền trắng; ghost chỉ đổi nền khi hover; destructive nền đỏ 10%, chữ đỏ, hover 20%. Nút icon 44×44px.
 
 ### Chips
-- **Status badge:** pill 20px, chữ 12px đậm 600, màu theo tone trong Tone Table Rule.
-- **Wallet chip:** pill trắng, viền mảnh, `shadow-sm`, địa chỉ rút gọn bằng mono 14px; hover sang `emerald-wash`.
+- **Badge trạng thái:** pill, cao tối thiểu 24px, padding 4px 10px, chữ 12px/600, nền tint + chữ theo Tone Table; nhãn tiếng Việt từ `DEAL_STATUS`, xuống dòng khi dài.
+- **Wallet chip:** pill phẳng viền `border`, nền trắng, cao 44px, mono 14px, icon ví xám; bấm để sao chép, hover `accent`, có `aria-label` "Sao chép địa chỉ ví …" và thông báo "Đã sao chép".
+
+### Cards / Containers
+- **Bảng tiền (`Rows`):** `dl` bo 2xl, ring 1px, các dòng chia bằng viền; nhãn trái `muted-foreground`, giá trị phải `tabular-nums`, padding 12px 20px, giá trị xuống hàng khi hẹp.
+- **Bảng "Việc cần làm":** nền `secondary`, bo 2xl, padding 20px; tiêu đề 20px/800, đếm ngược 24px/800, giờ hạn tuyệt đối "(giờ Việt Nam)" và hệ quả. Quá hạn: nền đỏ 5% + ring đỏ, đồng hồ đổi thành chữ "Đã quá hạn" và giải thích vì sao nút biến mất. Khi đến lượt vai đang xem, badge "Đến lượt bạn" đứng sau tiêu đề; không có nhãn nhỏ phía trên tiêu đề.
+- **Hộp thông tin (`InfoBox`):** bo 2xl, padding 16px, tone neutral/warning/danger/success bằng tint + ring.
+- **Màn trống/lỗi:** khối `muted` bo 2xl, tiêu đề 20px/700, chữ phụ 14px.
+
+### Inputs / Fields
+- **Style:** cao tối thiểu 48px, chữ 16px, viền `input`, nền trắng, bo 14px, padding 8px 12px; label luôn hiện.
+- **Focus:** viền đổi `ring` + outline toàn cục; caret tím than; `scroll-margin` 16px để không bị thanh đáy che.
+- **Error / Disabled:** `aria-invalid` cho viền đỏ + vòng đỏ 20%, lỗi bằng chữ qua `aria-describedby`; disabled nền `muted`. Lỗi ký không xóa nội dung đã nhập.
 
 ### Navigation
-Không có thanh tab hay menu. Điều hướng là nút quay lại 44px ở đầu mỗi trang con và các nút trong thanh đáy. Trang chủ là danh sách.
+- **PageHeader:** nút quay lại tròn 44px chữ tím than, hover `secondary`, tên truy cập rõ; tiêu đề 16px/600 tím than, cho xuống dòng.
+- Link thao tác (Snowtrace, Sao chép mã, Xem ảnh gốc): 14px/600 tím than gạch chân, vùng chạm ≥44px, báo "(mở tab mới)" cho trình đọc màn hình.
 
-### Transaction Status (signature)
-Khối `role="status"` bo 19.6px, padding 12px, icon 20px bên trái. Có ba trạng thái: đang chờ (nền xanh lam 10%, icon xoay), xong (nền emerald 10%, dấu tick, hash bằng mono và link Snowtrace), lỗi (nền đỏ 10%, kèm lý do). Mỗi giao dịch trong app phải đi qua khối này.
+### Mốc của căn phòng và cặp ảnh
+Danh sách có thứ tự Gửi cọc → Nhận phòng → Đang ở → Trả phòng → Chia tiền; mỗi mốc là vòng icon 32px + nhãn + chữ trạng thái "Đã hoàn tất / Đang chờ / Chưa tới / Không diễn ra", mốc hiện tại mang `aria-current="step"`. `EvidencePhoto` là `figure` có `figcaption` nguồn, khung 4:3 `contain`, link ảnh gốc; mốc thiếu ảnh ghi lý do. Kết luận `UNCLEAR` hiển thị "Ảnh chưa đủ rõ để kết luận". Minh họa: đúng hai hình vector nét tím than ("nhận phòng", "bàn giao"), chỉ ở màn chào và danh sách trống, luôn có chú thích "Minh họa, không phải ảnh phòng thật".
 
-### Deadline Countdown (signature)
-Thẻ hạn chót: đồng hồ đếm ngược cỡ Display màu navy (hết hạn thì đỏ), kèm một câu nói rõ hết hạn thì chuyện gì xảy ra với tiền.
-
-### Onboarding Flourish
-`ShimmerButton` và `BorderBeam` (viền sáng emerald chạy vòng, chu kỳ 8 giây) **chỉ dùng ở màn chào đầu tiên**.
+### Trạng thái giao dịch và quá hạn
+`TxStatus` là khối bo xl, padding 12px, chữ 14px: chờ (info, "Bước 1/2 · Chờ bạn ký", "Bước 2/2 · Đã gửi…"), xong (success), lỗi (destructive, `role="alert"`); hash, link Snowtrace và nút sao chép hiện ở mọi pha có hash. Hạn chót có ba giai đoạn: còn hạn ("Hết hạn thì: …"), đã quá hạn nhưng contract chưa cho xử lý (chờ, nút tự hiện), sẵn sàng (nút "Xử lý quá hạn" mở drawer giải thích trước khi ký). Nút hành động chỉ hiện khi contract cho phép.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** đặt hành động chính trong thanh đáy dính chân màn, cao 56px, full width, chữ 16px.
-- **Do** hiển thị tiền bằng VND đậm với `tabular-nums`, kèm số token nhỏ màu `slate-muted` bên dưới.
-- **Do** lấy màu trạng thái từ `TONE_CLASS` và token trong `app/globals.css`.
-- **Do** giữ vùng chạm tối thiểu 44px cho mọi nút icon.
-- **Do** dùng font mono cho địa chỉ ví, hash và mã giao dịch, và đặt chúng ở vị trí phụ.
-- **Do** cho mọi giao dịch đi qua khối Transaction Status với đủ ba trạng thái.
+- **Do** dùng token tím than/nền trắng qua class token và chọn đúng khung trang (rộng/đọc/form).
+- **Do** đặt tiền, việc cần làm, hạn và hệ quả cạnh một `ActionArea` duy nhất; nút trong đó ≥56px.
+- **Do** giữ nhãn nguồn ảnh, vị trí chụp, `contain` và link "Xem ảnh gốc".
+- **Do** ghi "dự kiến" cho mọi số tiền trước khi có event `Paid`; chỉ tô xanh khi đã xác nhận.
+- **Do** cho mọi chữ xuống dòng (`min-width: 0`, `overflow-wrap`) thay vì cắt hoặc ẩn tràn.
 
 ### Don't:
-- **Don't** dùng ShimmerButton, BorderBeam hay hiệu ứng lấp lánh ngoài màn chào đầu tiên. Không lấp lánh khi đang nói về tiền.
-- **Don't** dùng emerald cho trang trí hoặc cho nút kêu gọi hành động. Nút chính là navy.
-- **Don't** thêm bóng đổ vào thẻ hay dòng biên bản.
-- **Don't** viết mã màu hex thẳng trong component.
-- **Don't** thêm giao diện tối (hệ thống chỉ có giao diện sáng).
-- **Don't** đặt nền đỏ đặc cho nút. Hành động tiêu cực dùng nền đỏ 10% kèm chữ đỏ.
+- **Don't** đổ bóng, chạy viền, shimmer, confetti hay số nhảy; bề mặt luôn phẳng.
+- **Don't** dùng ảnh mẫu/minh họa thay ảnh phòng hoặc bằng chứng, hay quá hai minh họa.
+- **Don't** tô hoàn tất mốc chưa xảy ra hoặc để màu đứng một mình thay chữ trạng thái.
+- **Don't** đặt nhãn nhỏ (eyebrow) phía trên tiêu đề; thông tin phụ như vai, số hợp đồng hay "Đến lượt bạn" đi sau tiêu đề hoặc trong hàng badge.
+- **Don't** ép mọi màn vào cột hẹp hoặc kéo form/đoạn văn rộng theo desktop.
+- **Don't** đổi nghiệp vụ, tên API/JSON/enum hay thêm thư viện trong đợt chỉnh giao diện.

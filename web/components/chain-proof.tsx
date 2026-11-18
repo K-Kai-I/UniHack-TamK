@@ -42,7 +42,7 @@ export function ChainHistory({ deal }: { deal: DealView }) {
             className="flex items-center justify-between gap-3 px-4 py-3 transition hover:bg-secondary/60"
           >
             <span className="min-w-0">
-              <span className="block truncate font-medium">{EVENT_TEXT[h.event] ?? h.event}</span>
+              <span className="block font-medium break-words">{EVENT_TEXT[h.event] ?? h.event}</span>
               <span className="text-xs text-muted-foreground">
                 {formatDateTime(h.at)} · <span className="font-mono">{shortAddress(h.txHash, 8, 4)}</span>
               </span>

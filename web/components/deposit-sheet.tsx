@@ -1,164 +1,209 @@
 "use client";
-// Hộp xác nhận "Gửi cọc" (docs/user-flow.md GĐ2 bước 2). Một lần xác nhận trong ví (permit + depositWithPermit).
-import { useState } from "react";
+// Xác nhận gửi cọc (docs/user-flow.md GĐ2). Permit là chữ ký cho phép dùng token;
+// depositWithPermit vẫn là một giao dịch, do người dùng xác nhận trong ví.
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useAccount, useReadContract } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
-import { isAddressEqual, zeroAddress } from "viem";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { formatUnits, isAddressEqual, zeroAddress } from "viem";
+import { CheckCircle2, ExternalLink, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
 import { FaucetButton } from "@/components/faucet-button";
-import { TxStatus } from "@/components/tx-status";
-import { addresses, chain, usdcAbi } from "@/lib/chain";
-import { formatToken, formatVnd, amountToVnd } from "@/lib/client/money";
+import { addresses, chain, explorerTxUrl, usdcAbi } from "@/lib/chain";
+import { formatVnd, amountToVnd } from "@/lib/client/money";
 import type { DealDetail } from "@/lib/client/rooms-data";
-import { useVndRate } from "@/lib/client/use-vnd-rate";
+import { useAppConfig } from "@/lib/client/use-config";
+import { useCountdown } from "@/lib/client/use-countdown";
 import { useDeposit } from "@/lib/client/use-deposit";
-import { formatDate } from "@/lib/client/date";
+import type { TxState } from "@/lib/client/use-tx";
+import { formatDateTime } from "@/lib/client/date";
 
-export function DepositSheet({
-  deal,
-  open,
-  onOpenChange,
-}: {
-  deal: DealDetail;
-  open: boolean;
-  onOpenChange: (o: boolean) => void;
+export function DepositSheet({ deal, open, onOpenChange, unavailable = false }: {
+  deal: DealDetail; open: boolean; onOpenChange: (o: boolean) => void; unavailable?: boolean;
 }) {
-  const { terms } = deal;
-  const { address } = useAccount();
+  const { address, chainId } = useAccount();
   const qc = useQueryClient();
-  const { state, deposit, reset } = useDeposit();
+  const { state, deposit, reset, signingStep } = useDeposit();
+  const config = useAppConfig();
   const [wantYield, setWantYield] = useState(false);
-  const [done, setDone] = useState(false);
-
+  const submitting = useRef(false);
   const tokenLive = !isAddressEqual(addresses.token, zeroAddress);
   const balance = useReadContract({
-    address: addresses.token,
-    abi: usdcAbi,
-    functionName: "balanceOf",
-    args: address ? [address] : undefined,
-    chainId: chain.id,
+    address: addresses.token, abi: usdcAbi, functionName: "balanceOf",
+    args: address ? [address] : undefined, chainId: chain.id,
     query: { enabled: !!address && tokenLive && open, refetchInterval: 8000 },
   });
-
-  const rate = useVndRate();
-  const vnd = (a: string) => formatVnd(amountToVnd(a, rate));
-  const deposit_ = terms.money.depositAmount;
-  const yieldAvailable = terms.yieldEnabled && addresses.vault !== null;
-  const short = balance.data !== undefined && balance.data < BigInt(deposit_);
+  const deadline = config
+    ? new Date(Date.parse(deal.terms.dates.moveInDate) + config.timeouts.moveInGrace * 1000).toISOString()
+    : null;
+  const { passed } = useCountdown(open ? deadline : null);
+  const expired = passed || (deadline !== null && Date.now() >= Date.parse(deadline));
+  const yieldAvailable = deal.terms.yieldEnabled && !!addresses.vault && !isAddressEqual(addresses.vault, zeroAddress);
+  const balanceState = balance.isError ? "error" : balance.data === undefined ? "loading" : "ready";
+  const blocked = !address ? "Chưa có ví. Đóng màn này và đăng nhập lại để gửi cọc."
+    : address.toLowerCase() === deal.onchain.landlord.toLowerCase() ? "Chủ trọ không thể tự gửi cọc phòng của mình."
+    : !tokenLive || isAddressEqual(addresses.escrow, zeroAddress) ? "Chưa thể gửi cọc. Hợp đồng thử nghiệm chưa sẵn sàng."
+    : chainId !== chain.id ? "Ví đang ở sai mạng. Đóng màn này và chuyển sang Avalanche Fuji để tiếp tục."
+    : deal.onchain.state !== "OPEN" ? "Phòng này không còn nhận cọc. Đóng màn này để xem thông tin mới."
+    : expired ? "Đã hết hạn gửi cọc. Bạn chưa thể tiếp tục với phòng này."
+    : !config ? "Chưa tải được tỉ giá và hạn nhận phòng. Tải lại trước khi gửi cọc."
+    : unavailable ? "Thông tin phòng đang cần cập nhật. Tải lại trước khi gửi cọc." : null;
+  const short = balance.data !== undefined && balance.data < BigInt(deal.onchain.deposit);
   const busy = state.phase === "signing" || state.phase === "pending";
+  const unresolved = state.phase === "error" && !!state.hash && !state.reverted;
 
   async function submit() {
-    const ok = await deposit(deal.dealId, deposit_, wantYield && yieldAvailable);
-    if (ok) {
-      setDone(true);
-      // Trạng thái phòng đổi sang RESERVED: tải lại để màn chi tiết và danh sách cập nhật.
-      qc.invalidateQueries({ queryKey: ["deal", deal.dealId] });
-      qc.invalidateQueries({ queryKey: ["listings"] });
-    }
+    // Chặn ngay cả hai lần bấm trước khi React kịp cập nhật trạng thái ký.
+    if (submitting.current || busy || state.phase === "success") return;
+    if (!unresolved && (blocked || short || balanceState !== "ready" || (deadline && Date.now() >= Date.parse(deadline)))) return;
+    submitting.current = true;
+    try {
+      const ok = await deposit(deal.dealId, deal.onchain.deposit, wantYield && yieldAvailable);
+      if (ok) {
+        void qc.invalidateQueries({ queryKey: ["deal", deal.dealId] });
+        void qc.invalidateQueries({ queryKey: ["listings"] });
+        void qc.invalidateQueries({ queryKey: ["my-deals"] });
+      }
+    } finally { submitting.current = false; }
   }
 
-  function close(o: boolean) {
-    if (busy) return; // đang ký/chờ chuỗi: không cho đóng để khỏi mất dấu giao dịch
-    onOpenChange(o);
-    if (!o && !done) reset();
+  function close(next: boolean) {
+    if (busy || submitting.current) return;
+    onOpenChange(next);
+    // Không làm mất hash chưa có kết quả khi đóng rồi mở lại Drawer.
+    if (!next && !unresolved) { reset(); setWantYield(false); }
   }
 
-  return (
-    <Drawer open={open} onOpenChange={close}>
-      <DrawerContent>
-        <div className="mx-auto w-full max-w-md px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-          {done ? (
-            <div className="space-y-4 py-6 text-center">
-              <CheckCircle2 className="mx-auto size-12 text-success" />
-              <DrawerTitle className="text-xl font-extrabold text-primary">Đã gửi cọc</DrawerTitle>
-              <DrawerDescription>
-                Tiền cọc đang nằm trong smart contract. Tới ngày {formatDate(terms.dates.moveInDate)}, hãy chụp ảnh nhận
-                phòng trong app.
-              </DrawerDescription>
-              <TxStatus state={state} doneText="Gửi cọc thành công" />
-              <Button asChild size="lg" className="h-14 w-full text-base">
-                <Link href={`/deals/${deal.dealId}`}>Xem hợp đồng</Link>
-              </Button>
-            </div>
-          ) : (
-            <>
-              <DrawerHeader className="px-0 text-left">
-                <DrawerTitle className="text-xl font-extrabold text-primary">Gửi cọc</DrawerTitle>
-                <DrawerDescription>{terms.room.title}</DrawerDescription>
-              </DrawerHeader>
+  return <>
+    {!open && unresolved && <Button variant="outline" className="w-full" onClick={() => onOpenChange(true)}>Kiểm tra giao dịch gửi cọc</Button>}
+    <DepositSheetView deal={deal} open={open} onOpenChange={close} state={state} signingStep={signingStep}
+    rate={config?.vndPerToken ?? null} deadline={deadline} balance={balance.data} balanceState={balanceState}
+    blocked={blocked} wantYield={wantYield} yieldAvailable={yieldAvailable} feeBps={config?.feeBps ?? null}
+    onWantYield={setWantYield} onSubmit={() => void submit()} onReload={() => {
+      void balance.refetch();
+      void qc.invalidateQueries({ queryKey: ["config"] });
+      void qc.invalidateQueries({ queryKey: ["deal", deal.dealId] });
+    }} faucet={<FaucetButton />} />
+  </>;
+}
 
-              <dl className="divide-y rounded-2xl bg-card ring-1 ring-foreground/10">
-                <div className="flex items-baseline justify-between gap-4 px-4 py-3">
-                  <dt className="text-muted-foreground">Bạn gửi</dt>
-                  <dd className="text-right tabular-nums">
-                    <span className="text-xl font-extrabold text-primary">{vnd(deposit_)}</span>
-                    <span className="block text-xs text-muted-foreground">{formatToken(deposit_)}</span>
-                  </dd>
-                </div>
-                <div className="flex items-baseline justify-between gap-4 px-4 py-3">
-                  <dt className="text-muted-foreground">Phí giữ chỗ (mất nếu không đến)</dt>
-                  <dd className="font-semibold tabular-nums">{vnd(terms.money.reserveFeeAmount)}</dd>
-                </div>
-                {balance.data !== undefined && (
-                  <div className="flex items-baseline justify-between gap-4 px-4 py-3">
-                    <dt className="text-muted-foreground">Ví của bạn có</dt>
-                    <dd className="font-semibold tabular-nums">{formatToken(balance.data)}</dd>
-                  </div>
-                )}
-              </dl>
+/** View dùng chung với preview; callback preview không gọi ví hay gửi giao dịch. */
+export function DepositSheetView({ deal, open, onOpenChange, state, signingStep = "permit", rate, deadline,
+  balance, balanceState, blocked = null, wantYield, yieldAvailable, feeBps, onWantYield, onSubmit, onReload, faucet }: {
+  deal: DealDetail; open: boolean; onOpenChange: (open: boolean) => void; state: TxState;
+  signingStep?: "permit" | "transaction"; rate: number | null; deadline: string | null;
+  balance?: bigint; balanceState: "loading" | "error" | "ready"; blocked?: string | null;
+  wantYield: boolean; yieldAvailable: boolean; feeBps: number | null;
+  onWantYield: (value: boolean) => void; onSubmit: () => void; onReload: () => void; faucet?: ReactNode;
+}) {
+  const returnFocus = useRef<HTMLElement | null>(null);
+  const title = useRef<HTMLHeadingElement | null>(null);
+  const scroll = useRef<HTMLDivElement | null>(null);
+  const amount = deal.onchain.deposit;
+  const fee = deal.onchain.reserveFee;
+  const vnd = (value: string | bigint) => rate === null ? "Chưa có tỉ giá" : formatVnd(amountToVnd(value, rate));
+  const exactToken = (value: string | bigint) => `${formatUnits(BigInt(value), 6).replace(".", ",")} mUSDC`;
+  const busy = state.phase === "signing" || state.phase === "pending";
+  const done = state.phase === "success";
+  const unresolved = state.phase === "error" && !!state.hash && !state.reverted;
+  const short = balance !== undefined && balance < BigInt(amount);
+  const disabled = busy || (!unresolved && (!!blocked || short || balanceState !== "ready" || rate === null || !deadline));
 
-              <p className="mt-3 text-sm text-muted-foreground">
-                Bạn chỉ xác nhận một lần trong ví. Tiền chỉ đi theo smart contract: trả lại bạn, chia theo kết quả trả phòng,
-                không ai tự rút được.
-              </p>
+  useEffect(() => {
+    if (!scroll.current || state.phase === "idle") return;
+    scroll.current.scrollTop = 0;
+  }, [state.phase, signingStep, done, open]);
 
-              <label
-                className={
-                  "mt-3 flex items-start gap-3 rounded-2xl p-4 ring-1 ring-foreground/10 " +
-                  (yieldAvailable ? "bg-card" : "bg-muted opacity-70")
-                }
-              >
-                <input
-                  type="checkbox"
-                  className="mt-1 size-5 accent-[var(--primary)]"
-                  checked={wantYield && yieldAvailable}
-                  disabled={!yieldAvailable || busy}
-                  onChange={(e) => setWantYield(e.target.checked)}
-                />
-                <span className="space-y-0.5">
-                  <span className="block font-semibold">Cho cọc sinh lãi</span>
-                  <span className="block text-sm text-muted-foreground">
-                    {yieldAvailable
-                      ? "Cọc được gửi vào kho sinh lãi trong lúc thuê. Lãi chia theo spec, trừ phí sàn."
-                      : "Chưa dùng được: chủ trọ không bật hoặc kho sinh lãi chưa triển khai."}
-                  </span>
-                </span>
-              </label>
-
-              {short && (
-                <div className="mt-3 space-y-2 rounded-xl bg-warning/15 p-3 text-sm">
-                  <p className="font-semibold">Ví chưa đủ mUSDC để gửi cọc.</p>
-                  <FaucetButton />
-                </div>
-              )}
-
-              {state.phase !== "idle" && (
-                <div className="mt-3">
-                  <TxStatus state={state} />
-                </div>
-              )}
-
-              <Button size="lg" className="mt-4 h-14 w-full text-base" disabled={busy || short} onClick={submit}>
-                {busy && <Loader2 className="animate-spin" />}
-                {state.phase === "error" ? "Thử lại" : `Gửi cọc ${vnd(deposit_)}`}
-              </Button>
-            </>
-          )}
+  return <Drawer open={open} onOpenChange={next => { if (!busy) onOpenChange(next); }} dismissible={!busy} autoFocus>
+    <DrawerContent
+      className="mx-auto w-full max-w-[640px] shadow-none data-[vaul-drawer-direction=bottom]:mt-0 data-[vaul-drawer-direction=bottom]:max-h-[calc(100dvh-2rem)]"
+      onOpenAutoFocus={event => {
+        returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        event.preventDefault();
+        title.current?.focus({ preventScroll: true });
+      }}
+      onCloseAutoFocus={event => { event.preventDefault(); returnFocus.current?.focus({ preventScroll: true }); }}
+    >
+      <div className="flex shrink-0 items-start gap-3 border-b px-4 py-3 sm:px-6">
+        <div className="min-w-0 flex-1">
+          <DrawerTitle ref={title} tabIndex={-1} className="text-xl font-bold text-primary">{done ? "Đã gửi cọc" : "Xác nhận gửi cọc"}</DrawerTitle>
         </div>
-      </DrawerContent>
-    </Drawer>
-  );
+        <Button variant="ghost" size="icon" aria-label="Đóng xác nhận gửi cọc" disabled={busy} onClick={() => onOpenChange(false)}><X aria-hidden="true" /></Button>
+      </div>
+
+      <div ref={scroll} className="min-h-0 overflow-y-auto overscroll-contain px-4 py-5 [overflow-wrap:anywhere] sm:px-6" data-deposit-scroll>
+        {state.phase !== "idle" && <div className="mb-5"><DepositProgress state={state} signingStep={signingStep} /></div>}
+        <DrawerDescription className="mb-5 text-base text-foreground">{deal.terms.room.title}</DrawerDescription>
+        {done ? <div className="space-y-5">
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="mt-1 size-6 shrink-0 text-success" aria-hidden="true" />
+            <div><p className="text-lg font-bold">Tiền cọc đã được xác nhận</p><p className="mt-1 text-muted-foreground">Mở hợp đồng để xem bước nhận phòng và gửi ảnh bằng camera trong app.</p></div>
+          </div>
+          <dl className="rounded-xl bg-secondary p-4"><dt>Tiền cọc đã gửi</dt><dd className="mt-1 text-2xl font-extrabold text-primary tabular-nums">{vnd(amount)}</dd></dl>
+        </div> : <div className="space-y-5">
+          <dl className="rounded-xl bg-secondary p-4 sm:p-5">
+            <dt className="font-semibold">Tổng tiền cọc bạn gửi</dt>
+            <dd className="mt-1 text-3xl font-extrabold text-primary tabular-nums">{vnd(amount)}</dd>
+            <div className="mt-4 border-t border-border pt-3 text-sm">
+              <dt>Phí giữ chỗ đã gồm trong cọc</dt><dd className="mt-1 font-bold tabular-nums">{vnd(fee)}</dd>
+            </div>
+          </dl>
+          <p className="text-sm font-semibold">Bạn chỉ gửi {rate === null ? exactToken(amount) : vnd(amount)} tiền cọc. Phí giữ chỗ không cộng thêm.</p>
+          <div className="space-y-2 text-sm">
+            <p>Hạn gửi ảnh nhận phòng: {deadline ? <><time dateTime={deadline} className="font-semibold tabular-nums">{formatDateTime(deadline)}</time> (giờ Việt Nam).</> : "Chưa tải được hạn. Hãy tải lại trước khi gửi cọc."}</p>
+            <p>Nếu chưa gửi ảnh nhận phòng tới hạn, khi xử lý quá hạn bạn được hoàn cọc trừ {vnd(fee)} phí giữ chỗ. Phí này chuyển cho chủ trọ.</p>
+          </div>
+          <details className="border-y py-1 text-sm">
+            <summary className="min-h-11 cursor-pointer py-3 font-semibold">Số dư và đơn vị thử nghiệm</summary>
+            <dl className="space-y-3 pb-3">
+              <div><dt className="text-muted-foreground">Tiền cọc thực gửi</dt><dd className="font-semibold tabular-nums">{exactToken(amount)}</dd></div>
+              <div><dt className="text-muted-foreground">Số dư ví</dt><dd className="tabular-nums">{balanceState === "error" ? "Không đọc được số dư" : balanceState === "loading" ? "Đang đọc số dư…" : balance !== undefined ? `${vnd(balance)} · ${exactToken(balance)}` : "Chưa có số dư"}</dd></div>
+            </dl>
+          </details>
+          <div className="text-sm">
+            <p className="font-semibold">Ví sẽ hỏi bạn hai bước</p>
+            <ol className="mt-2 list-decimal space-y-1 pl-5"><li>Ký cho phép dùng đúng số tiền cọc. Chưa chuyển tiền ở bước này.</li><li>Xác nhận một giao dịch gửi cọc. Có thể cần AVAX thử để trả phí mạng.</li></ol>
+          </div>
+          <label className="flex min-h-11 items-start gap-3 rounded-xl border p-3">
+            <input type="checkbox" className="mt-1 size-5 shrink-0 accent-primary" checked={wantYield && yieldAvailable} disabled={!yieldAvailable || busy || unresolved} onChange={e => onWantYield(e.target.checked)} />
+            <span><span className="block font-semibold">Cho cọc sinh lãi</span><span className="mt-1 block text-sm text-muted-foreground">{yieldAvailable
+              ? `Nếu có lãi, phí sàn${feeBps === null ? " theo cấu hình hợp đồng" : ` ${feeBps / 100}% lãi`}. Lãi còn lại chia theo kết quả kết thúc hợp đồng; không cam kết mức lãi.`
+              : "Chưa dùng được: chủ trọ chưa bật hoặc kho sinh lãi chưa sẵn sàng."}</span></span>
+          </label>
+        </div>}
+      </div>
+
+      <div className="shrink-0 space-y-3 border-t bg-background px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6">
+        {!busy && !done && !unresolved && <>
+            {blocked && <div role="status" className="space-y-2 rounded-xl bg-warning/15 p-3 text-sm text-warning-foreground"><p>{blocked}</p><Button variant="outline" onClick={onReload}>Tải lại thông tin</Button></div>}
+            {balanceState === "loading" && !blocked && <p role="status" className="text-sm">Đang đọc số dư ví trước khi gửi cọc…</p>}
+            {balanceState === "error" && !blocked && <div role="status" className="space-y-2 rounded-xl bg-warning/15 p-3 text-sm text-warning-foreground"><p>Không đọc được số dư ví. Thử lại trước khi gửi cọc.</p><Button variant="outline" onClick={onReload}>Thử lại số dư</Button></div>}
+            {short && balanceState === "ready" && !blocked && <div role="status" className="space-y-3 rounded-xl bg-warning/15 p-3 text-sm text-warning-foreground"><p>Ví còn thiếu <strong className="tabular-nums">{vnd(BigInt(amount) - balance!)}</strong> để gửi cọc.</p>{faucet}<Button variant="outline" className="w-full" onClick={onReload}>Cập nhật số dư</Button></div>}
+          </>}
+        <p className="text-sm text-muted-foreground">Mạng thử nghiệm Fuji · dùng token thử, không phải tiền thật.</p>
+        {done ? <Button asChild size="lg" className="w-full"><Link href={`/deals/${deal.dealId}`}>Xem hợp đồng</Link></Button>
+          : <Button size="lg" className="w-full [overflow-wrap:anywhere]" disabled={disabled} onClick={onSubmit}>
+            {busy && <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden="true" />}
+            {state.phase === "pending" ? "Đang xác nhận gửi cọc…" : state.phase === "signing" ? "Đang chờ bạn ký trong ví…" : unresolved ? "Kiểm tra giao dịch đã gửi" : state.phase === "error" ? "Thử gửi cọc lại" : "Xác nhận gửi cọc"}
+          </Button>}
+        {busy && <p className="text-sm text-muted-foreground">Giữ màn này mở để theo dõi kết quả. Bạn có thể từ chối yêu cầu chưa ký trong ví.</p>}
+      </div>
+    </DrawerContent>
+  </Drawer>;
+}
+
+function DepositProgress({ state, signingStep }: { state: TxState; signingStep: "permit" | "transaction" }) {
+  if (state.phase === "idle") return null;
+  const unresolved = state.phase === "error" && !!state.hash && !state.reverted;
+  const title = state.phase === "signing" ? signingStep === "permit" ? "Bước 1/2 · Chờ ký cho phép dùng tiền cọc" : "Bước 2/2 · Chờ xác nhận giao dịch trong ví"
+    : state.phase === "pending" ? "Đã gửi giao dịch · đang chờ xác nhận"
+    : state.phase === "success" ? "Gửi cọc thành công" : unresolved ? "Chưa đọc được kết quả gửi cọc" : "Chưa gửi cọc thành công";
+  const tone = state.phase === "success" ? "bg-success/10 text-success" : state.phase === "error" ? "bg-destructive/10 text-destructive" : "bg-info/10 text-info";
+  return <div role="status" aria-live="polite" className={`space-y-2 rounded-xl p-3 text-sm ${tone}`}>
+    <p className="font-semibold">{title}</p>
+    {state.phase === "error" && <p>{state.error ?? "Không gửi được cọc. Kiểm tra ví rồi thử lại."}</p>}
+    {unresolved && <p>Giao dịch có thể đã hoàn tất. Bấm kiểm tra để đọc lại kết quả; bước này không yêu cầu ký mới.</p>}
+    {state.hash && <a href={explorerTxUrl + state.hash} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 font-semibold underline underline-offset-4">Xem giao dịch trên Snowtrace<ExternalLink className="size-4 shrink-0" aria-hidden="true" /><span className="sr-only"> (mở thẻ mới)</span></a>}
+  </div>;
 }

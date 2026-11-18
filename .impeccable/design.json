@@ -1,146 +1,646 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-15T00:00:00+07:00",
+  "generatedAt": "2026-11-17T17:31:58.000Z",
   "title": "Design System: Két Cọc Trọ",
   "extensions": {
     "colorMeta": {
-      "vault-navy": { "role": "primary", "displayName": "Vault Navy", "canonical": "#0b2545", "tonalRamp": ["#06152a", "#0b2545", "#1d3a63", "#355684", "#5675a3", "#87a0c4", "#bccbe0", "#e8eef6"] },
-      "navy-mist": { "role": "primary", "displayName": "Navy Mist", "canonical": "#e8eef6" },
-      "safe-emerald": { "role": "secondary", "displayName": "Safe Emerald", "canonical": "#10b981", "tonalRamp": ["#022c22", "#064e3b", "#065f46", "#047857", "#10b981", "#6ee7b7", "#a7f3d0", "#e7f8f1"] },
-      "emerald-wash": { "role": "secondary", "displayName": "Emerald Wash", "canonical": "#e7f8f1" },
-      "emerald-ink": { "role": "secondary", "displayName": "Emerald Ink", "canonical": "#065f46" },
-      "deadline-amber": { "role": "tertiary", "displayName": "Deadline Amber", "canonical": "#f59e0b", "tonalRamp": ["#451a03", "#78350f", "#b45309", "#d97706", "#f59e0b", "#fcd34d", "#fde68a", "#fef3c7"] },
-      "deadline-amber-ink": { "role": "tertiary", "displayName": "Deadline Amber Ink", "canonical": "#451a03" },
-      "pending-blue": { "role": "tertiary", "displayName": "Pending Blue", "canonical": "#3b82f6", "tonalRamp": ["#172554", "#1e3a8a", "#1d4ed8", "#2563eb", "#3b82f6", "#93c5fd", "#bfdbfe", "#eff6ff"] },
-      "dispute-red": { "role": "tertiary", "displayName": "Dispute Red", "canonical": "#dc2626", "tonalRamp": ["#450a0a", "#7f1d1d", "#991b1b", "#b91c1c", "#dc2626", "#fca5a5", "#fecaca", "#fef2f2"] },
-      "ledger-paper": { "role": "neutral", "displayName": "Ledger Paper", "canonical": "#f7f9fc" },
-      "card-white": { "role": "neutral", "displayName": "Card White", "canonical": "#ffffff" },
-      "slate-ink": { "role": "neutral", "displayName": "Slate Ink", "canonical": "#0f172a", "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#64748b", "#94a3b8", "#e2e8f0", "#f8fafc"] },
-      "slate-muted": { "role": "neutral", "displayName": "Slate Muted", "canonical": "#64748b" },
-      "muted-fill": { "role": "neutral", "displayName": "Muted Fill", "canonical": "#eef2f7" },
-      "hairline": { "role": "neutral", "displayName": "Hairline", "canonical": "#e2e8f0" }
+      "background": {
+        "role": "neutral",
+        "displayName": "Trắng",
+        "tonalRamp": [
+          "oklch(15% 0.0000 89.88)",
+          "oklch(27% 0.0000 89.88)",
+          "oklch(39% 0.0000 89.88)",
+          "oklch(51% 0.0000 89.88)",
+          "oklch(63% 0.0000 89.88)",
+          "oklch(75% 0.0000 89.88)",
+          "oklch(87% 0.0000 89.88)",
+          "oklch(95% 0.0000 89.88)"
+        ]
+      },
+      "foreground": {
+        "role": "neutral",
+        "displayName": "Mực đen tím",
+        "tonalRamp": [
+          "oklch(15% 0.0121 297.55)",
+          "oklch(27% 0.0218 297.55)",
+          "oklch(39% 0.0315 297.55)",
+          "oklch(51% 0.0323 297.55)",
+          "oklch(63% 0.0323 297.55)",
+          "oklch(75% 0.0323 297.55)",
+          "oklch(87% 0.0168 297.55)",
+          "oklch(95% 0.0065 297.55)"
+        ]
+      },
+      "card": {
+        "role": "neutral",
+        "displayName": "Trắng (thẻ)",
+        "tonalRamp": [
+          "oklch(15% 0.0000 89.88)",
+          "oklch(27% 0.0000 89.88)",
+          "oklch(39% 0.0000 89.88)",
+          "oklch(51% 0.0000 89.88)",
+          "oklch(63% 0.0000 89.88)",
+          "oklch(75% 0.0000 89.88)",
+          "oklch(87% 0.0000 89.88)",
+          "oklch(95% 0.0000 89.88)"
+        ]
+      },
+      "card-foreground": {
+        "role": "neutral",
+        "displayName": "Mực đen tím",
+        "tonalRamp": [
+          "oklch(15% 0.0121 297.55)",
+          "oklch(27% 0.0218 297.55)",
+          "oklch(39% 0.0315 297.55)",
+          "oklch(51% 0.0323 297.55)",
+          "oklch(63% 0.0323 297.55)",
+          "oklch(75% 0.0323 297.55)",
+          "oklch(87% 0.0168 297.55)",
+          "oklch(95% 0.0065 297.55)"
+        ]
+      },
+      "popover": {
+        "role": "neutral",
+        "displayName": "Trắng (lớp phủ)",
+        "tonalRamp": [
+          "oklch(15% 0.0000 89.88)",
+          "oklch(27% 0.0000 89.88)",
+          "oklch(39% 0.0000 89.88)",
+          "oklch(51% 0.0000 89.88)",
+          "oklch(63% 0.0000 89.88)",
+          "oklch(75% 0.0000 89.88)",
+          "oklch(87% 0.0000 89.88)",
+          "oklch(95% 0.0000 89.88)"
+        ]
+      },
+      "popover-foreground": {
+        "role": "neutral",
+        "displayName": "Mực đen tím",
+        "tonalRamp": [
+          "oklch(15% 0.0121 297.55)",
+          "oklch(27% 0.0218 297.55)",
+          "oklch(39% 0.0315 297.55)",
+          "oklch(51% 0.0323 297.55)",
+          "oklch(63% 0.0323 297.55)",
+          "oklch(75% 0.0323 297.55)",
+          "oklch(87% 0.0168 297.55)",
+          "oklch(95% 0.0065 297.55)"
+        ]
+      },
+      "primary": {
+        "role": "primary",
+        "displayName": "Mực tím than",
+        "tonalRamp": [
+          "oklch(15% 0.0255 295.30)",
+          "oklch(27% 0.0458 295.30)",
+          "oklch(39% 0.0662 295.30)",
+          "oklch(51% 0.0679 295.30)",
+          "oklch(63% 0.0679 295.30)",
+          "oklch(75% 0.0679 295.30)",
+          "oklch(87% 0.0353 295.30)",
+          "oklch(95% 0.0136 295.30)"
+        ]
+      },
+      "primary-foreground": {
+        "role": "primary",
+        "displayName": "Trắng trên tím than",
+        "tonalRamp": [
+          "oklch(15% 0.0000 89.88)",
+          "oklch(27% 0.0000 89.88)",
+          "oklch(39% 0.0000 89.88)",
+          "oklch(51% 0.0000 89.88)",
+          "oklch(63% 0.0000 89.88)",
+          "oklch(75% 0.0000 89.88)",
+          "oklch(87% 0.0000 89.88)",
+          "oklch(95% 0.0000 89.88)"
+        ]
+      },
+      "primary-hover": {
+        "role": "primary",
+        "displayName": "Tím than sâu",
+        "tonalRamp": [
+          "oklch(15% 0.0217 295.28)",
+          "oklch(27% 0.0390 295.28)",
+          "oklch(39% 0.0563 295.28)",
+          "oklch(51% 0.0578 295.28)",
+          "oklch(63% 0.0578 295.28)",
+          "oklch(75% 0.0578 295.28)",
+          "oklch(87% 0.0300 295.28)",
+          "oklch(95% 0.0116 295.28)"
+        ]
+      },
+      "secondary": {
+        "role": "secondary",
+        "displayName": "Tím sương",
+        "tonalRamp": [
+          "oklch(15% 0.0046 301.29)",
+          "oklch(27% 0.0083 301.29)",
+          "oklch(39% 0.0121 301.29)",
+          "oklch(51% 0.0124 301.29)",
+          "oklch(63% 0.0124 301.29)",
+          "oklch(75% 0.0124 301.29)",
+          "oklch(87% 0.0064 301.29)",
+          "oklch(95% 0.0025 301.29)"
+        ]
+      },
+      "secondary-foreground": {
+        "role": "secondary",
+        "displayName": "Mực tím than",
+        "tonalRamp": [
+          "oklch(15% 0.0255 295.30)",
+          "oklch(27% 0.0458 295.30)",
+          "oklch(39% 0.0662 295.30)",
+          "oklch(51% 0.0679 295.30)",
+          "oklch(63% 0.0679 295.30)",
+          "oklch(75% 0.0679 295.30)",
+          "oklch(87% 0.0353 295.30)",
+          "oklch(95% 0.0136 295.30)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Sương nhạt",
+        "tonalRamp": [
+          "oklch(15% 0.0026 304.24)",
+          "oklch(27% 0.0047 304.24)",
+          "oklch(39% 0.0068 304.24)",
+          "oklch(51% 0.0069 304.24)",
+          "oklch(63% 0.0069 304.24)",
+          "oklch(75% 0.0069 304.24)",
+          "oklch(87% 0.0036 304.24)",
+          "oklch(95% 0.0014 304.24)"
+        ]
+      },
+      "muted-foreground": {
+        "role": "neutral",
+        "displayName": "Xám tím",
+        "tonalRamp": [
+          "oklch(15% 0.0121 298.94)",
+          "oklch(27% 0.0217 298.94)",
+          "oklch(39% 0.0314 298.94)",
+          "oklch(51% 0.0322 298.94)",
+          "oklch(63% 0.0322 298.94)",
+          "oklch(75% 0.0322 298.94)",
+          "oklch(87% 0.0168 298.94)",
+          "oklch(95% 0.0064 298.94)"
+        ]
+      },
+      "accent": {
+        "role": "secondary",
+        "displayName": "Tím phấn",
+        "tonalRamp": [
+          "oklch(15% 0.0073 302.20)",
+          "oklch(27% 0.0131 302.20)",
+          "oklch(39% 0.0190 302.20)",
+          "oklch(51% 0.0195 302.20)",
+          "oklch(63% 0.0195 302.20)",
+          "oklch(75% 0.0195 302.20)",
+          "oklch(87% 0.0101 302.20)",
+          "oklch(95% 0.0039 302.20)"
+        ]
+      },
+      "accent-foreground": {
+        "role": "secondary",
+        "displayName": "Mực tím than",
+        "tonalRamp": [
+          "oklch(15% 0.0255 295.30)",
+          "oklch(27% 0.0458 295.30)",
+          "oklch(39% 0.0662 295.30)",
+          "oklch(51% 0.0679 295.30)",
+          "oklch(63% 0.0679 295.30)",
+          "oklch(75% 0.0679 295.30)",
+          "oklch(87% 0.0353 295.30)",
+          "oklch(95% 0.0136 295.30)"
+        ]
+      },
+      "success": {
+        "role": "tertiary",
+        "displayName": "Xanh rêu",
+        "tonalRamp": [
+          "oklch(15% 0.0314 166.34)",
+          "oklch(27% 0.0565 166.34)",
+          "oklch(39% 0.0816 166.34)",
+          "oklch(51% 0.0837 166.34)",
+          "oklch(63% 0.0837 166.34)",
+          "oklch(75% 0.0837 166.34)",
+          "oklch(87% 0.0435 166.34)",
+          "oklch(95% 0.0167 166.34)"
+        ]
+      },
+      "success-foreground": {
+        "role": "tertiary",
+        "displayName": "Trắng trên xanh rêu",
+        "tonalRamp": [
+          "oklch(15% 0.0000 89.88)",
+          "oklch(27% 0.0000 89.88)",
+          "oklch(39% 0.0000 89.88)",
+          "oklch(51% 0.0000 89.88)",
+          "oklch(63% 0.0000 89.88)",
+          "oklch(75% 0.0000 89.88)",
+          "oklch(87% 0.0000 89.88)",
+          "oklch(95% 0.0000 89.88)"
+        ]
+      },
+      "warning": {
+        "role": "tertiary",
+        "displayName": "Hổ phách",
+        "tonalRamp": [
+          "oklch(15% 0.0453 80.83)",
+          "oklch(27% 0.0816 80.83)",
+          "oklch(39% 0.1179 80.83)",
+          "oklch(51% 0.1209 80.83)",
+          "oklch(63% 0.1209 80.83)",
+          "oklch(75% 0.1209 80.83)",
+          "oklch(87% 0.0629 80.83)",
+          "oklch(95% 0.0242 80.83)"
+        ]
+      },
+      "warning-foreground": {
+        "role": "tertiary",
+        "displayName": "Nâu hổ phách",
+        "tonalRamp": [
+          "oklch(15% 0.0304 72.11)",
+          "oklch(27% 0.0548 72.11)",
+          "oklch(39% 0.0791 72.11)",
+          "oklch(51% 0.0812 72.11)",
+          "oklch(63% 0.0812 72.11)",
+          "oklch(75% 0.0812 72.11)",
+          "oklch(87% 0.0422 72.11)",
+          "oklch(95% 0.0162 72.11)"
+        ]
+      },
+      "info": {
+        "role": "tertiary",
+        "displayName": "Xanh tín hiệu",
+        "tonalRamp": [
+          "oklch(15% 0.0503 256.68)",
+          "oklch(27% 0.0906 256.68)",
+          "oklch(39% 0.1309 256.68)",
+          "oklch(51% 0.1342 256.68)",
+          "oklch(63% 0.1342 256.68)",
+          "oklch(75% 0.1342 256.68)",
+          "oklch(87% 0.0698 256.68)",
+          "oklch(95% 0.0268 256.68)"
+        ]
+      },
+      "info-foreground": {
+        "role": "tertiary",
+        "displayName": "Trắng trên xanh tín hiệu",
+        "tonalRamp": [
+          "oklch(15% 0.0000 89.88)",
+          "oklch(27% 0.0000 89.88)",
+          "oklch(39% 0.0000 89.88)",
+          "oklch(51% 0.0000 89.88)",
+          "oklch(63% 0.0000 89.88)",
+          "oklch(75% 0.0000 89.88)",
+          "oklch(87% 0.0000 89.88)",
+          "oklch(95% 0.0000 89.88)"
+        ]
+      },
+      "destructive": {
+        "role": "tertiary",
+        "displayName": "Đỏ son",
+        "tonalRamp": [
+          "oklch(15% 0.0672 20.27)",
+          "oklch(27% 0.1209 20.27)",
+          "oklch(39% 0.1746 20.27)",
+          "oklch(51% 0.1791 20.27)",
+          "oklch(63% 0.1791 20.27)",
+          "oklch(75% 0.1791 20.27)",
+          "oklch(87% 0.0931 20.27)",
+          "oklch(95% 0.0358 20.27)"
+        ]
+      },
+      "destructive-foreground": {
+        "role": "tertiary",
+        "displayName": "Trắng trên đỏ son",
+        "tonalRamp": [
+          "oklch(15% 0.0000 89.88)",
+          "oklch(27% 0.0000 89.88)",
+          "oklch(39% 0.0000 89.88)",
+          "oklch(51% 0.0000 89.88)",
+          "oklch(63% 0.0000 89.88)",
+          "oklch(75% 0.0000 89.88)",
+          "oklch(87% 0.0000 89.88)",
+          "oklch(95% 0.0000 89.88)"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Viền nhạt",
+        "tonalRamp": [
+          "oklch(15% 0.0079 301.12)",
+          "oklch(27% 0.0142 301.12)",
+          "oklch(39% 0.0205 301.12)",
+          "oklch(51% 0.0210 301.12)",
+          "oklch(63% 0.0210 301.12)",
+          "oklch(75% 0.0210 301.12)",
+          "oklch(87% 0.0109 301.12)",
+          "oklch(95% 0.0042 301.12)"
+        ]
+      },
+      "input": {
+        "role": "neutral",
+        "displayName": "Viền điều khiển",
+        "tonalRamp": [
+          "oklch(15% 0.0108 307.94)",
+          "oklch(27% 0.0194 307.94)",
+          "oklch(39% 0.0280 307.94)",
+          "oklch(51% 0.0287 307.94)",
+          "oklch(63% 0.0287 307.94)",
+          "oklch(75% 0.0287 307.94)",
+          "oklch(87% 0.0149 307.94)",
+          "oklch(95% 0.0057 307.94)"
+        ]
+      },
+      "ring": {
+        "role": "primary",
+        "displayName": "Tím viền focus",
+        "tonalRamp": [
+          "oklch(15% 0.0394 300.13)",
+          "oklch(27% 0.0709 300.13)",
+          "oklch(39% 0.1024 300.13)",
+          "oklch(51% 0.1050 300.13)",
+          "oklch(63% 0.1050 300.13)",
+          "oklch(75% 0.1050 300.13)",
+          "oklch(87% 0.0546 300.13)",
+          "oklch(95% 0.0210 300.13)"
+        ]
+      }
     },
     "typographyMeta": {
-      "display": { "displayName": "Display", "purpose": "Đồng hồ đếm ngược hạn chót, con số lớn nhất trên màn." },
-      "headline": { "displayName": "Headline", "purpose": "Tên phòng / tiêu đề màn, màu navy." },
-      "title": { "displayName": "Title", "purpose": "Tiêu đề từng khối." },
-      "body": { "displayName": "Body", "purpose": "Nội dung và chữ nút chính." },
-      "body-sm": { "displayName": "Body small", "purpose": "Nhãn dòng, chú thích, thông báo giao dịch." },
-      "label": { "displayName": "Label", "purpose": "Nhãn bước tiến trình, nhãn trạng thái." },
-      "mono": { "displayName": "Mono", "purpose": "Địa chỉ ví, hash, link Snowtrace." }
+      "display": {
+        "displayName": "display",
+        "purpose": "Số tiền chính, 30px/800, tabular-nums."
+      },
+      "headline-lg": {
+        "displayName": "headline-lg",
+        "purpose": "Tên phòng/tiêu đề hợp đồng, báo cáo, phân xử từ 640px."
+      },
+      "headline": {
+        "displayName": "headline",
+        "purpose": "h1 của mọi màn, 24px."
+      },
+      "title-lg": {
+        "displayName": "title-lg",
+        "purpose": "Tiêu đề bảng \"Việc cần làm\" và màn lỗi/trống, 20px."
+      },
+      "title": {
+        "displayName": "title",
+        "purpose": "h2 nhóm, 18px/700."
+      },
+      "body": {
+        "displayName": "body",
+        "purpose": "Nội dung, ô nhập, nút (600)."
+      },
+      "body-sm": {
+        "displayName": "body-sm",
+        "purpose": "Chú thích, giờ hạn, TxStatus, nhãn ảnh."
+      },
+      "label": {
+        "displayName": "label",
+        "purpose": "Badge trạng thái, bước giao dịch, chú thích minh họa."
+      },
+      "mono": {
+        "displayName": "mono",
+        "purpose": "Địa chỉ ví, hash, mã giao dịch."
+      }
     },
     "shadows": [
-      { "name": "chip", "value": "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)", "purpose": "Chip ví và thẻ chọn vai ở onboarding. Không dùng cho thẻ biên bản." },
-      { "name": "logo", "value": "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)", "purpose": "Chỉ logo ở onboarding." }
+      {
+        "name": "flat",
+        "value": "none",
+        "purpose": "Không bề mặt nào đổ bóng; tách lớp bằng nền phụ, viền và ring."
+      },
+      {
+        "name": "ring-hairline",
+        "value": "0 0 0 1px rgb(36 31 48 / 0.1)",
+        "purpose": "Ring 1px foreground/10 quanh bảng tiền và dialog (ring, không phải bóng)."
+      },
+      {
+        "name": "overlay-scrim",
+        "value": "rgb(0 0 0 / 0.1)",
+        "purpose": "Lớp phủ dialog/drawer."
+      }
     ],
     "motion": [
-      { "name": "state-transition", "value": "150ms cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Mặc định Tailwind cho hover/focus của nút và chip." },
-      { "name": "press", "value": "translateY(1px)", "purpose": "Nút khi nhấn; thẻ chọn vai thu nhỏ còn 0.98." },
-      { "name": "border-beam", "value": "8s linear infinite", "purpose": "Chỉ cho onboarding." }
+      {
+        "name": "state-color",
+        "value": "150ms",
+        "purpose": "transition-colors của nút, ô nhập, badge, wallet chip, link."
+      },
+      {
+        "name": "dialog",
+        "value": "100ms fade + zoom 95%",
+        "purpose": "Mở/đóng dialog."
+      },
+      {
+        "name": "spinner",
+        "value": "animate-spin",
+        "purpose": "Chỉ khi có tác vụ thật, luôn kèm chữ; reduced-motion dừng qua quy tắc toàn cục (một phần có thêm motion-reduce:animate-none)."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "0.01ms, 1 iteration",
+        "purpose": "Quy tắc toàn cục prefers-reduced-motion: tắt animation, transition và cuộn mượt."
+      }
     ],
     "breakpoints": [
-      { "name": "column", "value": "448px", "purpose": "Cột nội dung tối đa; app không đổi bố cục theo breakpoint." },
-      { "name": "md", "value": "768px", "purpose": "Ô nhập giảm từ 16px xuống 14px." }
-    ]
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      },
+      {
+        "name": "photo-pair",
+        "value": "480px"
+      },
+      {
+        "name": "short-viewport",
+        "value": "max-height: 520px"
+      }
+    ],
+    "layout": {
+      "pageShell": {
+        "wide": "75rem",
+        "read": "48rem",
+        "form": "40rem",
+        "gutter": "16px / 24px ≥640px / 32px ≥1024px"
+      },
+      "pageColumns": "minmax(0,1fr) 20rem, gap 2rem ≥1024px",
+      "actionArea": "fixed bottom bar <1024px, max-height min(45dvh, 100dvh - 1rem), content max 40rem; static when keyboard open or max-height 520px; in-flow max 40rem ≥1024px"
+    }
   },
   "components": [
     {
       "name": "Primary Button",
       "kind": "button",
-      "refersTo": "button-primary",
-      "description": "Hành động chính của màn, 56px, full width trong thanh đáy.",
-      "html": "<button class=\"ds-btn-primary\">Gửi cọc</button>",
-      "css": ".ds-btn-primary { display:inline-flex; align-items:center; justify-content:center; width:100%; height:56px; padding:0 10px; background:var(--primary,#0b2545); color:#fff; border:1px solid transparent; border-radius:14px; font-family:'Be Vietnam Pro',system-ui,sans-serif; font-size:16px; font-weight:500; cursor:pointer; transition:all .15s cubic-bezier(.4,0,.2,1); } .ds-btn-primary:hover { background:color-mix(in srgb,#0b2545 80%,transparent); } .ds-btn-primary:focus-visible { outline:none; border-color:#10b981; box-shadow:0 0 0 3px rgb(16 185 129 / .5); } .ds-btn-primary:active { transform:translateY(1px); }"
+      "refersTo": "button-default",
+      "description": "Nút mặc định 48px; trong ActionArea lên 56px.",
+      "html": "<button class=\"ds-btn\">Gửi cọc</button>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;max-width:100%;border:1px solid transparent;border-radius:14px;font-family:'Be Vietnam Pro',system-ui,sans-serif;font-size:16px;line-height:1.5;font-weight:600;text-align:center;white-space:normal;cursor:pointer;transition:background-color 150ms,color 150ms,border-color 150ms;min-height:48px;padding:8px 16px;background:var(--primary,#30254b);color:var(--primary-foreground,#fff);}.ds-btn:hover:not(:disabled){background:var(--primary-hover,#241b3a);}.ds-btn:focus-visible{outline:2px solid var(--ring,#6e5597);outline-offset:3px;}.ds-btn:disabled{opacity:.5;pointer-events:none}@media(prefers-reduced-motion:reduce){.ds-btn{transition-duration:.01ms}}"
+    },
+    {
+      "name": "Action Area Button",
+      "kind": "button",
+      "refersTo": "button-action-area",
+      "description": "Nút chính trong vùng hành động, tối thiểu 56px, full width trên mobile.",
+      "html": "<button class=\"ds-btn-lg\">Ký phiếu cho người thuê</button>",
+      "css": ".ds-btn-lg{display:inline-flex;align-items:center;justify-content:center;gap:8px;max-width:100%;border:1px solid transparent;border-radius:14px;font-family:'Be Vietnam Pro',system-ui,sans-serif;font-size:16px;line-height:1.5;font-weight:600;text-align:center;white-space:normal;cursor:pointer;transition:background-color 150ms,color 150ms,border-color 150ms;width:100%;min-height:56px;padding:12px 24px;background:var(--primary,#30254b);color:var(--primary-foreground,#fff);}.ds-btn-lg:hover:not(:disabled){background:var(--primary-hover,#241b3a);}.ds-btn-lg:focus-visible{outline:2px solid var(--ring,#6e5597);outline-offset:3px;}.ds-btn-lg:disabled{opacity:.5;pointer-events:none}@media(prefers-reduced-motion:reduce){.ds-btn-lg{transition-duration:.01ms}}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Nút phụ nền tím sương, hover tím phấn.",
+      "html": "<button class=\"ds-btn-sec\">Xem hợp đồng</button>",
+      "css": ".ds-btn-sec{display:inline-flex;align-items:center;justify-content:center;gap:8px;max-width:100%;border:1px solid transparent;border-radius:14px;font-family:'Be Vietnam Pro',system-ui,sans-serif;font-size:16px;line-height:1.5;font-weight:600;text-align:center;white-space:normal;cursor:pointer;transition:background-color 150ms,color 150ms,border-color 150ms;min-height:48px;padding:8px 16px;background:var(--secondary,#f2eff8);color:var(--secondary-foreground,#30254b);}.ds-btn-sec:hover:not(:disabled){background:var(--accent,#ebe6f4);}.ds-btn-sec:focus-visible{outline:2px solid var(--ring,#6e5597);outline-offset:3px;}.ds-btn-sec:disabled{opacity:.5;pointer-events:none}@media(prefers-reduced-motion:reduce){.ds-btn-sec{transition-duration:.01ms}}"
     },
     {
       "name": "Outline Button",
       "kind": "button",
       "refersTo": "button-outline",
-      "description": "Nút Quay lại trong wizard, cạnh nút chính.",
-      "html": "<button class=\"ds-btn-outline\">Quay lại</button>",
-      "css": ".ds-btn-outline { display:inline-flex; align-items:center; justify-content:center; height:56px; padding:0 24px; background:#f7f9fc; color:#0f172a; border:1px solid #e2e8f0; border-radius:14px; font-family:'Be Vietnam Pro',system-ui,sans-serif; font-size:16px; font-weight:500; cursor:pointer; transition:all .15s; } .ds-btn-outline:hover { background:#eef2f7; } .ds-btn-outline:focus-visible { outline:none; border-color:#10b981; box-shadow:0 0 0 3px rgb(16 185 129 / .5); } .ds-btn-outline:active { transform:translateY(1px); }"
+      "description": "Viền điều khiển, nền trắng; 48px cả trong ActionArea.",
+      "html": "<button class=\"ds-btn-out\">Quay lại</button>",
+      "css": ".ds-btn-out{display:inline-flex;align-items:center;justify-content:center;gap:8px;max-width:100%;border:1px solid transparent;border-radius:14px;font-family:'Be Vietnam Pro',system-ui,sans-serif;font-size:16px;line-height:1.5;font-weight:600;text-align:center;white-space:normal;cursor:pointer;transition:background-color 150ms,color 150ms,border-color 150ms;min-height:48px;padding:8px 16px;border-color:var(--input,#898092);background:var(--background,#fff);color:var(--foreground,#241f30);}.ds-btn-out:hover:not(:disabled){background:var(--accent,#ebe6f4);color:var(--accent-foreground,#30254b);}.ds-btn-out:focus-visible{outline:2px solid var(--ring,#6e5597);outline-offset:3px;}.ds-btn-out:disabled{opacity:.5;pointer-events:none}@media(prefers-reduced-motion:reduce){.ds-btn-out{transition-duration:.01ms}}"
     },
     {
       "name": "Destructive Button",
       "kind": "button",
       "refersTo": "button-destructive",
-      "description": "Kháng nghị, báo sai mô tả. Nền đỏ 10%, không bao giờ đỏ đặc.",
-      "html": "<button class=\"ds-btn-destructive\">Kháng nghị</button>",
-      "css": ".ds-btn-destructive { display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 16px; background:rgb(220 38 38 / .1); color:#dc2626; border:1px solid transparent; border-radius:14px; font-family:'Be Vietnam Pro',system-ui,sans-serif; font-size:16px; font-weight:500; cursor:pointer; transition:all .15s; } .ds-btn-destructive:hover { background:rgb(220 38 38 / .2); } .ds-btn-destructive:focus-visible { outline:none; border-color:rgb(220 38 38 / .4); box-shadow:0 0 0 3px rgb(220 38 38 / .2); }"
-    },
-    {
-      "name": "Ledger Card",
-      "kind": "card",
-      "refersTo": "card-ledger",
-      "description": "Thẻ biên bản: nhãn trái, giá trị phải, VND đậm và token nhỏ bên dưới.",
-      "html": "<dl class=\"ds-ledger\"><div class=\"ds-ledger-row\"><dt>Tiền cọc</dt><dd><strong>3.000.000 ₫</strong><small>120 USDC</small></dd></div><div class=\"ds-ledger-row\"><dt>Dọn vào</dt><dd>01/12/2026</dd></div></dl>",
-      "css": ".ds-ledger { margin:0; background:#fff; border-radius:25.2px; box-shadow:0 0 0 1px rgb(15 23 42 / .1); font-family:'Be Vietnam Pro',system-ui,sans-serif; color:#0f172a; } .ds-ledger-row { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; padding:12px 16px; } .ds-ledger-row + .ds-ledger-row { border-top:1px solid #e2e8f0; } .ds-ledger dt { color:#64748b; font-size:16px; } .ds-ledger dd { margin:0; text-align:right; font-variant-numeric:tabular-nums; } .ds-ledger strong { display:block; font-weight:700; } .ds-ledger small { display:block; font-size:12px; color:#64748b; }"
+      "description": "Kháng nghị/báo lỗi: nền đỏ 10%, chữ đỏ, hover 20%.",
+      "html": "<button class=\"ds-btn-del\">Kháng nghị</button>",
+      "css": ".ds-btn-del{display:inline-flex;align-items:center;justify-content:center;gap:8px;max-width:100%;border:1px solid transparent;border-radius:14px;font-family:'Be Vietnam Pro',system-ui,sans-serif;font-size:16px;line-height:1.5;font-weight:600;text-align:center;white-space:normal;cursor:pointer;transition:background-color 150ms,color 150ms,border-color 150ms;min-height:48px;padding:8px 16px;background:rgb(180 35 54 / .1);color:var(--destructive,#b42336);}.ds-btn-del:hover:not(:disabled){background:rgb(180 35 54 / .2);}.ds-btn-del:focus-visible{outline:2px solid var(--ring,#6e5597);outline-offset:3px;}.ds-btn-del:disabled{opacity:.5;pointer-events:none}@media(prefers-reduced-motion:reduce){.ds-btn-del{transition-duration:.01ms}}"
     },
     {
       "name": "Input",
       "kind": "input",
       "refersTo": "input",
-      "description": "Ô nhập viền mảnh, focus emerald.",
-      "html": "<input class=\"ds-input\" placeholder=\"Tiền cọc (VND)\">",
-      "css": ".ds-input { width:100%; height:48px; padding:4px 10px; background:transparent; color:#0f172a; border:1px solid #e2e8f0; border-radius:14px; font-family:'Be Vietnam Pro',system-ui,sans-serif; font-size:16px; outline:none; transition:color .15s, border-color .15s, box-shadow .15s; } .ds-input::placeholder { color:#64748b; } .ds-input:focus-visible { border-color:#10b981; box-shadow:0 0 0 3px rgb(16 185 129 / .5); }"
+      "description": "Label luôn hiện; 48px, chữ 16px, viền điều khiển.",
+      "html": "<label class=\"ds-field\">Tiền cọc (VND)<input class=\"ds-input\" inputmode=\"numeric\" placeholder=\"6.000.000\"></label>",
+      "css": ".ds-field{display:grid;gap:8px;font-family:'Be Vietnam Pro',system-ui,sans-serif;font-size:14px;font-weight:600;color:var(--foreground,#241f30)}.ds-input{min-width:0;width:100%;min-height:48px;padding:8px 12px;border:1px solid var(--input,#898092);border-radius:14px;background:var(--background,#fff);color:var(--foreground,#241f30);font-family:'Be Vietnam Pro',system-ui,sans-serif;font-size:16px;font-weight:400;caret-color:var(--primary,#30254b);transition:border-color 150ms}.ds-input::placeholder{color:var(--muted-foreground,#655f73)}.ds-input:focus-visible{border-color:var(--ring,#6e5597);outline:2px solid var(--ring,#6e5597);outline-offset:3px;}.ds-input[aria-invalid=true]{border-color:var(--destructive,#b42336);box-shadow:0 0 0 3px rgb(180 35 54 / .2)}.ds-input:disabled{background:var(--muted,#f5f3f8);opacity:.5}"
     },
     {
       "name": "Status Badge",
       "kind": "chip",
       "refersTo": "status-badge",
-      "description": "Nhãn trạng thái hợp đồng theo bảng tone.",
-      "html": "<span class=\"ds-badge ds-badge-success\">Đã chia tiền</span> <span class=\"ds-badge ds-badge-warning\">Chờ người thuê</span> <span class=\"ds-badge ds-badge-danger\">Đang phân xử</span>",
-      "css": ".ds-badge { display:inline-flex; align-items:center; height:20px; padding:2px 8px; border:1px solid transparent; border-radius:9999px; font-family:'Be Vietnam Pro',system-ui,sans-serif; font-size:12px; font-weight:600; white-space:nowrap; } .ds-badge-success { background:rgb(16 185 129 / .1); color:#047857; border-color:rgb(16 185 129 / .25); } .ds-badge-warning { background:rgb(245 158 11 / .15); color:#451a03; border-color:rgb(245 158 11 / .3); } .ds-badge-danger { background:rgb(220 38 38 / .1); color:#dc2626; border-color:rgb(220 38 38 / .2); }"
+      "description": "Nhãn tiếng Việt theo DEAL_STATUS/TONE_CLASS; tint + chữ cùng tone, xuống dòng khi dài.",
+      "html": "<span class=\"ds-badge ds-b-success\">Đã chia tiền</span> <span class=\"ds-badge ds-b-warning\">Chờ người thuê</span> <span class=\"ds-badge ds-b-danger\">Đang phân xử</span> <span class=\"ds-badge ds-b-info\">Đang trống</span> <span class=\"ds-badge ds-b-primary\">Đang ở</span>",
+      "css": ".ds-badge{display:inline-flex;align-items:center;min-height:24px;max-width:100%;padding:4px 10px;border:1px solid transparent;border-radius:9999px;font-family:'Be Vietnam Pro',system-ui,sans-serif;font-size:12px;font-weight:600;line-height:1.5;white-space:normal}.ds-b-success{background:rgb(22 99 74 / .1);color:#16634a;border-color:rgb(22 99 74 / .25)}.ds-b-warning{background:rgb(244 195 106 / .15);color:#65420c;border-color:rgb(244 195 106 / .3)}.ds-b-danger{background:rgb(180 35 54 / .1);color:#b42336;border-color:rgb(180 35 54 / .2)}.ds-b-info{background:rgb(36 93 168 / .1);color:#245da8;border-color:rgb(36 93 168 / .2)}.ds-b-primary{background:rgb(48 37 75 / .1);color:#30254b;border-color:rgb(48 37 75 / .2)}"
     },
     {
-      "name": "Transaction Status",
-      "kind": "custom",
-      "description": "Ba trạng thái giao dịch: chờ, xong (kèm hash), lỗi.",
-      "html": "<div class=\"ds-tx ds-tx-success\" role=\"status\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21.801 10A10 10 0 1 1 17 3.335\"/><path d=\"m9 11 3 3L22 4\"/></svg><div><p class=\"ds-tx-title\">Đã khóa tiền cọc</p><a class=\"ds-tx-hash\" href=\"#\">0x8f3a1c…9e21b4 ↗</a></div></div>",
-      "css": ".ds-tx { display:flex; align-items:flex-start; gap:12px; padding:12px; border-radius:19.6px; font-family:'Be Vietnam Pro',system-ui,sans-serif; font-size:14px; } .ds-tx svg { flex-shrink:0; margin-top:2px; } .ds-tx-success { background:rgb(16 185 129 / .1); color:#10b981; } .ds-tx-title { margin:0 0 2px; font-weight:600; } .ds-tx-hash { font-family:'JetBrains Mono',ui-monospace,monospace; font-size:12px; color:inherit; text-decoration:underline; text-underline-offset:2px; } .ds-tx-hash:hover { opacity:.8; } .ds-tx-hash:focus-visible { outline:2px solid #10b981; outline-offset:2px; }"
+      "name": "Page Header",
+      "kind": "nav",
+      "refersTo": "back-link",
+      "description": "Nút quay lại tròn 44px có tên truy cập + tiêu đề ngắn; app không có thanh nav chung.",
+      "html": "<header class=\"ds-ph\"><a class=\"ds-back\" href=\"#\" aria-label=\"Về hợp đồng\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m12 19-7-7 7-7\"/><path d=\"M19 12H5\"/></svg></a><p class=\"ds-ph-title\">Phòng 302, Hẻm 18</p></header>",
+      "css": ".ds-ph{display:flex;align-items:flex-start;gap:8px;padding:12px 0 8px;font-family:'Be Vietnam Pro',system-ui,sans-serif;}.ds-back{display:grid;place-items:center;width:44px;height:44px;margin-left:-8px;border-radius:9999px;color:var(--primary,#30254b);transition:background-color 150ms}.ds-back:hover{background:var(--secondary,#f2eff8)}.ds-back:focus-visible{outline:2px solid var(--ring,#6e5597);outline-offset:3px;}.ds-ph-title{margin:0;padding:10px 0;font-weight:600;color:var(--primary,#30254b);overflow-wrap:anywhere}"
     },
     {
       "name": "Wallet Chip",
       "kind": "chip",
       "refersTo": "wallet-chip",
-      "description": "Địa chỉ ví rút gọn, mono, ở vị trí phụ.",
-      "html": "<button class=\"ds-wallet\">0x12ab…cd34</button>",
-      "css": ".ds-wallet { display:inline-flex; align-items:center; gap:8px; padding:6px 12px; background:#fff; color:#0f172a; border:1px solid #e2e8f0; border-radius:9999px; box-shadow:0 1px 3px 0 rgb(0 0 0 / .1), 0 1px 2px -1px rgb(0 0 0 / .1); font-family:'JetBrains Mono',ui-monospace,monospace; font-size:14px; cursor:pointer; transition:background .15s; } .ds-wallet:hover { background:#e7f8f1; } .ds-wallet:focus-visible { outline:none; box-shadow:0 0 0 3px rgb(16 185 129 / .5); }"
+      "description": "Phẳng, 44px, mono; bấm để sao chép địa chỉ (địa chỉ giả).",
+      "html": "<button class=\"ds-wallet\" aria-label=\"Sao chép địa chỉ ví 0x12ab…cd34\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#655f73\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1\"/><path d=\"M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4\"/></svg>0x12ab…cd34</button>",
+      "css": ".ds-wallet{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:6px 12px;border:1px solid var(--border,#ded9e8);border-radius:9999px;background:var(--card,#fff);color:var(--foreground,#241f30);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:14px;cursor:pointer;transition:background-color 150ms}.ds-wallet:hover{background:var(--accent,#ebe6f4)}.ds-wallet:focus-visible{outline:2px solid var(--ring,#6e5597);outline-offset:3px;}"
+    },
+    {
+      "name": "Ledger Rows",
+      "kind": "card",
+      "refersTo": "card-ledger",
+      "description": "Bảng tiền dl: nhãn trái, giá trị phải tabular-nums; số liệu giả.",
+      "html": "<dl class=\"ds-ledger\"><div><dt>Tiền cọc</dt><dd>6.000.000 ₫<span>240 mUSDC</span></dd></div><div><dt>Phí giữ chỗ (trong cọc)</dt><dd>500.000 ₫</dd></div><div><dt>Người thuê dự kiến nhận lại</dt><dd>5.500.000 ₫</dd></div></dl>",
+      "css": ".ds-ledger{margin:0;border-radius:25.2px;background:var(--card,#fff);box-shadow:0 0 0 1px rgb(36 31 48 / .1);font-family:'Be Vietnam Pro',system-ui,sans-serif;font-size:16px;line-height:1.6;color:var(--foreground,#241f30)}.ds-ledger>div{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px;padding:12px 20px}.ds-ledger>div+div{border-top:1px solid var(--border,#ded9e8)}.ds-ledger dt{color:var(--muted-foreground,#655f73)}.ds-ledger dd{margin:0 0 0 auto;text-align:right;font-variant-numeric:tabular-nums}.ds-ledger dd span{display:block;font-size:12px;color:var(--muted-foreground,#655f73)}"
+    },
+    {
+      "name": "Status Panel",
+      "kind": "card",
+      "refersTo": "status-panel",
+      "description": "Việc cần làm + đếm ngược + giờ hạn + hệ quả; quá hạn chuyển nền đỏ 5% (dữ liệu giả).",
+      "html": "<section class=\"ds-status\"><h2>Chụp ảnh nhận phòng</h2><p>Chụp đủ các vị trí để khóa hiện trạng phòng.</p><div class=\"ds-due\"><p>Còn lại</p><p class=\"ds-count\">1 ngày 4 giờ</p><p>Hạn: 20/11/2026 18:00 (giờ Việt Nam)</p></div></section>",
+      "css": ".ds-status{display:grid;gap:12px;padding:20px;border-radius:25.2px;background:var(--secondary,#f2eff8);font-family:'Be Vietnam Pro',system-ui,sans-serif;color:var(--foreground,#241f30);overflow-wrap:anywhere}.ds-status h2{margin:0;font-size:20px;line-height:1.375;font-weight:800;color:var(--primary,#30254b)}.ds-status p{margin:0}.ds-due{display:grid;gap:4px;padding-top:12px;border-top:1px solid var(--border,#ded9e8);font-size:14px}.ds-count{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--primary,#30254b)}"
+    },
+    {
+      "name": "Evidence Photo",
+      "kind": "custom",
+      "refersTo": "evidence-frame",
+      "description": "figure có nhãn nguồn, khung 4:3 contain nền muted, link ảnh gốc ≥44px.",
+      "html": "<figure class=\"ds-ev\"><figcaption>Lúc nhận phòng</figcaption><div class=\"ds-ev-frame\">Chưa có ảnh</div><a href=\"#\" class=\"ds-ev-link\">Xem ảnh gốc</a></figure>",
+      "css": ".ds-ev{margin:0;display:grid;gap:8px;min-width:0;font-family:'Be Vietnam Pro',system-ui,sans-serif;}.ds-ev figcaption{font-size:14px;font-weight:600;color:var(--foreground,#241f30)}.ds-ev-frame{aspect-ratio:4/3;display:grid;place-items:center;border:1px solid var(--border,#ded9e8);border-radius:19.6px;background:var(--muted,#f5f3f8);color:var(--muted-foreground,#655f73);font-size:14px;overflow:hidden}.ds-ev-frame img{width:100%;height:100%;object-fit:contain}.ds-ev-link{display:inline-flex;align-items:center;min-height:44px;font-size:14px;font-weight:600;color:var(--primary,#30254b);text-decoration:underline;text-underline-offset:4px}.ds-ev-link:focus-visible{outline:2px solid var(--ring,#6e5597);outline-offset:3px;}"
+    },
+    {
+      "name": "Tx Status",
+      "kind": "custom",
+      "refersTo": "tx-status",
+      "description": "Ba pha chờ/xong/lỗi bằng tint + chữ; hash và Snowtrace hiện khi có (mã giả).",
+      "html": "<div class=\"ds-tx ds-tx-info\" role=\"status\"><p class=\"ds-tx-step\">Bước 2/2</p><p class=\"ds-tx-title\">Đã gửi, đang chờ chuỗi xác nhận</p><p class=\"ds-tx-hash\">Mã giao dịch <code>0x8f3a…91c2</code></p></div><div class=\"ds-tx ds-tx-ok\" role=\"status\"><p class=\"ds-tx-title\">Giao dịch thành công</p></div><div class=\"ds-tx ds-tx-err\" role=\"alert\"><p class=\"ds-tx-title\">Hợp đồng chưa đổi gì, thử lại được</p></div>",
+      "css": ".ds-tx{display:grid;gap:4px;margin-bottom:8px;padding:12px;border-radius:19.6px;font-family:'Be Vietnam Pro',system-ui,sans-serif;font-size:14px}.ds-tx p{margin:0}.ds-tx-step{font-size:12px;font-weight:600}.ds-tx-title{font-weight:600}.ds-tx-hash{font-size:12px;color:var(--muted-foreground,#655f73)}.ds-tx-hash code{font-family:'JetBrains Mono',ui-monospace,monospace;color:var(--foreground,#241f30)}.ds-tx-info{background:rgb(36 93 168 / .1);color:#245da8}.ds-tx-ok{background:rgb(22 99 74 / .1);color:#16634a}.ds-tx-err{background:rgb(180 35 54 / .1);color:#b42336}"
     }
   ],
   "narrative": {
-    "northStar": "Két sắt công chứng",
-    "overview": "Chắc như một cái két, minh bạch như một bảng niêm yết công khai. Cửa két màu navy đậm làm nút chính, đầu trang và tiêu đề. Màu emerald chỉ xuất hiện khi tiền đang an toàn hoặc đã về đúng chỗ. Mỗi con số được trình bày như một dòng biên bản: nhãn bên trái, giá trị bên phải, số thẳng cột. Giao diện không nghiêng về bên nào. Nó chỉ cho biết tiền đang nằm đâu, ai phải làm gì và còn bao lâu.\n\nMật độ thấp, một cột, mobile-first. Màn hình được viết cho người đứng trong phòng trọ và bấm bằng một tay. Mỗi màn có một hành động chính, nằm trong thanh đáy dính chân màn và cao 56px. Bề mặt phẳng: tách lớp bằng nền xanh rất nhạt so với thẻ trắng và viền mảnh, không dùng bóng đổ. Chuyển động chỉ để báo trạng thái (đang ký, đang chờ chuỗi). Hiệu ứng lấp lánh chỉ có ở màn chào đầu tiên.\n\nChỉ có giao diện sáng. Thuật ngữ crypto (hash, địa chỉ ví, Snowtrace) hiện bằng font mono, nhỏ, ở vị trí phụ, cho ai muốn kiểm chứng.",
+    "northStar": "Căn phòng qua từng mốc",
+    "overview": "Ảnh thật của cùng căn phòng nối các mốc gửi cọc, nhận phòng, trả phòng và chia tiền. Tên phòng, vị trí chụp và nhãn nguồn ảnh giúp người dùng nhận ra nơi ở của mình. Tiền, việc cần làm, hạn và hệ quả nằm cạnh một vùng hành động duy nhất. Khi chưa có ảnh, khung \"Chưa có ảnh\" cùng tên phòng và việc tiếp theo vẫn tạo thành một màn dùng được.\n\nNền trắng, chữ và nút mực tím than, vùng phụ tím rất nhạt. Be Vietnam Pro mang mọi chữ đọc, nút và số; JetBrains Mono chỉ cho địa chỉ ví và mã giao dịch. Bề mặt phẳng, không đổ bóng; nhóm tách bằng nền phụ, viền 1px hoặc ring mảnh. Chế độ vận hành: mật độ vừa phải, điều hướng bằng nút quay lại và lối \"Hợp đồng của tôi\"; cá tính đến từ ảnh và các mốc có căn cứ. Chuyển động chỉ phản hồi thao tác hoặc trạng thái.",
     "keyCharacteristics": [
-      "Một cột rộng tối đa 448px, lề 20px, các khối cách nhau 28px.",
-      "Nút chính 56px full width, dính đáy, có lớp nền mờ và khoảng an toàn dưới (safe-area).",
-      "Thẻ kiểu biên bản: nền trắng, viền 1px màu `slate-ink` ở 10% độ đậm, bo 25px, các dòng chia bằng vạch mảnh.",
-      "Tiền hiển thị VND to và đậm; số token nhỏ và mờ ngay bên dưới.",
-      "Màu trạng thái lấy từ một bảng tone duy nhất (`web/lib/client/deal-status.ts`)."
+      "Ảnh nhận/trả ghép theo `positionId`, nhãn \"Lúc nhận phòng\" / \"Lúc trả phòng\", ảnh `contain` trong khung 4:3 và link \"Xem ảnh gốc\".",
+      "Ba khung trang: rộng 1200px, đọc 768px, form 640px; từ 1024px nội dung trái, cột tóm tắt/hành động 320px bên phải.",
+      "Dưới 1024px vùng hành động là thanh đáy cố định; từ 1024px nó trở về luồng nội dung.",
+      "Tím than cho hành động và bước hiện tại; xanh, hổ phách, đỏ chỉ báo trạng thái và luôn đi cùng chữ.",
+      "Mốc hoàn tất, tiền đã trả và kết luận chỉ hiện khi có dữ liệu xác nhận; tiền trước payout luôn ghi \"dự kiến\"."
     ],
     "rules": [
-      { "name": "The Earned Emerald Rule", "body": "Emerald chỉ xuất hiện khi tiền thật sự an toàn hoặc một bước thật sự đã xong. Không dùng emerald cho trang trí hay cho nút kêu gọi hành động.", "section": "colors" },
-      { "name": "The Tone Table Rule", "body": "Màu trạng thái của hợp đồng chỉ lấy từ `TONE_CLASS` (nền ở 10–15%, viền ở 20–30%, chữ đậm cùng hue). Không viết mã màu thẳng trong component. Đổi màu thì sửa `app/globals.css`.", "section": "colors" },
-      { "name": "The Ledger Number Rule", "body": "Mọi con số thay đổi theo thời gian hoặc xếp thành cột (tiền, đếm ngược) dùng `tabular-nums`. Số VND đậm (600–800) và đặt trước; số token nhỏ, màu `slate-muted`, nằm dưới.", "section": "typography" },
-      { "name": "The Vietnamese Subset Rule", "body": "Mọi font nạp phải có subset `vietnamese`. Nếu một font không có, không dùng font đó.", "section": "typography" },
-      { "name": "The One Thumb Rule", "body": "Hành động chính của màn luôn nằm trong thanh đáy, trong tầm ngón cái. Không đặt hành động chính ở đầu trang.", "section": "layout" },
-      { "name": "The Flat Ledger Rule", "body": "Thẻ và dòng biên bản không có bóng. Muốn tách lớp thì đổi nền (`card-white` / `muted-fill`) hoặc thêm vạch chia, không thêm bóng.", "section": "elevation" }
+      {
+        "name": "The Tone Table Rule",
+        "body": "Ánh xạ state → nhãn/tone nằm trong `web/lib/client/deal-status.ts` (`DEAL_STATUS`, `TONE_CLASS`). Tint: info/primary/danger/success 10%, warning 15%, muted dùng `muted`; chữ cùng tone (`text-success`, `text-info`…), riêng warning dùng `warning-foreground`. Không đặt foreground trắng trên tint, không suy quyền từ màu.",
+        "section": "colors"
+      },
+      {
+        "name": "The Earned State Rule",
+        "body": "Xanh chỉ đi với kết quả đã xác nhận; tím đánh dấu bước hiện tại; bước chưa tới dùng muted kèm chữ \"Chưa tới\". Không màu nào đứng một mình để diễn đạt trạng thái.",
+        "section": "colors"
+      },
+      {
+        "name": "The Ledger Number Rule",
+        "body": "Tiền và thời gian dùng `tabular-nums`; VND đứng trước, số token (mUSDC) là dòng phụ. Đổi bằng `vndPerToken` qua hàm định dạng sẵn có; UI không đổi cách tính hay kiểu dữ liệu tiền.",
+        "section": "typography"
+      },
+      {
+        "name": "The Vietnamese Subset Rule",
+        "body": "Mọi font đều nạp subset `vietnamese`. Chuỗi kiểm tra: \"Két Cọc Trọ — Đặng Thị Mỹ Duyên — Ảnh nhận phòng — Kháng nghị — 6.000.000 ₫ — 17/11/2026\"; dấu không bị cắt ở đậm 800, trong nút và ở zoom 200%.",
+        "section": "typography"
+      },
+      {
+        "name": "The One Action Area Rule",
+        "body": "Mỗi màn có đúng một `ActionArea`. Dưới 1024px: thanh đáy cố định, nền trắng đặc, viền trên 1px, nội dung tối đa 640px, padding dưới `max(1rem, safe-area)`, cao tối đa `min(45dvh, 100dvh − 1rem)` và cuộn bên trong; spacer chừa đúng chiều cao đo được + 16px. Khi bàn phím mở hoặc màn cao ≤520px, thanh trở về luồng trang. Từ 1024px thanh nằm trong luồng, tối đa 640px. Nút trong vùng này tối thiểu 56px (outline 48px). Không nhân đôi form/ID/live region theo viewport.",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat Evidence Rule",
+        "body": "Không ánh sáng chạy viền, shimmer, confetti hay số nhảy để diễn đạt sự an toàn của tiền. Spinner chỉ quay khi có tác vụ thật và luôn đi kèm chữ.",
+        "section": "elevation"
+      }
     ],
     "dos": [
-      "**Do** đặt hành động chính trong thanh đáy dính chân màn, cao 56px, full width, chữ 16px.",
-      "**Do** hiển thị tiền bằng VND đậm với `tabular-nums`, kèm số token nhỏ màu `slate-muted` bên dưới.",
-      "**Do** lấy màu trạng thái từ `TONE_CLASS` và token trong `app/globals.css`.",
-      "**Do** giữ vùng chạm tối thiểu 44px cho mọi nút icon.",
-      "**Do** dùng font mono cho địa chỉ ví, hash và mã giao dịch, và đặt chúng ở vị trí phụ.",
-      "**Do** cho mọi giao dịch đi qua khối Transaction Status với đủ ba trạng thái."
+      "**Do** dùng token tím than/nền trắng qua class token và chọn đúng khung trang (rộng/đọc/form).",
+      "**Do** đặt tiền, việc cần làm, hạn và hệ quả cạnh một `ActionArea` duy nhất; nút trong đó ≥56px.",
+      "**Do** giữ nhãn nguồn ảnh, vị trí chụp, `contain` và link \"Xem ảnh gốc\".",
+      "**Do** ghi \"dự kiến\" cho mọi số tiền trước khi có event `Paid`; chỉ tô xanh khi đã xác nhận.",
+      "**Do** cho mọi chữ xuống dòng (`min-width: 0`, `overflow-wrap`) thay vì cắt hoặc ẩn tràn."
     ],
     "donts": [
-      "**Don't** dùng ShimmerButton, BorderBeam hay hiệu ứng lấp lánh ngoài màn chào đầu tiên. Không lấp lánh khi đang nói về tiền.",
-      "**Don't** dùng emerald cho trang trí hoặc cho nút kêu gọi hành động. Nút chính là navy.",
-      "**Don't** thêm bóng đổ vào thẻ hay dòng biên bản.",
-      "**Don't** viết mã màu hex thẳng trong component.",
-      "**Don't** thêm giao diện tối (hệ thống chỉ có giao diện sáng).",
-      "**Don't** đặt nền đỏ đặc cho nút. Hành động tiêu cực dùng nền đỏ 10% kèm chữ đỏ."
+      "**Don't** đổ bóng, chạy viền, shimmer, confetti hay số nhảy; bề mặt luôn phẳng.",
+      "**Don't** dùng ảnh mẫu/minh họa thay ảnh phòng hoặc bằng chứng, hay quá hai minh họa.",
+      "**Don't** tô hoàn tất mốc chưa xảy ra hoặc để màu đứng một mình thay chữ trạng thái.",
+      "**Don't** đặt nhãn nhỏ (eyebrow) phía trên tiêu đề; thông tin phụ như vai, số hợp đồng hay \"Đến lượt bạn\" đi sau tiêu đề hoặc trong hàng badge.",
+      "**Don't** ép mọi màn vào cột hẹp hoặc kéo form/đoạn văn rộng theo desktop.",
+      "**Don't** đổi nghiệp vụ, tên API/JSON/enum hay thêm thư viện trong đợt chỉnh giao diện."
     ]
   }
 }
