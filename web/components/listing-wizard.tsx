@@ -252,7 +252,7 @@ export function ListingWizardView({
 
   if (phase.name === "done") return <Done dealId={phase.dealId} hash={transaction.hash} />;
   if (ready && !authenticated) return <PageShell size="read">
-    <PageHeader href="/" backLabel="Về trang chủ" title="Đăng phòng" />
+    <PageHeader href="/home" backLabel="Về trang chủ" title="Đăng phòng" />
     <section className="my-8 max-w-xl space-y-4 rounded-2xl bg-secondary p-6">
       <h1 className="text-2xl font-bold text-primary">Đăng nhập để đăng phòng</h1>
       <p className="text-muted-foreground">Bạn sẽ xác nhận điều khoản và ký đăng phòng bằng tài khoản của mình.</p>
@@ -263,7 +263,7 @@ export function ListingWizardView({
   const props: StepProps = { draft, set, errors, vndPerToken };
   const hasErrors = Object.keys(errors).length > 0;
   return <PageShell>
-    <PageHeader href="/" backLabel="Về trang chủ" title="Đăng phòng" right={<span className="text-sm text-muted-foreground">Bước {stepIdx + 1}/{STEPS.length}</span>} />
+    <PageHeader href="/home" backLabel="Về trang chủ" title="Đăng phòng" right={<span className="text-sm text-muted-foreground">Bước {stepIdx + 1}/{STEPS.length}</span>} />
     <div className="mx-auto mt-4 max-w-[40rem] lg:mx-0 lg:max-w-[62rem]">
       <nav aria-label="Các bước đăng phòng">
         <ol className="grid grid-cols-3 gap-x-3 gap-y-1 sm:grid-cols-6">
@@ -357,7 +357,7 @@ function Done({ dealId, hash }: { dealId: number; hash?: `0x${string}` }) {
       {hash && <TxStatus state={{ phase: "success", hash }} doneText="Giao dịch đăng phòng" />}
       <div className="grid gap-3 sm:grid-cols-2">
         <Button asChild size="lg"><Link href={`/rooms/${dealId}`}>Xem phòng của tôi</Link></Button>
-        <Button asChild size="lg" variant="outline"><Link href="/">Về trang chủ</Link></Button>
+        <Button asChild size="lg" variant="outline"><Link href="/home">Về trang chủ</Link></Button>
       </div>
     </section>
   </PageShell>;

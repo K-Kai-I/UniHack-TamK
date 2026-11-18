@@ -139,7 +139,7 @@ export function JuryListView({
 
   return (
     <PageShell className="pb-16">
-      <PageHeader href="/" backLabel="Về trang chủ" title="Bồi thẩm" />
+      <PageHeader href="/home" backLabel="Về trang chủ" title="Bồi thẩm" />
       <div className="mt-4 mb-8 flex flex-wrap items-end justify-between gap-5">
         <div className="min-w-0 space-y-2">
           <h1 className="text-2xl font-extrabold tracking-tight text-primary">Vụ chờ phiếu của bạn</h1>

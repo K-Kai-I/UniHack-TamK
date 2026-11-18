@@ -62,7 +62,7 @@ export function RoomsListView({
 
   return (
     <PageShell>
-      <PageHeader href="/" backLabel="Về trang chủ" />
+      <PageHeader href="/home" backLabel="Về trang chủ" />
       <div className="mt-4 mb-8 flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0 space-y-2">
           <h1 className="text-2xl font-bold tracking-tight text-primary">Phòng đang trống</h1>

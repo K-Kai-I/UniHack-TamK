@@ -1,6 +1,6 @@
 // Khung hình đầu: dải tiền cọc đi vào, gập ở từng mốc, tách ở cuối theo đúng tỉ lệ tiền.
 import type { CSSProperties } from "react";
-import { LoginButton } from "./auth";
+import { AuthCta } from "./auth";
 import { EXAMPLE, vnd } from "./data";
 import s from "./landing.module.css";
 
@@ -22,13 +22,15 @@ export function Hero() {
           Cọc nằm trong một hợp đồng tự chạy, không nằm trong tay ai. Mỗi khoản trừ có ảnh và giá chốt sẵn. Mỗi bước có hạn chót.
         </p>
         <div id="hero-cta" className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <LoginButton className="min-h-16 px-8 text-lg" />
+          <AuthCta className="min-h-16 px-8 text-lg" />
           <a href="#hanh-trinh" className="inline-flex min-h-12 items-center justify-center rounded-lg px-4 font-semibold text-primary underline-offset-4 hover:underline">
             Xem tiền đi qua từng mốc
           </a>
         </div>
         <p className="text-sm text-muted-foreground">
-          Đăng nhập bằng Google là dùng được, không cần cài thêm gì. <strong className="font-semibold text-foreground">Bản thử nghiệm:</strong> chỉ dùng tiền thử.
+          <span data-when-guest>Đăng nhập bằng Google là dùng được, không cần cài thêm gì.</span>
+          <span data-when-session>Bạn đã đăng nhập. Vào app để xem hợp đồng và việc cần làm.</span>{" "}
+          <strong className="font-semibold text-foreground">Bản thử nghiệm:</strong> chỉ dùng tiền thử.
         </p>
       </div>
 
