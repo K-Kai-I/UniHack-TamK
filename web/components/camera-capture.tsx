@@ -5,9 +5,10 @@
 // mở thẳng app camera của máy. Trên máy tính, `capture` bị bỏ qua và input sẽ mở hộp chọn file (= thư viện ảnh),
 // nên máy tính KHÔNG có đường dự phòng này: chỉ giải thích và hướng dẫn dùng điện thoại có camera.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Camera, Layers, RefreshCw, SwitchCamera } from "lucide-react";
+import { AlertTriangle, Camera, CheckCircle2, Layers, RefreshCw, SwitchCamera } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { SAMPLE_SIZE, checkFrame, frameMessage, toLuma, type FrameCheck } from "@/lib/client/photo-quality";
 
 export interface CapturedPhoto {
   blob: Blob;
@@ -121,6 +122,7 @@ export function CameraCapture({
   const [touch, setTouch] = useState(false); // màn cảm ứng chính: mới có app camera của máy để dự phòng
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
+  const [quality, setQuality] = useState<FrameCheck | null>(null);
   const live = cam.kind === "live";
   const showGhost = !!overlayUrl && ghost && live;
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
@@ -227,6 +229,41 @@ export function CameraCapture({
     };
   }, [retry]);
 
+  // Khung xanh/đỏ: mỗi ~0,5 giây đo một khung hình thu nhỏ (quá tối, quá chói, máy rung). Chỉ để nhắc,
+  // không khóa nút Chụp: phòng có thể tối thật, AI sẽ trả UNCLEAR và còn bước kháng nghị.
+  useEffect(() => {
+    if (!live) {
+      setQuality(null);
+      return;
+    }
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return;
+    let prev: Uint8Array | null = null;
+    let last: FrameCheck | null = null;
+    const id = window.setInterval(() => {
+      const v = videoRef.current;
+      if (!v || !v.videoWidth) return;
+      const scale = SAMPLE_SIZE / Math.max(v.videoWidth, v.videoHeight);
+      const w = Math.max(1, Math.round(v.videoWidth * scale));
+      const h = Math.max(1, Math.round(v.videoHeight * scale));
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+        prev = null;
+      }
+      ctx.drawImage(v, 0, 0, w, h);
+      const luma = toLuma(ctx.getImageData(0, 0, w, h).data);
+      const now = checkFrame(luma, prev);
+      prev = luma;
+      // Chỉ báo lỗi khi 2 lần đo liền nhau cùng thấy, để khung không nhấp nháy.
+      const issues = now.issues.filter((i) => last?.issues.includes(i));
+      last = now;
+      setQuality({ ok: issues.length === 0, issues });
+    }, 500);
+    return () => window.clearInterval(id);
+  }, [live]);
+
   async function snap() {
     const v = videoRef.current;
     if (!v || !v.videoWidth || saving) return;
@@ -301,6 +338,8 @@ export function CameraCapture({
         className={cn(
           "relative mx-auto aspect-[3/4] w-full max-w-[min(100%,calc(70dvh*0.75))] overflow-hidden rounded-2xl",
           problem ? "bg-muted text-foreground ring-1 ring-foreground/10" : "bg-black",
+          live && quality && "ring-4 transition-shadow",
+          live && quality && (quality.ok ? "ring-success" : "ring-destructive"),
         )}
       >
         {/* playsInline + muted: bắt buộc trên iOS Safari để video không bật toàn màn hình */}
@@ -325,6 +364,22 @@ export function CameraCapture({
         {showGhost && (
           <p className="pointer-events-none absolute inset-x-3 top-3 rounded-full bg-black/55 px-3 py-1 text-center text-xs text-white">
             Canh cho khớp ảnh mờ lúc nhận phòng
+          </p>
+        )}
+        {live && quality && (
+          // Kèm biểu tượng và chữ, không chỉ dựa vào màu (người mù màu xanh–đỏ vẫn đọc được).
+          <p
+            className={cn(
+              "pointer-events-none absolute inset-x-3 bottom-3 flex items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-center text-sm font-medium text-white",
+              quality.ok ? "bg-success/90" : "bg-destructive/90",
+            )}
+          >
+            {quality.ok ? (
+              <CheckCircle2 aria-hidden className="size-4 shrink-0" />
+            ) : (
+              <AlertTriangle aria-hidden className="size-4 shrink-0" />
+            )}
+            {frameMessage(quality)}
           </p>
         )}
         {cam.kind === "starting" && (
