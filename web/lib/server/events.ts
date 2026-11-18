@@ -17,7 +17,7 @@ async function cursorKey() {
 }
 
 /** Số đoạn hỏi cùng lúc. RPC công khai chịu được vài yêu cầu song song; tăng nữa dễ bị chặn tốc độ. */
-const PARALLEL = 5;
+const PARALLEL = 3;
 
 /** Giải mã log của contract và lưu vào chain_events. Trả số sự kiện đã đọc. */
 async function saveLogs(conn: Awaited<ReturnType<typeof db>>, logs: Log[]): Promise<number> {

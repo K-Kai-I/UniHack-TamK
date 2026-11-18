@@ -10,7 +10,12 @@ import { DEAL_STATES, DISPUTE_KINDS, type Address, type DealState } from "../typ
 export const publicClient = createPublicClient({ chain, transport: http(env.fujiRpcUrl, { batch: true }) });
 /** Client KHÔNG gom request, dành cho eth_getLogs: RPC Fuji tính giới hạn 100 khối trên cả gói gom chung,
  *  nên các đoạn đọc song song phải đi thành request HTTP riêng (xem events.ts). */
-export const logsClient = createPublicClient({ chain, transport: http(env.fujiRpcUrl) });
+export const logsClient = createPublicClient({
+  chain,
+  // Mỗi lần hỏi tối đa 8 giây, thử lại 1 lần: RPC công khai chậm hay từ chối thì bỏ, lần sau đọc tiếp,
+  // thay vì chờ-thử lại 3 lần (mặc định viem) làm keeper vượt giới hạn 60 giây của Vercel.
+  transport: http(env.fujiRpcUrl, { timeout: 8_000, retryCount: 1 }),
+});
 
 function shape<T extends { state: number; landlord: string; tenant: string }>(deal: T) {
   return {
