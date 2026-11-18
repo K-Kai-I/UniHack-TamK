@@ -88,5 +88,5 @@ Test contract: `cd contracts && npm install && npm run setup && forge test`.
 | Vai | Thành viên |
 | --- | --- |
 | Contract + Backend | Lê Quang Khải |
-| Frontend | _điền tên_ |
+| Frontend | Nguyễn Quốc Khánh |
 | AI | Lê Đăng Khoa |

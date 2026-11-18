@@ -7,7 +7,7 @@
 | Vai | Ai | Làm gì | Thư mục chính |
 | --- | --- | --- | --- |
 | Contract + Backend | Khải | Solidity, test, deploy, API, ký con dấu AI, keeper, faucet | `contracts/`, `web/app/api/`, `web/lib/server/`, `scripts/` |
-| Frontend | (điền tên) | Mọi màn hình, Privy, camera, gọi contract và API | `web/app/`, `web/components/`, `web/lib/client/` |
+| Frontend | Nguyễn Quốc Khánh | Mọi màn hình, Privy, camera, gọi contract và API | `web/app/`, `web/components/`, `web/lib/client/` |
 | AI | Lê Đăng Khoa | `compareDamage`, `compareListing`, prompt, bộ 10 cặp ảnh, slide, kịch bản video | `web/lib/ai/` |
 
 Lịch từng ngày và cổng kiểm tra nằm trong doc "Timeline UniHack – Team" trên Drive.
