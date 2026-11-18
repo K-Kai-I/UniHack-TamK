@@ -1,7 +1,8 @@
 "use client";
 // GĐ0: đăng nhập qua Privy; vai trò chỉ chọn lối đi, không cấp quyền.
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { usePrivy } from "@privy-io/react-auth";
 import { useAccount } from "wagmi";
 import { useQuery } from "@tanstack/react-query";
@@ -30,9 +31,20 @@ export function Onboarding() {
   const { ready, authenticated, login, logout, user } = usePrivy();
   const { address } = useAccount();
   const { role, setRole } = useUiRole();
+  const router = useRouter();
+
+  // /home chỉ dành cho người đã đăng nhập. Hết phiên (bấm Đăng xuất, token hết hạn, đăng xuất ở tab khác)
+  // thì về landing "/". Xóa dấu phiên trước để landing không nháy nút "Vào app" từ lần xem trước.
+  useEffect(() => {
+    if (!ready || authenticated) return;
+    delete document.documentElement.dataset.session;
+    router.replace("/");
+  }, [ready, authenticated, router]);
+
   return (
     <OnboardingView
-      ready={ready} authenticated={authenticated}
+      // Chưa có phiên thì giữ khung chờ trong lúc chuyển trang, không vẽ màn đăng nhập cũ của OnboardingView.
+      ready={ready && authenticated} authenticated={authenticated}
       email={user?.google?.email ?? user?.email?.address}
       role={role} onRoleChange={setRole} onLogin={login} onLogout={logout}
       wallet={<WalletChip address={address} />} faucet={<FaucetButton />}
