@@ -12,6 +12,11 @@ export class ApiClientError extends Error {
   }
 }
 
+/** Máy chủ có trả lời nhưng báo lỗi (khác với mất mạng). Dùng để chọn câu báo lỗi cho đúng. */
+export function isServerError(e: unknown): boolean {
+  return e instanceof ApiClientError && e.code !== "NETWORK";
+}
+
 export async function apiFetch<T>(
   path: string,
   opts: { method?: string; body?: unknown; token?: string | null } = {},

@@ -9,6 +9,7 @@ import { Illustration } from "@/components/illustration";
 import { PageHeader } from "@/components/page-header";
 import { PageShell } from "@/components/page-shell";
 import { RoomCover } from "@/components/room-cover";
+import { isServerError } from "@/lib/client/api";
 import { fetchOpenListings, type ListingItem } from "@/lib/client/rooms-data";
 import { useVndRate } from "@/lib/client/use-vnd-rate";
 import { formatDate } from "@/lib/client/date";
@@ -18,7 +19,7 @@ const MAX_CHIPS = 3;
 const ROOM_GRID = "grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3";
 
 export function RoomsList() {
-  const { data, isPending, isError, refetch, isFetching, dataUpdatedAt } = useQuery({
+  const { data, isPending, isError, error: queryError, refetch, isFetching, dataUpdatedAt } = useQuery({
     queryKey: ["listings", "open"],
     queryFn: fetchOpenListings,
   });
@@ -29,6 +30,7 @@ export function RoomsList() {
       items={data}
       loading={isPending}
       error={isError}
+      serverError={isServerError(queryError)}
       refreshing={isFetching}
       onRetry={() => { void refetch(); }}
       vndRate={vndRate}
@@ -43,6 +45,7 @@ export function RoomsListView({
   items,
   loading = false,
   error = false,
+  serverError = false,
   refreshing = false,
   onRetry,
   vndRate,
@@ -52,6 +55,7 @@ export function RoomsListView({
   items?: ListingItem[];
   loading?: boolean;
   error?: boolean;
+  serverError?: boolean;
   refreshing?: boolean;
   onRetry: () => void;
   vndRate: number;
@@ -86,7 +90,7 @@ export function RoomsListView({
       {error && hasData && (
         <div role="alert" className="mb-6 rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm text-warning-foreground">
           <p className="font-semibold">Chưa cập nhật được danh sách</p>
-          <p className="mt-1">Đang hiển thị lần tải thành công gần nhất. Phòng có thể đã có người cọc. Kiểm tra mạng rồi bấm Tải lại.</p>
+          <p className="mt-1">Đang hiển thị lần tải thành công gần nhất. Phòng có thể đã có người cọc. {serverError ? "Máy chủ đang gặp sự cố, bấm Tải lại sau ít phút." : "Kiểm tra mạng rồi bấm Tải lại."}</p>
         </div>
       )}
 
@@ -107,7 +111,7 @@ export function RoomsListView({
         <div role="alert" className="mx-auto grid max-w-prose justify-items-center gap-3 rounded-2xl bg-muted px-5 py-12 text-center">
           <WifiOff className="size-8 text-muted-foreground" aria-hidden="true" />
           <h2 className="text-lg font-semibold">Không tải được danh sách phòng</h2>
-          <p className="text-muted-foreground">Kiểm tra kết nối mạng rồi thử lại.</p>
+          <p className="text-muted-foreground">{serverError ? "Máy chủ đang gặp sự cố, không phải lỗi mạng của bạn. Thử lại sau ít phút." : "Kiểm tra kết nối mạng rồi thử lại."}</p>
           <Button onClick={onRetry} disabled={refreshing}>
             {refreshing ? "Đang thử lại…" : "Thử lại"}
           </Button>
