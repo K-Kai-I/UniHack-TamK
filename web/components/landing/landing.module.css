@@ -1,0 +1,97 @@
+/* Landing "Dải tiền cọc". Màu lấy từ token hướng A trong globals.css, không viết mã màu mới. */
+
+.page {
+  --ink: var(--primary);
+  --keep: var(--success);
+  --track: var(--border);
+  --fold: var(--warning);
+  --wrap: 82rem;
+  --gutter: 1rem;
+  background: var(--background);
+  color: var(--foreground);
+  overflow-x: clip;
+}
+@media (min-width: 640px) { .page { --gutter: 1.5rem; } }
+@media (min-width: 1024px) { .page { --gutter: 3.5rem; } }
+
+.wrap {
+  width: 100%;
+  max-width: var(--wrap);
+  margin-inline: auto;
+  padding-left: max(var(--gutter), env(safe-area-inset-left));
+  padding-right: max(var(--gutter), env(safe-area-inset-right));
+}
+
+/* ---------- Dải ở hero: tự vẽ một lần khi tải trang ---------- */
+.draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draw var(--dur, 1.4s) cubic-bezier(0.16, 1, 0.3, 1) var(--delay, 0s) forwards;
+}
+.appear {
+  opacity: 0;
+  animation: appear 0.6s cubic-bezier(0.16, 1, 0.3, 1) var(--delay, 0s) forwards;
+}
+@keyframes draw { to { stroke-dashoffset: 0; } }
+@keyframes appear {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.appear { transform-box: fill-box; }
+
+.svgLabel { font-family: var(--font-sans); fill: var(--foreground); font-feature-settings: "tnum"; }
+.svgMuted { font-family: var(--font-sans); fill: var(--muted-foreground); }
+
+/* ---------- Con dấu AI ---------- */
+.stamp {
+  color: var(--ink);
+  transform: rotate(-9deg) scale(1);
+  transform-origin: center;
+}
+.stampIdle { opacity: 0; transform: rotate(-9deg) scale(1.35); }
+.stampPressed {
+  animation: press 0.42s cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+@keyframes press {
+  0% { opacity: 0; transform: rotate(-4deg) scale(1.45); filter: blur(2px); }
+  60% { opacity: 1; transform: rotate(-10deg) scale(0.96); filter: blur(0); }
+  100% { opacity: 0.94; transform: rotate(-9deg) scale(1); }
+}
+
+/* ---------- Thanh so ảnh ---------- */
+.compare { touch-action: pan-y; }
+.compare input[type="range"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: ew-resize;
+  margin: 0;
+}
+.compare:has(input:focus-visible) .handle { outline: 3px solid var(--ring); outline-offset: 3px; }
+
+/* ---------- Ruy băng mô phỏng ---------- */
+.seg { transition: stroke 0.35s ease, stroke-dasharray 0.35s ease, opacity 0.35s ease; }
+.split { transition: stroke-width 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease; }
+
+/* ---------- Dưới mặt nước ---------- */
+.deep {
+  background: var(--ink);
+  color: #fff;
+}
+.deep ::selection { background: #fff; color: var(--ink); }
+.deep a:focus-visible { outline-color: #fff; }
+.deepMuted { color: #cfc6e2; }
+.deepRule { border-color: rgb(255 255 255 / 0.16); }
+
+/* ---------- Hỏi đáp ---------- */
+.faq summary { list-style: none; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq details[open] .chev { transform: rotate(45deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .draw { stroke-dashoffset: 0; animation: none; }
+  .appear { opacity: 1; animation: none; }
+  .stampPressed { animation: none; opacity: 0.94; }
+}
