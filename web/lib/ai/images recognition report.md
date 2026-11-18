@@ -28,6 +28,12 @@ Sửa sau lượt v2-01 (cần chạy lại lượt `v2-02` để đo):
 - Mỗi lần gọi tối đa 30 giây (trước là 90) để lần thử lại lọt ngân sách 50 giây; ghi lý do câu trả lời bị loại vào log.
 - Bộ test mang bảng giá riêng `price-list.json` giống phòng thật.
 
+**Lượt `v2-02` (gemini-3.5-flash-lite, prompt damage-v2, bảng giá 7 dòng):** 12/13 có kết quả, **khớp nhãn 10/13**,
+khớp cả hạng mục 9/13, **0 ca báo hư sai**, trung vị 2,8 s. So với v2-01: ca 11 (đèn) thành NEW_DAMAGE và chọn đúng "Thay bóng đèn";
+ca 08 chọn đúng "Bọc lại mặt ghế". Ca 01 lần này lỗi HTTP 503 (Google quá tải, không phải lỗi kiểm tra) nên chưa đo lại được.
+Còn sai: ca 07 (khung hình khác) và ca 10 (vòi nước) vẫn NO_CHANGE; ca 09 chọn "Sơn lại 1 mảng tường" cho lỗ khoan thay vì
+ngoài bảng giá (mất tranh), hợp lý nhưng khác đáp án. Giữ prompt damage-v2.
+
 ## Cập nhật xác nhận ngày 17/11/2026
 
 Người chụp xác nhận cặp 03 là NEW_DAMAGE ngoài bảng giá và cặp 07 là NO_CHANGE. Ảnh sau của cặp 07 có vụn bẩn lau được và không thấy hư hỏng mới trên mặt bàn. Bộ nhãn hiện tại có 2/11 ca reviewed và 9 ca provisional, gồm 3 NEW_DAMAGE, 3 NO_CHANGE và 5 UNCLEAR. Các điểm và bảng kết quả lịch sử dùng snapshot nhãn sơ bộ tại thời điểm chạy.

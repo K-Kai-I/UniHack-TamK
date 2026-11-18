@@ -1,0 +1,328 @@
+{
+  "startedAt": "2026-11-18T19:56:43.599Z",
+  "run": "v2-01",
+  "provider": "google",
+  "model": "gemini-3.1-flash-lite",
+  "endpoint": "interactions",
+  "dataset": "reference-v2/cases.json",
+  "qualification": "Provisional visual labels, not human ground truth. Rerun is stability, not held-out accuracy. Summary errors includes skipped rows; see requestCoverage.",
+  "requestCoverage": {
+    "attempted": 13,
+    "skipped": 0
+  },
+  "summary": [
+    {
+      "group": "gemini-3.1-flash-lite/damage",
+      "total": 13,
+      "valid": 13,
+      "errors": 0,
+      "labelMatches": 8,
+      "fieldMatches": 7,
+      "labelAccuracyOnValid": 0.6153846153846154,
+      "successAndLabelRate": 0.6153846153846154,
+      "reviewed": 13,
+      "medianMs": 5095,
+      "confusion": {
+        "NEW_DAMAGE": {
+          "NO_CHANGE": 3,
+          "NEW_DAMAGE": 4
+        },
+        "UNCLEAR": {
+          "NO_CHANGE": 2,
+          "UNCLEAR": 1
+        },
+        "NO_CHANGE": {
+          "NO_CHANGE": 3
+        }
+      }
+    }
+  ],
+  "rows": [
+    {
+      "name": "01 - Khay cửa tủ lạnh",
+      "task": "damage",
+      "model": "gemini-3.1-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "NEW_DAMAGE",
+      "predicted": "NO_CHANGE",
+      "labelStatus": "reviewed",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 5908,
+      "error": null,
+      "output": {
+        "positionId": "p1",
+        "verdict": "NO_CHANGE",
+        "confidence": 1,
+        "description": "Khay cửa tủ lạnh ở trạng thái nguyên vẹn, không có sự thay đổi giữa ảnh trước và sau.",
+        "priceItemId": null,
+        "quantity": 0,
+        "outsidePriceList": false
+      }
+    },
+    {
+      "name": "02 - Cửa gỗ",
+      "task": "damage",
+      "model": "gemini-3.1-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "NEW_DAMAGE",
+      "predicted": "NEW_DAMAGE",
+      "labelStatus": "reviewed",
+      "labelMatch": true,
+      "fieldsMatch": true,
+      "durationMs": 5855,
+      "error": null,
+      "output": {
+        "positionId": "p2",
+        "verdict": "NEW_DAMAGE",
+        "confidence": 1,
+        "description": "Trên bề mặt cánh cửa gỗ xuất hiện một vết dán băng keo hình chữ X lớn ở phần pano dưới.",
+        "priceItemId": null,
+        "quantity": 0,
+        "outsidePriceList": true
+      }
+    },
+    {
+      "name": "03 - Quạt đứng",
+      "task": "damage",
+      "model": "gemini-3.1-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "UNCLEAR",
+      "predicted": "NO_CHANGE",
+      "labelStatus": "reviewed",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 9680,
+      "error": null,
+      "output": {
+        "positionId": "p3",
+        "verdict": "NO_CHANGE",
+        "confidence": 0.9,
+        "description": "Quạt đứng vẫn ở tình trạng nguyên vẹn, không có thay đổi đáng kể giữa hai lần kiểm tra.",
+        "priceItemId": null,
+        "quantity": 0,
+        "outsidePriceList": false
+      }
+    },
+    {
+      "name": "04 - Tường cạnh máy lạnh",
+      "task": "damage",
+      "model": "gemini-3.1-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "NO_CHANGE",
+      "predicted": "NO_CHANGE",
+      "labelStatus": "reviewed",
+      "labelMatch": true,
+      "fieldsMatch": true,
+      "durationMs": 4680,
+      "error": null,
+      "output": {
+        "positionId": "p4",
+        "verdict": "NO_CHANGE",
+        "confidence": 1,
+        "description": "Vị trí lắp đặt nắp che lỗ kỹ thuật trên tường cạnh máy lạnh không có sự thay đổi giữa hai thời điểm.",
+        "priceItemId": null,
+        "quantity": 0,
+        "outsidePriceList": false
+      }
+    },
+    {
+      "name": "05 - Tường gần ổ điện",
+      "task": "damage",
+      "model": "gemini-3.1-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "NEW_DAMAGE",
+      "predicted": "NEW_DAMAGE",
+      "labelStatus": "reviewed",
+      "labelMatch": true,
+      "fieldsMatch": true,
+      "durationMs": 4742,
+      "error": null,
+      "output": {
+        "positionId": "p5",
+        "verdict": "NEW_DAMAGE",
+        "confidence": 1,
+        "description": "Trên tường xuất hiện vết vẽ nguệch ngoạc mới.",
+        "priceItemId": "i1",
+        "quantity": 1,
+        "outsidePriceList": false
+      }
+    },
+    {
+      "name": "06 - Tủ áo",
+      "task": "damage",
+      "model": "gemini-3.1-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "UNCLEAR",
+      "predicted": "UNCLEAR",
+      "labelStatus": "reviewed",
+      "labelMatch": true,
+      "fieldsMatch": true,
+      "durationMs": 6559,
+      "error": null,
+      "output": {
+        "positionId": "p6",
+        "verdict": "UNCLEAR",
+        "confidence": 0.8,
+        "description": "Ảnh sau trả phòng bị nhòe nên không thể so sánh chi tiết với ảnh trước.",
+        "priceItemId": null,
+        "quantity": 0,
+        "outsidePriceList": false
+      }
+    },
+    {
+      "name": "07 - Tường dưới đèn",
+      "task": "damage",
+      "model": "gemini-3.1-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "UNCLEAR",
+      "predicted": "NO_CHANGE",
+      "labelStatus": "reviewed",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 4119,
+      "error": null,
+      "output": {
+        "positionId": "p7",
+        "verdict": "NO_CHANGE",
+        "confidence": 1,
+        "description": "Bề mặt tường dưới đèn không có dấu hiệu thay đổi hoặc hư hỏng mới so với ảnh trước khi nhận phòng.",
+        "priceItemId": null,
+        "quantity": 0,
+        "outsidePriceList": false
+      }
+    },
+    {
+      "name": "08 - Ghế xanh",
+      "task": "damage",
+      "model": "gemini-3.1-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "NEW_DAMAGE",
+      "predicted": "NEW_DAMAGE",
+      "labelStatus": "reviewed",
+      "labelMatch": true,
+      "fieldsMatch": true,
+      "durationMs": 7776,
+      "error": null,
+      "output": {
+        "positionId": "p8",
+        "verdict": "NEW_DAMAGE",
+        "confidence": 1,
+        "description": "Bề mặt ghế màu xanh bị rách lớp da ở cạnh phải.",
+        "priceItemId": null,
+        "quantity": 0,
+        "outsidePriceList": true
+      }
+    },
+    {
+      "name": "09 - Tường treo tranh",
+      "task": "damage",
+      "model": "gemini-3.1-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "NEW_DAMAGE",
+      "predicted": "NEW_DAMAGE",
+      "labelStatus": "reviewed",
+      "labelMatch": true,
+      "fieldsMatch": false,
+      "durationMs": 4961,
+      "error": null,
+      "output": {
+        "positionId": "p9",
+        "verdict": "NEW_DAMAGE",
+        "confidence": 1,
+        "description": "Bức tranh treo tường đã bị tháo bỏ để lại các lỗ khoan trên bề mặt tường.",
+        "priceItemId": "i1",
+        "quantity": 1,
+        "outsidePriceList": false
+      }
+    },
+    {
+      "name": "10 - Vòi lavabo, mở nước",
+      "task": "damage",
+      "model": "gemini-3.1-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "NEW_DAMAGE",
+      "predicted": "NO_CHANGE",
+      "labelStatus": "reviewed",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 5095,
+      "error": null,
+      "output": {
+        "positionId": "p10",
+        "verdict": "NO_CHANGE",
+        "confidence": 1,
+        "description": "Vòi lavabo hoạt động bình thường, không có sự thay đổi đáng kể giữa hai thời điểm.",
+        "priceItemId": null,
+        "quantity": 0,
+        "outsidePriceList": false
+      }
+    },
+    {
+      "name": "11 - Đèn phòng ngủ, bật hết đèn",
+      "task": "damage",
+      "model": "gemini-3.1-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "NEW_DAMAGE",
+      "predicted": "NO_CHANGE",
+      "labelStatus": "reviewed",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 6505,
+      "error": null,
+      "output": {
+        "positionId": "p11",
+        "verdict": "NO_CHANGE",
+        "confidence": 1,
+        "description": "Đèn trần và đèn tường vẫn hoạt động bình thường, không có thay đổi so với ảnh trước khi nhận phòng.",
+        "priceItemId": null,
+        "quantity": 0,
+        "outsidePriceList": false
+      }
+    },
+    {
+      "name": "12 - Giường",
+      "task": "damage",
+      "model": "gemini-3.1-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "NO_CHANGE",
+      "predicted": "NO_CHANGE",
+      "labelStatus": "reviewed",
+      "labelMatch": true,
+      "fieldsMatch": true,
+      "durationMs": 4176,
+      "error": null,
+      "output": {
+        "positionId": "p12",
+        "verdict": "NO_CHANGE",
+        "confidence": 1,
+        "description": "Giường và các vật dụng trang trí trên giường không có thay đổi đáng kể so với ảnh trước khi nhận phòng.",
+        "priceItemId": null,
+        "quantity": 0,
+        "outsidePriceList": false
+      }
+    },
+    {
+      "name": "13 - Giường",
+      "task": "damage",
+      "model": "gemini-3.1-flash-lite",
+      "promptVersion": "damage-v1",
+      "expected": "NO_CHANGE",
+      "predicted": "NO_CHANGE",
+      "labelStatus": "reviewed",
+      "labelMatch": true,
+      "fieldsMatch": true,
+      "durationMs": 4846,
+      "error": null,
+      "output": {
+        "positionId": "p13",
+        "verdict": "NO_CHANGE",
+        "confidence": 1,
+        "description": "Giường và các vật dụng trên giường không có thay đổi đáng kể so với trạng thái ban đầu.",
+        "priceItemId": null,
+        "quantity": 0,
+        "outsidePriceList": false
+      }
+    }
+  ]
+}
