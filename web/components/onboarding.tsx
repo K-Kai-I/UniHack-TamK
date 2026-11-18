@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { usePrivy } from "@privy-io/react-auth";
 import { useAccount } from "wagmi";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, ChevronRight, FileText, Gavel, LogOut, ShieldCheck } from "lucide-react";
+import { ArrowRight, ChevronRight, FileText, Gavel, Inbox, LogOut, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ActionArea } from "@/components/action-area";
@@ -127,14 +127,15 @@ export function OnboardingView({ ready, authenticated, email, role, onRoleChange
               <section aria-labelledby="my-deals-title" className="space-y-3">
                 <h2 id="my-deals-title" className="text-xl font-bold">Tiếp tục với hợp đồng</h2>
                 <Entry href="/deals" icon={FileText} title="Hợp đồng của tôi" text="Xem phòng bạn thuê, phòng bạn cho thuê và việc cần làm trong từng hợp đồng." />
+                <Entry href="/requests" icon={Inbox} title="Yêu cầu thuê" text="Chủ trọ duyệt yêu cầu và ký hợp đồng; người thuê xem yêu cầu đã gửi và đi gửi cọc." />
                 {jurorEntry}
               </section>
               <section aria-label="Bắt đầu với một căn phòng" className="space-y-4 border-t pt-6">
                 <fieldset className="min-w-0 space-y-4">
                   <legend className="text-xl font-bold">Bắt đầu với một căn phòng</legend>
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <RoleChoice role="tenant" active={role === "tenant"} onChange={onRoleChange} title="Tôi thuê phòng" text="Xem phòng trống và điều khoản trước khi gửi cọc." />
-                    <RoleChoice role="landlord" active={role === "landlord"} onChange={onRoleChange} title="Tôi cho thuê" text="Đăng phòng, đặt tiền cọc và bảng giá sửa chữa." />
+                    <RoleChoice role="tenant" active={role === "tenant"} onChange={onRoleChange} title="Tôi thuê phòng" text="Tìm phòng, chọn ngày dọn vào và gửi yêu cầu cho chủ trọ." />
+                    <RoleChoice role="landlord" active={role === "landlord"} onChange={onRoleChange} title="Tôi cho thuê" text="Đăng phòng, đặt tiền cọc và bảng giá; duyệt yêu cầu thuê." />
                   </div>
                 </fieldset>
                 <p className="text-sm text-muted-foreground">Một tài khoản dùng được cả hai vai. Bạn có thể đổi lựa chọn bất cứ lúc nào.</p>
@@ -152,7 +153,7 @@ export function OnboardingView({ ready, authenticated, email, role, onRoleChange
             </aside>
             <ActionArea>
               {role ? (
-                <Button asChild size="lg" className="w-full"><Link href={ROLE_HOME[role]}>{role === "tenant" ? "Xem phòng đang trống" : "Đăng phòng mới"} <ArrowRight aria-hidden="true" /></Link></Button>
+                <Button asChild size="lg" className="w-full"><Link href={ROLE_HOME[role]}>{role === "tenant" ? "Tìm phòng trọ" : "Đăng phòng mới"} <ArrowRight aria-hidden="true" /></Link></Button>
               ) : <Button size="lg" className="w-full" disabled>Chọn vai trò để tiếp tục</Button>}
             </ActionArea>
           </PageColumns>

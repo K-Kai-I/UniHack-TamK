@@ -70,7 +70,7 @@ Edge case: sai mạng → banner + nút chuyển Fuji; hết gas → hướng d�
 
 ### GĐ1 · Chủ trọ đăng phòng
 
-Mọi con số tiền, ngày, vị trí chụp và bảng giá nhập ở đây và bị khóa bằng `termsHash`.
+Từ 19/11: chủ trọ đăng phòng vào danh mục **không kèm ngày**. Người thuê chọn ngày ở GĐ2 và gửi yêu cầu; chủ trọ duyệt thì ngày được ghép vào điều khoản và mọi thứ (tiền, ngày, vị trí chụp, bảng giá) bị khóa bằng `termsHash` như cũ. Bảng dưới là luồng cũ (vẫn chạy qua `POST /listings`); các dòng 3 và 7 nay nằm ở bước duyệt.
 
 | # | Thao tác | Lưu ở | API / Contract |
 | --- | --- | --- | --- |
@@ -84,7 +84,21 @@ Mọi con số tiền, ngày, vị trí chụp và bảng giá nhập ở đây 
 
 Edge case: nhập sai hoặc đã cho thuê ngoài, chưa ai cọc → nhánh A; sửa ảnh, giá sau khi có người cọc → không được, đã khóa bằng hash; một phòng đăng nhiều lần → tầm nhìn (mã phòng duy nhất).
 
-### GĐ2 · Tìm phòng và gửi cọc
+### GĐ2 · Tìm phòng, gửi yêu cầu thuê, chủ trọ duyệt, gửi cọc
+
+Luồng app từ 19/11 (contract không đổi):
+
+| # | Ai | Thao tác | API / Contract |
+| --- | --- | --- | --- |
+| 1 | Chủ trọ | Đăng phòng (không ngày) | `POST /uploads` → `POST /rooms` |
+| 2 | Người thuê | Tìm phòng: từ khóa, khoảng giá, sắp xếp | `GET /rooms`, `GET /rooms/:roomId` |
+| 3 | Người thuê | Chọn ngày dọn vào + số tháng thuê, lời nhắn, gửi yêu cầu (chưa mất tiền) | `POST /rooms/:roomId/requests` |
+| 4 | Chủ trọ | Mục "Yêu cầu thuê": duyệt (ký 1 lần) hoặc từ chối | `POST /requests/:id/approve` → `createDeal(createDealArgs)` → `POST /listings/:id/onchain` → OPEN |
+| 5 | Người thuê | Thấy "Đã duyệt", bấm "Xem hợp đồng và gửi cọc" | `GET /requests` → `/rooms/:dealId` → `deposit` → RESERVED |
+
+Edge case: chủ trọ duyệt sát hoặc sau ngày dọn vào → API từ chối, người thuê gửi lại ngày khác; chủ trọ bấm duyệt rồi hủy ký → bấm "Ký hợp đồng" lại dùng đúng điều khoản cũ; người thuê hủy khi còn chờ duyệt.
+
+Luồng cũ (phòng có sẵn ngày, ai cọc trước thì thuê):
 
 | # | Ai | Thao tác | API / Contract |
 | --- | --- | --- | --- |
@@ -154,8 +168,10 @@ Cột Mức theo `AGENTS.md` (P0/P1/P2); doc User flow ghi MUST/SHOULD.
 | Màn hình | Vai trò | GĐ | Nội dung chính | Mức |
 | --- | --- | --- | --- | --- |
 | Đăng nhập, chọn vai trò | Cả hai | 0 | Google hoặc ví, mạng Fuji, nút nhận tiền test | P0 |
-| Phòng đang trống | Người thuê | 2 | Danh sách deal OPEN | P0 |
-| Đăng phòng + hợp đồng (nhiều bước) | Chủ trọ | 1 | Thông tin phòng, cọc, phí giữ chỗ, ngày, vị trí chụp kèm ảnh ví dụ, bảng giá, bật sinh lãi | P0 |
+| Tìm phòng trọ (`/rooms`) | Người thuê | 2 | Danh mục phòng, ô tìm (không dấu), khoảng giá, sắp xếp | P1 |
+| Chi tiết phòng + Gửi yêu cầu thuê (`/rooms/r/:roomId`) | Người thuê | 2 | Ảnh, tiền, vị trí chụp, bảng giá, chọn ngày dọn vào + số tháng | P1 |
+| Yêu cầu thuê (`/requests`) | Cả hai | 2 | Chủ trọ duyệt (ký `createDeal`) / từ chối; người thuê xem trạng thái, hủy, đi gửi cọc | P1 |
+| Đăng phòng (nhiều bước) | Chủ trọ | 1 | Thông tin phòng, cọc, phí giữ chỗ, vị trí chụp kèm ảnh ví dụ, bảng giá, bật sinh lãi (không còn bước ngày) | P0 |
 | Chi tiết phòng + Gửi cọc | Người thuê | 2 | Ảnh, điều khoản, bảng giá, ô "Cho cọc sinh lãi", nút Gửi cọc | P0 |
 | Chi tiết hợp đồng | Cả hai | 1–6 | Trạng thái, đếm ngược `deadline`, nút theo bảng "Nút trên app theo trạng thái", nút "Xử lý quá hạn" khi `canPoke` | P0 |
 | Camera chụp theo vị trí | Người thuê (chủ trọ khi trả thay) | 3, 5 | Từng vị trí một, ảnh ví dụ, ảnh cũ mờ đè khung | P0 (lớp mờ: P2) |

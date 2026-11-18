@@ -10,12 +10,14 @@ Dự án dự thi Team1 Vietnam UniHack 2026.
 
 ## Cách hoạt động
 
-1. Chủ trọ đăng phòng kèm điều khoản: tiền cọc, phí giữ chỗ, ngày dọn vào và hết hạn, danh sách vị trí cần chụp, bảng giá sửa chữa. Tất cả được khóa bằng một hash trên chuỗi.
-2. Người thuê gửi cọc bằng stablecoin, chỉ ký 1 lần (ERC-2612 permit). Tiền nằm trong contract.
-3. Ngày dọn vào, người thuê chụp ảnh theo danh sách vị trí bằng camera trong app. Hash của bộ ảnh được ghi lên chuỗi.
-4. Khi trả phòng, người thuê chụp lại đúng các vị trí đó. AI so ảnh trước và sau, tách hư hỏng mới khỏi hao mòn, tính mức trừ theo bảng giá và ký một con dấu (EIP-712).
-5. Chủ trọ đề xuất mức trừ. Người thuê đồng ý hoặc im lặng tới hạn thì contract chia tiền ngay. Người thuê kháng nghị thì bồi thẩm chọn một trong hai con số; AI chỉ là một phiếu.
-6. Mỗi bước có hạn chót. Bên nào im lặng tới hạn thì bên đó chịu, và ai cũng gọi được hàm xử lý quá hạn, nên tiền không bao giờ kẹt.
+1. Chủ trọ đăng phòng vào danh mục: ảnh, tiền cọc, phí giữ chỗ, danh sách vị trí cần chụp, bảng giá sửa chữa.
+2. Người thuê tìm phòng (từ khóa, khoảng giá), chọn ngày dọn vào và số tháng thuê, gửi yêu cầu. Chưa mất tiền.
+3. Chủ trọ duyệt yêu cầu: ngày người thuê chọn được ghép vào điều khoản và tất cả được khóa bằng một hash trên chuỗi (`createDeal`).
+4. Người thuê gửi cọc bằng stablecoin. Tiền nằm trong contract.
+5. Ngày dọn vào, người thuê chụp ảnh theo danh sách vị trí bằng camera trong app. Hash của bộ ảnh được ghi lên chuỗi.
+6. Khi trả phòng, người thuê chụp lại đúng các vị trí đó. AI so ảnh trước và sau, tách hư hỏng mới khỏi hao mòn, tính mức trừ theo bảng giá và ký một con dấu (EIP-712).
+7. Chủ trọ đề xuất mức trừ. Người thuê đồng ý hoặc im lặng tới hạn thì contract chia tiền ngay. Người thuê kháng nghị thì bồi thẩm chọn một trong hai con số; AI chỉ là một phiếu.
+8. Mỗi bước có hạn chót. Bên nào im lặng tới hạn thì bên đó chịu, và ai cũng gọi được hàm xử lý quá hạn, nên tiền không bao giờ kẹt.
 
 AI chỉ đề xuất và ký con dấu. AI không có ví và không chuyển được tiền; tiền chỉ rời két theo quy tắc trong contract.
 
@@ -78,9 +80,10 @@ Test contract: `cd contracts && npm install && npm run setup && forge test`.
 ## Giới hạn đã biết
 
 - Danh sách bồi thẩm do nhóm thêm và bồi thẩm chưa có thưởng, nên nhóm vẫn ảnh hưởng được kết quả tranh chấp (nhưng không lấy được tiền). Hướng sau: bồi thẩm đặt cọc, bỏ phiếu đúng bên thắng thì nhận một phần phí sàn.
-- Độ chính xác AI chưa được đo trên ảnh phòng trọ thật; AI chỉ đề xuất và là một phiếu, người thuê luôn kháng nghị được.
+- AI (gemini-3.5-flash-lite, prompt damage-v2) khớp 10/13 cặp ảnh thật, 0 ca báo hư sai (`web/lib/ai/images recognition report.md`); chưa có ca hao mòn trong bộ test. AI chỉ đề xuất và là một phiếu, người thuê luôn kháng nghị được.
+- Hợp đồng sinh ra từ yêu cầu thuê chỉ được che khỏi danh sách công khai; contract chưa giới hạn ai được gửi cọc vào một deal.
 - Ảnh vẫn có thể bị dàn dựng; camera trong app, thời gian và hash trên chuỗi làm việc giả mạo khó hơn chứ không loại bỏ hẳn.
-- Vault ERC-4626 đang rỗng có thể bị "tặng" tiền trước để người gửi đầu chịu lỗ. Hiện chặn bằng khoản gửi mồi lúc deploy; bản sau nên thêm kiểm tra số cổ phần tối thiểu ngay trong contract.
+- Vault ERC-4626 có thể bị "tặng" tiền để đẩy giá cổ phần. Contract tự kiểm tra trước khi gửi: giá bất thường thì cọc nằm trong két (mất lãi, không mất gốc); thêm khoản gửi mồi lúc deploy.
 - MVP chỉ dùng token test trên Fuji. Luật chia tiền cần luật sư xem trước khi dùng tiền thật.
 
 ## Nhóm

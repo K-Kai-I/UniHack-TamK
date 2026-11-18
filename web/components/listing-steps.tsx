@@ -1,22 +1,19 @@
 "use client";
-// 6 bước của form Đăng phòng. Mỗi bước nhận `draft`, `set` (vá một phần) và `errors` từ listing-wizard.
+// 5 bước của form Đăng phòng (ngày thuê do người thuê chọn khi gửi yêu cầu). Mỗi bước nhận `draft`, `set` (vá một phần) và `errors` từ listing-wizard.
 import { useState } from "react";
-import { Info, Plus, Trash2, X } from "lucide-react";
+import { Plus, Trash2, X } from "lucide-react";
 import { formatUnits } from "viem";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, inputClass, MoneyInput, PhotoSlot } from "@/components/listing-fields";
 import { RoomCover } from "@/components/room-cover";
 import { addresses } from "@/lib/chain";
-import { formatDate, monthsBetween } from "@/lib/client/date";
 import {
-  dateToIso,
   MAX_LISTING_PHOTOS,
   MAX_POSITIONS,
   MAX_PRICE_ITEMS,
   MIN_POSITIONS,
   newKey,
-  todayInput,
   type Errors,
   type ListingDraft,
 } from "@/lib/client/listing-form";
@@ -238,51 +235,6 @@ export function MoneyStep({ draft, set, errors, vndPerToken }: StepProps) {
   );
 }
 
-// ---------------------------------------------------------------------------------------------- 3. Ngày
-
-export function DatesStep({ draft, set, errors }: StepProps) {
-  const months =
-    draft.moveIn && draft.leaseEnd && draft.leaseEnd > draft.moveIn
-      ? monthsBetween(dateToIso(draft.moveIn), dateToIso(draft.leaseEnd))
-      : null;
-  return (
-    <div className="space-y-6">
-      <Field
-        label="Ngày dọn vào"
-        htmlFor="movein"
-        error={errors.moveIn}
-        hint="Người thuê phải gửi ảnh nhận phòng trong thời gian ân hạn sau ngày này, nếu không sẽ mất phí giữ chỗ."
-      >
-        <Input
-          id="movein"
-          type="date"
-          className={inputClass}
-          min={todayInput()}
-          value={draft.moveIn}
-          aria-invalid={!!errors.moveIn}
-          onChange={(e) => set({ moveIn: e.target.value })}
-        />
-      </Field>
-      <Field label="Ngày hết hạn thuê" htmlFor="leaseend" error={errors.leaseEnd}>
-        <Input
-          id="leaseend"
-          type="date"
-          className={inputClass}
-          min={draft.moveIn || todayInput()}
-          value={draft.leaseEnd}
-          aria-invalid={!!errors.leaseEnd}
-          onChange={(e) => set({ leaseEnd: e.target.value })}
-        />
-      </Field>
-      {months && <p className="rounded-xl bg-secondary px-4 py-3 text-sm text-primary">Thời hạn khoảng {months} tháng.</p>}
-      <p className="flex items-start gap-2 text-sm text-muted-foreground">
-        <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-        Hai ngày này là một phần của điều khoản khi đăng phòng. Hãy kiểm tra kỹ trước khi ký.
-      </p>
-    </div>
-  );
-}
-
 // ---------------------------------------------------------------------------------------------- 4. Vị trí
 
 export function PositionsStep({ draft, set, errors }: StepProps) {
@@ -450,7 +402,7 @@ export function PricesStep({ draft, set, errors, vndPerToken }: StepProps) {
 
 // ---------------------------------------------------------------------------------------------- 6. Xem lại
 
-export function ReviewStep({ draft, vndPerToken, goto }: StepProps & { goto: (id: "info" | "money" | "dates" | "positions" | "prices") => void }) {
+export function ReviewStep({ draft, vndPerToken, goto }: StepProps & { goto: (id: "info" | "money" | "positions" | "prices") => void }) {
   const vnd = (s: string) => parseVndInput(s) ?? 0n;
   // Số mUSDC thực sự ghi lên chuỗi (làm tròn xuống, 6 số lẻ), cùng công thức với buildListingBody.
   const token = (s: string) => `${formatUnits(BigInt(vndToAmount(vnd(s), vndPerToken)), 6)} mUSDC`;
@@ -488,12 +440,6 @@ export function ReviewStep({ draft, vndPerToken, goto }: StepProps & { goto: (id
       </details>
       <p className="text-sm">Cọc sinh lãi: {draft.yieldEnabled ? "bật" : "tắt"}</p>
     </Section>
-    <Section id="dates" title="Ngày nhận và hết hạn thuê">
-      <dl className="space-y-3 text-sm">
-        <div className="flex flex-wrap justify-between gap-2"><dt>Dọn vào</dt><dd className="font-semibold tabular-nums">{draft.moveIn ? formatDate(dateToIso(draft.moveIn)) : "Chưa chọn"}</dd></div>
-        <div className="flex flex-wrap justify-between gap-2"><dt>Hết hạn thuê</dt><dd className="font-semibold tabular-nums">{draft.leaseEnd ? formatDate(dateToIso(draft.leaseEnd)) : "Chưa chọn"}</dd></div>
-      </dl>
-    </Section>
     <Section id="positions" title={`${draft.positions.length} vị trí chụp`}>
       <ul className="grid gap-5 sm:grid-cols-2">
         {draft.positions.map((p, i) => <li key={p.key} className="min-w-0 space-y-2">
@@ -511,7 +457,7 @@ export function ReviewStep({ draft, vndPerToken, goto }: StepProps & { goto: (id
         </li>)}
       </ul>
     </Section>
-    <p className="py-6 text-sm text-muted-foreground">Bấm “Đăng phòng” sẽ ký một giao dịch. Sau khi có người cọc, bạn không sửa được ảnh, giá và điều khoản.</p>
+    <p className="py-6 text-sm text-muted-foreground">Bấm “Đăng phòng” để phòng xuất hiện trong danh sách tìm trọ. Khi bạn duyệt một yêu cầu thuê, ảnh, giá, điều khoản và ngày người thuê chọn được khóa vào hợp đồng trên chuỗi.</p>
   </div>;
 }
 

@@ -31,9 +31,16 @@ Bốn lựa chọn đầu là đề xuất, nhóm chốt trong buổi họp. Gi�
 | `POST /faucet` | Đã đăng nhập | Gửi AVAX thử và mUSDC cho ví của người gọi | P0 | 13/11 |
 | `POST /uploads` | Đã đăng nhập | Nhận 1 ảnh, lưu, tính SHA-256 | P0 | 14/11 |
 | `GET /photos/:photoId` | Mọi người | Trả file ảnh (kho ảnh để private, ảnh đi qua server) | P0 | 16/11 |
-| `POST /listings` | Chủ trọ | Nhận điều khoản, dựng file điều khoản chuẩn, trả `termsHash` | P0 | 14/11 |
+| `POST /listings` | Chủ trọ | Nhận điều khoản (có sẵn ngày), dựng file điều khoản chuẩn, trả `termsHash`. App không còn gọi trực tiếp từ 19/11 (xem Danh mục phòng); giữ cho script và tương thích | P0 | 14/11 |
+| `POST /rooms` | Chủ trọ | Đăng phòng vào danh mục: như `POST /listings` nhưng KHÔNG có `dates`, chưa lên chuỗi | P1 | 19/11 |
+| `GET /rooms?q=&minRent=&maxRent=&sort=` | Mọi người | Tìm phòng: từ khóa (bỏ dấu), khoảng giá thuê, sắp xếp | P1 | 19/11 |
+| `GET /rooms/:roomId` | Mọi người | Chi tiết phòng trong danh mục | P1 | 19/11 |
+| `POST /rooms/:roomId/requests` | Người thuê | Gửi yêu cầu thuê kèm ngày dọn vào, ngày hết hạn | P1 | 19/11 |
+| `GET /requests` | Đã đăng nhập | Yêu cầu gửi đến phòng của tôi (`incoming`) và yêu cầu tôi đã gửi (`outgoing`) | P1 | 19/11 |
+| `POST /requests/:requestId/approve` | Chủ trọ | Duyệt: ghép ngày vào điều khoản, tạo tin đăng riêng, trả `createDealArgs` | P1 | 19/11 |
+| `POST /requests/:requestId/reject`, `/cancel` | Chủ trọ / người thuê | Từ chối / hủy yêu cầu đang chờ | P1 | 19/11 |
 | `POST /listings/:listingId/onchain` | Chủ trọ | Gắn `dealId` sau khi `createDeal` thành công | P0 | 14/11 |
-| `GET /listings?state=OPEN` | Mọi người | Danh sách "Phòng đang trống" | P0 | 14/11 |
+| `GET /listings?state=OPEN` | Mọi người | Deal OPEN công khai (không gồm tin đăng riêng từ yêu cầu thuê, không gồm deal đã quá hạn nhận cọc) | P0 | 14/11 |
 | `GET /deals/:dealId` | Mọi người | Điều khoản + trạng thái trên chuỗi + bộ ảnh + báo cáo AI | P0 | 15/11 |
 | `GET /deals?wallet=0x...` | Đã đăng nhập | Các hợp đồng của một ví | P0 | 15/11 |
 | `POST /deals/:dealId/photo-sets` | Người thuê (chủ trọ khi trả thay) | Gom ảnh thành bộ, trả `setHash` để ký lên chuỗi | P0 | 15/11 |
@@ -51,7 +58,7 @@ Nguyên tắc thứ tự giữa API và chuỗi: frontend gọi API để lấy 
 
 Mỗi luồng đều theo một kiểu: API trả hash, người dùng ký hash lên chuỗi, server đối chiếu lại với chuỗi.
 
-1. Đăng phòng: `POST /uploads` cho từng ảnh → `POST /listings` (nhận `termsHash`) → ví ký `createDeal(..., termsHash)` → `POST /listings/:id/onchain`.
+1. Đăng phòng (từ 19/11): chủ trọ `POST /uploads` cho từng ảnh → `POST /rooms`. Người thuê `GET /rooms` → `POST /rooms/:roomId/requests` (chọn ngày). Chủ trọ `POST /requests/:id/approve` (nhận `termsHash`, `createDealArgs`) → ví ký `createDeal(..., termsHash)` → `POST /listings/:id/onchain`. Người thuê gửi cọc như cũ. Luồng cũ `POST /listings` → `createDeal` vẫn chạy.
 2. Ảnh nhận hoặc trả phòng: `POST /uploads` cho từng vị trí → `POST /deals/:id/photo-sets` (nhận `setHash`) → ví ký `submitCheckIn(id, setHash)` hoặc `submitCheckOut(id, setHash)`.
 3. Báo cáo AI và đề xuất: sau khi `submitCheckOut` đã xác nhận, `POST /deals/:id/ai/damage` → hỏi `GET /deals/:id/ai/damage` tới khi `status` là `done` → chủ trọ ký `proposeDeduction(id, amount, aiAmount, reportHash, signature)`.
 
@@ -136,6 +143,46 @@ Server đọc `getDeal(12)` và chỉ nhận khi `termsHash` và `landlord` kh�
                "depositAmount": "240000000", "reserveFeeAmount": "20000000",
                "moveInDate": "2026-11-20T02:00:00Z", "coverUrl": "https://...", "landlord": "0x..." } ] }
 ```
+
+### Danh mục phòng và yêu cầu thuê (19/11)
+
+Contract không đổi. Ngày vẫn bị khóa trong `termsHash` như cũ, chỉ khác là ngày do người thuê chọn và được ghép vào điều khoản lúc chủ trọ duyệt.
+
+`POST /rooms`: body như `POST /listings` nhưng không có `dates`. Trả `201 { "roomId": "rm_..." }`.
+
+`GET /rooms?q=quan 10&minRent=2000000&maxRent=4000000&sort=price_asc` (`sort`: `newest` mặc định, `price_asc`, `price_desc`). Từ khóa so với tên, địa chỉ, tiện nghi, không phân biệt dấu và hoa thường.
+
+```
+{ "items": [ { "roomId": "rm_...", "title": "...", "address": "...", "rentVnd": 3500000, "amenities": ["máy lạnh"],
+               "depositAmount": "240000000", "reserveFeeAmount": "20000000", "coverUrl": "https://...",
+               "landlord": "0x...", "createdAt": "2026-11-19T02:00:00Z" } ] }
+```
+
+`GET /rooms/:roomId`: như một item ở trên, thêm `listingPhotoUrls`, `positions` (`id`, `name`, `instruction`, `exampleUrl`), `priceList`, `yieldEnabled`.
+
+`POST /rooms/:roomId/requests`:
+
+```
+{ "moveInDate": "2026-12-01T02:00:00Z", "leaseEnd": "2027-06-01T02:00:00Z", "note": "Em là sinh viên" }
+```
+
+Ngày dọn vào phải sau lúc gửi ít nhất 1 giờ, thời hạn tối đa 5 năm, mỗi người thuê chỉ một yêu cầu đang chờ cho mỗi phòng (`409 WRONG_STATE`), chủ trọ không gửi cho phòng của mình (`403`). Trả `201 { "requestId": "rq_...", "status": "PENDING" }`.
+
+`GET /requests` trả `{ "incoming": [...], "outgoing": [...] }`, mỗi phần tử:
+
+```
+{ "requestId": "rq_...", "roomId": "rm_...", "title": "...", "landlord": "0x...", "tenant": "0x...",
+  "moveInDate": "...", "leaseEnd": "...", "note": null, "status": "PENDING",
+  "listingId": null, "dealId": null, "createdAt": "...", "decidedAt": null }
+```
+
+`status`: `PENDING` | `APPROVED` | `REJECTED` | `CANCELLED`. `dealId` có khi tin đăng của yêu cầu đã gắn hợp đồng trên chuỗi.
+
+`POST /requests/:id/approve` (chủ trọ của phòng): trả `201` như `POST /listings` (`listingId`, `termsHash`, `createDealArgs`) và `dealId: null`. Gọi lại khi đã duyệt mà chưa lên chuỗi thì trả đúng tin đăng cũ (không tạo deal thứ hai); đã lên chuỗi thì `dealId` có giá trị. Ngày dọn vào cộng `moveInGrace` đã qua (hoặc còn dưới 10 phút) thì `409 WRONG_STATE`: người thuê gửi yêu cầu mới. Tin đăng sinh ra có `request_id`, không hiện ở `GET /listings` nhưng `GET /deals/:dealId` vẫn đọc được.
+
+Giới hạn đã biết: contract cho bất kỳ ai gửi cọc vào deal OPEN. Tin đăng riêng chỉ được che khỏi danh sách công khai, chưa chặn trên chuỗi.
+
+`POST /requests/:id/reject` (chủ trọ), `POST /requests/:id/cancel` (người gửi): chỉ khi `PENDING`, ngược lại `409 WRONG_STATE`.
 
 ### GET /deals/:dealId
 

@@ -3,6 +3,7 @@ import "server-only";
 import { db, newId } from "./db";
 export { newId };
 import type { Address, Hash, PhotoSetKind, PhotoSetManifest, Terms } from "../types";
+import type { RoomTemplate } from "./terms-builder";
 
 // ------------------------------------------------------------------ ảnh
 
@@ -61,6 +62,7 @@ function normalizeMeta(r: PhotoMeta): PhotoMeta {
 
 export interface ListingRow {
   id: string;
+  request_id?: string | null;
   landlord: Address;
   terms: Terms;
   terms_hash: Hash;
@@ -68,11 +70,12 @@ export interface ListingRow {
   tx_hash: string | null;
 }
 
-export async function insertListing(landlord: Address, terms: Terms, termsHash: Hash): Promise<string> {
+/** `requestId`: tin đăng sinh ra khi chủ trọ duyệt một yêu cầu thuê (riêng cho người gửi, không liệt kê công khai). */
+export async function insertListing(landlord: Address, terms: Terms, termsHash: Hash, requestId: string | null = null): Promise<string> {
   const id = newId("ls");
   await (await db()).query(
-    "INSERT INTO listings (id, landlord, terms, terms_hash) VALUES ($1, $2, $3::text::jsonb, $4)",
-    [id, landlord, JSON.stringify(terms), termsHash],
+    "INSERT INTO listings (id, landlord, terms, terms_hash, request_id) VALUES ($1, $2, $3::text::jsonb, $4, $5)",
+    [id, landlord, JSON.stringify(terms), termsHash, requestId],
   );
   return id;
 }
@@ -97,7 +100,7 @@ export async function bindListing(id: string, dealId: bigint, txHash: string): P
 
 export async function listBoundListings(): Promise<ListingRow[]> {
   const rows = await (await db()).query<ListingRow>(
-    "SELECT * FROM listings WHERE deal_id IS NOT NULL ORDER BY deal_id DESC LIMIT 200",
+    "SELECT * FROM listings WHERE deal_id IS NOT NULL AND request_id IS NULL ORDER BY deal_id DESC LIMIT 200",
   );
   return rows.map(fixListing);
 }
@@ -265,4 +268,110 @@ export async function claimFaucet(wallet: Address): Promise<boolean> {
 
 export async function releaseFaucet(wallet: Address) {
   await (await db()).query("DELETE FROM faucet_claims WHERE wallet = $1", [wallet]);
+}
+
+// ------------------------------------------------------------------ danh mục phòng và yêu cầu thuê
+
+export interface RoomRow {
+  id: string;
+  landlord: Address;
+  template: RoomTemplate;
+  active: boolean;
+  created_at: string;
+}
+
+export type RequestStatus = "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+
+export interface RequestRow {
+  id: string;
+  room_id: string;
+  tenant: Address;
+  move_in: string;
+  lease_end: string;
+  note: string | null;
+  status: RequestStatus;
+  listing_id: string | null;
+  created_at: string;
+  decided_at: string | null;
+  // từ JOIN
+  landlord?: Address;
+  title?: string;
+  deal_id?: string | null;
+}
+
+const iso = (v: unknown) => (v instanceof Date ? v.toISOString() : v == null ? null : String(v));
+const fixRoom = (r: RoomRow): RoomRow => ({ ...r, created_at: iso(r.created_at)! });
+const fixRequest = (r: RequestRow): RequestRow => ({
+  ...r,
+  move_in: iso(r.move_in)!,
+  lease_end: iso(r.lease_end)!,
+  created_at: iso(r.created_at)!,
+  decided_at: iso(r.decided_at),
+  deal_id: r.deal_id == null ? null : String(r.deal_id),
+});
+
+export async function insertRoom(landlord: Address, template: RoomTemplate): Promise<string> {
+  const id = newId("rm");
+  await (await db()).query("INSERT INTO rooms (id, landlord, template) VALUES ($1, $2, $3::text::jsonb)", [
+    id,
+    landlord,
+    JSON.stringify(template),
+  ]);
+  return id;
+}
+
+export async function getRoom(id: string): Promise<RoomRow | null> {
+  const rows = await (await db()).query<RoomRow>("SELECT * FROM rooms WHERE id = $1", [id]);
+  return rows[0] ? fixRoom(rows[0]) : null;
+}
+
+/** Phòng đang mở trong danh mục, mới trước. Lọc và tìm làm ở route (bỏ dấu tiếng Việt cho dễ gõ). */
+export async function listActiveRooms(limit = 500): Promise<RoomRow[]> {
+  const rows = await (await db()).query<RoomRow>("SELECT * FROM rooms WHERE active ORDER BY created_at DESC LIMIT $1", [limit]);
+  return rows.map(fixRoom);
+}
+
+export async function insertRequest(r: { roomId: string; tenant: Address; moveIn: Date; leaseEnd: Date; note: string | null }) {
+  const id = newId("rq");
+  await (await db()).query(
+    "INSERT INTO rental_requests (id, room_id, tenant, move_in, lease_end, note) VALUES ($1, $2, $3, $4, $5, $6)",
+    [id, r.roomId, r.tenant, r.moveIn.toISOString(), r.leaseEnd.toISOString(), r.note],
+  );
+  return id;
+}
+
+const REQUEST_SELECT = `SELECT q.*, r.landlord, r.template->'room'->>'title' AS title, l.deal_id
+  FROM rental_requests q JOIN rooms r ON r.id = q.room_id LEFT JOIN listings l ON l.id = q.listing_id`;
+
+export async function getRequest(id: string): Promise<RequestRow | null> {
+  const rows = await (await db()).query<RequestRow>(`${REQUEST_SELECT} WHERE q.id = $1`, [id]);
+  return rows[0] ? fixRequest(rows[0]) : null;
+}
+
+export async function listRequestsByTenant(tenant: Address): Promise<RequestRow[]> {
+  const rows = await (await db()).query<RequestRow>(`${REQUEST_SELECT} WHERE q.tenant = $1 ORDER BY q.created_at DESC LIMIT 100`, [tenant]);
+  return rows.map(fixRequest);
+}
+
+export async function listRequestsByLandlord(landlord: Address): Promise<RequestRow[]> {
+  const rows = await (await db()).query<RequestRow>(`${REQUEST_SELECT} WHERE r.landlord = $1 ORDER BY q.created_at DESC LIMIT 100`, [landlord]);
+  return rows.map(fixRequest);
+}
+
+export async function hasPendingRequest(roomId: string, tenant: Address): Promise<boolean> {
+  const rows = await (await db()).query<{ id: string }>(
+    "SELECT id FROM rental_requests WHERE room_id = $1 AND tenant = $2 AND status = 'PENDING' LIMIT 1",
+    [roomId, tenant],
+  );
+  return rows.length > 0;
+}
+
+/** Đổi trạng thái, chỉ khi đang ở `from` (tránh hai thao tác chồng nhau). Trả true nếu đổi được. */
+export async function setRequestStatus(id: string, from: RequestStatus, to: RequestStatus, listingId: string | null = null) {
+  const rows = await (await db()).query<{ id: string }>(
+    `UPDATE rental_requests SET status = $3, listing_id = COALESCE($4, listing_id), decided_at = now()
+     WHERE id = $1 AND status = $2 RETURNING id`,
+    [id, from, to, listingId],
+  );
+  return rows.length > 0;
 }
