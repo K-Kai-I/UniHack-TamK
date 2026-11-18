@@ -30,7 +30,7 @@ Không tự đổi tên hàm, tên trường JSON, thứ tự enum, mã lỗi, �
 | --- | --- | --- |
 | `contracts/` | Contract + Backend (Khải) | Solidity, test, script deploy |
 | `web/app/api/`, `web/lib/server/`, `web/lib/hash.ts`, `web/lib/seal.ts`, `scripts/` | Contract + Backend (Khải) | API, ký con dấu, keeper |
-| `web/app/` (trừ `api/`), `web/components/`, `web/lib/client/` | Frontend | Màn hình, Privy, wagmi |
+| `web/app/` (trừ `api/`), `web/components/`, `web/lib/client/` | Frontend (Khánh) | Màn hình, Privy, wagmi |
 | `web/lib/ai/` | AI | Chỉ 2 hàm `compareDamage`, `compareListing` và prompt |
 | `docs/`, `shared/` | Cả nhóm | Sửa phải báo cả nhóm trước |
 
