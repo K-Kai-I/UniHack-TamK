@@ -40,8 +40,8 @@ async function tick(req: Request) {
       errors.push({ dealId: Number(id), error: ((e as Error).message ?? "lỗi").split("\n")[0] });
     }
   }
-  // Tiện thể đọc sự kiện mới cho mục history (mỗi phút một lần là đủ theo kịp chuỗi).
-  const events = await syncEvents(20).catch((e) => {
+  // Tiện thể đọc sự kiện mới cho mục history: đọc tối đa 25 giây mỗi lần (RPC Fuji chỉ cho 100 khối mỗi lần gọi).
+  const events = await syncEvents(1000, 25_000).catch((e) => {
     console.error("[events]", e);
     return -1;
   });

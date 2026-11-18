@@ -1,6 +1,7 @@
 // Đọc sự kiện của contract về database để làm mục history trong GET /deals/:id.
-// RPC công khai của Fuji giới hạn số khối mỗi lần eth_getLogs, nên đọc từng đoạn 2.000 khối
-// và nhớ khối cuối đã đọc. Bot keeper gọi mỗi phút nên mỗi lần chỉ phải đọc một hai đoạn.
+// RPC công khai của Fuji giới hạn số khối mỗi lần eth_getLogs (từ 11/2026: tối đa 100 khối), nên đọc từng đoạn
+// LOGS_CHUNK khối (mặc định 100) và nhớ khối cuối đã đọc. Bot keeper đọc nhiều đoạn trong một ngân sách thời gian
+// để đuổi kịp chuỗi (Fuji ~2 giây một khối, tức ~1.800 khối mỗi giờ).
 import "server-only";
 import { decodeEventLog, numberToHex, type Log } from "viem";
 import deployments from "@shared/deployments.json";
@@ -9,14 +10,51 @@ import { publicClient } from "./chain";
 import { db } from "./db";
 import { DEAL_STATES, type Hash } from "../types";
 
-const CHUNK = BigInt(2000);
+const CHUNK = BigInt(Math.max(1, Math.floor(Number(process.env.LOGS_CHUNK ?? 100)) || 100));
 
 async function cursorKey() {
   return `events:${addresses.escrow.toLowerCase()}`;
 }
 
-/** Đọc thêm tối đa maxChunks đoạn khối. Lỗi RPC thì dừng, lần sau đọc tiếp. Trả số sự kiện mới. */
-export async function syncEvents(maxChunks = 10): Promise<number> {
+/** Số đoạn hỏi cùng lúc. RPC công khai chịu được vài yêu cầu song song; tăng nữa dễ bị chặn tốc độ. */
+const PARALLEL = 5;
+
+/** Giải mã log của contract và lưu vào chain_events. Trả số sự kiện đã đọc. */
+async function saveLogs(conn: Awaited<ReturnType<typeof db>>, logs: Log[]): Promise<number> {
+  const decoded = logs.flatMap((log) => {
+    try {
+      const ev = decodeEventLog({ abi: escrowAbi, data: log.data, topics: log.topics });
+      const args = ev.args as { id?: bigint; to?: number };
+      if (args.id === undefined) return [];
+      // StateChanged ghi kèm trạng thái mới, vd "StateChanged:ACTIVE" (poke chỉ phát sự kiện này).
+      const name = ev.eventName === "StateChanged" ? `StateChanged:${DEAL_STATES[Number(args.to)]}` : ev.eventName;
+      return [{ log, event: name, dealId: args.id }];
+    } catch {
+      return [];
+    }
+  });
+  // Thời điểm = timestamp của khối chứa giao dịch.
+  const blocks = [...new Set(decoded.map((d) => BigInt(d.log.blockNumber as unknown as string)))];
+  const times = new Map(
+    await Promise.all(
+      blocks.map(async (b) => [b.toString(), (await publicClient.getBlock({ blockNumber: b })).timestamp] as const),
+    ),
+  );
+  for (const d of decoded) {
+    const block = BigInt(d.log.blockNumber as unknown as string);
+    await conn.query(
+      `INSERT INTO chain_events (tx_hash, log_index, block_number, deal_id, event, at)
+       VALUES ($1, $2, $3, $4, $5, to_timestamp($6)) ON CONFLICT DO NOTHING`,
+      [d.log.transactionHash, Number(d.log.logIndex), block.toString(), d.dealId.toString(), d.event, Number(times.get(block.toString()))],
+    );
+  }
+  return decoded.length;
+}
+
+/** Đọc thêm tối đa maxChunks đoạn khối, dừng sớm khi quá budgetMs. Lỗi RPC thì dừng, lần sau đọc tiếp
+ *  (con trỏ đã lưu sau mỗi đoạn). Trả số sự kiện mới. */
+export async function syncEvents(maxChunks = 10, budgetMs = Infinity): Promise<number> {
+  const startedAt = Date.now();
   const conn = await db();
   const key = await cursorKey();
   const rows = await conn.query<{ value: string }>("SELECT value FROM sync_state WHERE key = $1", [key]);
@@ -24,47 +62,35 @@ export async function syncEvents(maxChunks = 10): Promise<number> {
   const latest = await publicClient.getBlockNumber();
   let added = 0;
 
-  for (let i = 0; i < maxChunks && from <= latest; i++) {
-    const to = from + CHUNK - BigInt(1) < latest ? from + CHUNK - BigInt(1) : latest;
-    const logs = (await publicClient.request({
-      method: "eth_getLogs",
-      params: [{ address: addresses.escrow, fromBlock: numberToHex(from), toBlock: numberToHex(to) }],
-    })) as Log[];
-
-    const decoded = logs.flatMap((log) => {
-      try {
-        const ev = decodeEventLog({ abi: escrowAbi, data: log.data, topics: log.topics });
-        const args = ev.args as { id?: bigint; to?: number };
-        if (args.id === undefined) return [];
-        // StateChanged ghi kèm trạng thái mới, vd "StateChanged:ACTIVE" (poke chỉ phát sự kiện này).
-        const name = ev.eventName === "StateChanged" ? `StateChanged:${DEAL_STATES[Number(args.to)]}` : ev.eventName;
-        return [{ log, event: name, dealId: args.id }];
-      } catch {
-        return [];
-      }
-    });
-
-    // Thời điểm = timestamp của khối chứa giao dịch.
-    const blocks = [...new Set(decoded.map((d) => BigInt(d.log.blockNumber as unknown as string)))];
-    const times = new Map(
-      await Promise.all(
-        blocks.map(async (b) => [b.toString(), (await publicClient.getBlock({ blockNumber: b })).timestamp] as const),
+  let chunks = 0;
+  while (chunks < maxChunks && from <= latest && Date.now() - startedAt < budgetMs) {
+    // Hỏi song song vài đoạn liền nhau rồi xử lý theo thứ tự; đoạn nào lỗi thì dừng ở đó (lần sau đọc tiếp).
+    const ranges: { from: bigint; to: bigint }[] = [];
+    for (let f = from; ranges.length < PARALLEL && chunks + ranges.length < maxChunks && f <= latest; ) {
+      const to = f + CHUNK - BigInt(1) < latest ? f + CHUNK - BigInt(1) : latest;
+      ranges.push({ from: f, to });
+      f = to + BigInt(1);
+    }
+    const results = await Promise.allSettled(
+      ranges.map(
+        (r) =>
+          publicClient.request({
+            method: "eth_getLogs",
+            params: [{ address: addresses.escrow, fromBlock: numberToHex(r.from), toBlock: numberToHex(r.to) }],
+          }) as Promise<Log[]>,
       ),
     );
-    for (const d of decoded) {
-      const block = BigInt(d.log.blockNumber as unknown as string);
+    for (let k = 0; k < ranges.length; k++) {
+      const res = results[k];
+      if (res.status === "rejected") throw res.reason;
+      added += await saveLogs(conn, res.value);
       await conn.query(
-        `INSERT INTO chain_events (tx_hash, log_index, block_number, deal_id, event, at)
-         VALUES ($1, $2, $3, $4, $5, to_timestamp($6)) ON CONFLICT DO NOTHING`,
-        [d.log.transactionHash, Number(d.log.logIndex), block.toString(), d.dealId.toString(), d.event, Number(times.get(block.toString()))],
+        "INSERT INTO sync_state (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
+        [key, ranges[k].to.toString()],
       );
-      added++;
+      from = ranges[k].to + BigInt(1);
+      chunks++;
     }
-    await conn.query(
-      "INSERT INTO sync_state (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
-      [key, to.toString()],
-    );
-    from = to + BigInt(1);
   }
   return added;
 }
