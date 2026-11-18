@@ -780,13 +780,13 @@ function DetailSkeleton() {
 function NotFound() {
   return (
     <PageShell size="read">
-      <PageHeader href="/" backLabel="Về trang chủ" />
+      <PageHeader href="/home" backLabel="Về trang chủ" />
       <div className="mt-8 grid place-items-center gap-3 rounded-2xl bg-muted px-6 py-12 text-center">
         <SearchX className="size-8 text-muted-foreground" aria-hidden="true" />
         <h1 className="text-xl font-bold">Không tìm thấy hợp đồng này</h1>
         <p className="text-sm text-muted-foreground">Đường dẫn có thể bị sai.</p>
         <Button asChild>
-          <Link href="/">Về trang chủ</Link>
+          <Link href="/home">Về trang chủ</Link>
         </Button>
       </div>
     </PageShell>

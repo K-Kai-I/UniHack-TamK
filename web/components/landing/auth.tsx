@@ -1,45 +1,45 @@
 "use client";
-// Phần landing cần Privy: nút đăng nhập và cổng chọn landing / màn home.
-import { useEffect, useState, type ReactNode } from "react";
+// Phần landing cần Privy: đồng bộ dấu phiên, nút đăng nhập / "Vào app", thanh nút dính đáy.
+// "/" luôn là landing (kể cả đã đăng nhập, để giám khảo xem được); màn home của app ở /home.
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { usePrivy } from "@privy-io/react-auth";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Onboarding } from "@/components/onboarding";
-import { NetworkBanner } from "@/components/network-banner";
 import { cn } from "@/lib/utils";
 
+export const APP_HOME = "/home";
+
 /**
- * Chưa đăng nhập: landing (render sẵn phía server, nên ai mở link cũng thấy ngay).
- * Đã đăng nhập: giữ nguyên màn "Hôm nay, bạn cần làm gì?".
- * Privy chỉ biết phiên ở phía client, nên trong lúc Privy chưa sẵn sàng vẫn hiện landing.
+ * Script đầu trang (app/page.tsx) đoán phiên từ localStorage để chọn nút ngay lúc vẽ trang.
+ * Privy xong thì đặt lại dấu theo kết quả thật.
  */
-export function HomeGate({ children }: { children: ReactNode }) {
+export function SessionSync() {
   const { ready, authenticated } = usePrivy();
-  // Script đầu trang đoán "có phiên" để giấu landing; Privy xong mà chưa đăng nhập thì gỡ dấu đó ra.
   useEffect(() => {
-    if (ready && !authenticated) delete document.documentElement.dataset.session;
+    if (!ready) return;
+    if (authenticated) document.documentElement.dataset.session = "1";
+    else delete document.documentElement.dataset.session;
   }, [ready, authenticated]);
-  if (ready && authenticated) {
-    return (
-      <>
-        <NetworkBanner />
-        <Onboarding />
-      </>
-    );
-  }
-  return <>{children}</>;
+  return null;
 }
 
-/** Bấm trước khi Privy sẵn sàng thì nhớ lại, mở cửa sổ đăng nhập ngay khi Privy xong. */
+type Size = "default" | "lg";
+type Variant = "default" | "outline" | "secondary" | "ghost";
+
+/** Bấm trước khi Privy sẵn sàng thì nhớ lại; đăng nhập xong từ nút này thì vào thẳng app. */
 export function LoginButton({ children = "Bắt đầu với Google", variant = "default", size = "lg", className, arrow = true }: {
   children?: ReactNode;
-  variant?: "default" | "outline" | "secondary" | "ghost";
-  size?: "default" | "lg";
+  variant?: Variant;
+  size?: Size;
   className?: string;
   arrow?: boolean;
 }) {
-  const { ready, login } = usePrivy();
+  const { ready, authenticated, login } = usePrivy();
+  const router = useRouter();
   const [pending, setPending] = useState(false);
+  const clicked = useRef(false);
 
   useEffect(() => {
     if (ready && pending) {
@@ -48,17 +48,53 @@ export function LoginButton({ children = "Bắt đầu với Google", variant = 
     }
   }, [ready, pending, login]);
 
+  // Chỉ chuyển trang khi người dùng vừa đăng nhập bằng chính nút này, không đẩy người đang xem landing đi.
+  useEffect(() => {
+    if (clicked.current && authenticated) router.push(APP_HOME);
+  }, [authenticated, router]);
+
   return (
     <Button
       variant={variant}
       size={size}
       className={cn("group/login", className)}
       aria-busy={pending || undefined}
-      onClick={() => (ready ? login() : setPending(true))}
+      onClick={() => {
+        clicked.current = true;
+        if (ready) login();
+        else setPending(true);
+      }}
     >
       {children}
       {arrow && <ArrowRight aria-hidden="true" className="transition-transform duration-200 ease-out group-hover/login:translate-x-0.5" />}
     </Button>
+  );
+}
+
+/** Nút hành động chính: khách thấy nút đăng nhập, người đã đăng nhập thấy "Vào app". CSS chọn theo <html data-session>. */
+export function AuthCta({ guest = "Bắt đầu với Google", member = "Vào app", variant = "default", memberVariant, size = "lg", className, arrow = true }: {
+  guest?: string;
+  member?: string;
+  variant?: Variant;
+  memberVariant?: Variant;
+  size?: Size;
+  className?: string;
+  arrow?: boolean;
+}) {
+  return (
+    <>
+      <span data-when-guest>
+        <LoginButton variant={variant} size={size} className={className} arrow={arrow}>{guest}</LoginButton>
+      </span>
+      <span data-when-session>
+        <Button asChild variant={memberVariant ?? variant} size={size} className={cn("group/login", className)}>
+          <Link href={APP_HOME}>
+            {member}
+            <ArrowRight aria-hidden="true" className="transition-transform duration-200 ease-out group-hover/login:translate-x-0.5" />
+          </Link>
+        </Button>
+      </span>
+    </>
   );
 }
 
@@ -90,7 +126,7 @@ export function StickyCta() {
         show ? "visible translate-y-0" : "invisible translate-y-full",
       )}
     >
-      <LoginButton className="w-full" />
+      <AuthCta className="w-full" />
     </div>
   );
 }

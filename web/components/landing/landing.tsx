@@ -3,7 +3,7 @@
 import "server-only";
 import { Suspense, type ReactNode } from "react";
 import { ExternalLink, Plus, ShieldCheck } from "lucide-react";
-import { LoginButton, StickyCta } from "./auth";
+import { AuthCta, StickyCta } from "./auth";
 import { CompareSlider } from "./compare-slider";
 import { EXAMPLE, POSITIONS, PRICE_LIST, WINDOWS, hasPhoto, vnd } from "./data";
 import { Hero } from "./hero";
@@ -64,7 +64,7 @@ function Header() {
             <a key={href} href={href} className="rounded-lg px-3 py-2 text-[0.95rem] font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-primary">{label}</a>
           ))}
         </nav>
-        <LoginButton size="default" variant="outline" arrow={false}>Đăng nhập</LoginButton>
+        <AuthCta guest="Đăng nhập" size="default" variant="outline" memberVariant="default" arrow={false} />
       </div>
     </header>
   );
@@ -436,8 +436,11 @@ function Close() {
           Tiền cọc rõ ràng, từ nhận đến trả phòng.
         </h2>
         <div id="close-cta" className="flex flex-col items-center gap-3">
-          <LoginButton className="min-h-16 px-8 text-lg" />
-          <p className="text-sm text-muted-foreground">Đăng nhập bằng Google là dùng được, không cần cài thêm gì.</p>
+          <AuthCta className="min-h-16 px-8 text-lg" />
+          <p className="text-sm text-muted-foreground">
+            <span data-when-guest>Đăng nhập bằng Google là dùng được, không cần cài thêm gì.</span>
+            <span data-when-session>Bạn đã đăng nhập. Vào app để xem hợp đồng và việc cần làm.</span>
+          </p>
         </div>
       </div>
     </section>

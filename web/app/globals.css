@@ -226,7 +226,8 @@
   }
 }
 
-/* Trang "/": script đầu trang đặt data-session khi thấy phiên Privy, để không nháy landing (app/page.tsx). */
-[data-session-skeleton] { display: none; }
-html[data-session] [data-session-skeleton] { display: block; }
-html[data-session] [data-landing] { display: none; }
+/* Landing "/": script đầu trang đặt data-session khi thấy phiên Privy (app/page.tsx), CSS chọn nút đăng nhập hay "Vào app". */
+[data-when-guest] { display: contents; }
+[data-when-session] { display: none; }
+html[data-session] [data-when-guest] { display: none; }
+html[data-session] [data-when-session] { display: contents; }

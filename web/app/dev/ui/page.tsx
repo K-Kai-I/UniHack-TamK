@@ -28,7 +28,7 @@ export default function DevUiPage() {
 
   return (
     <PageShell size={size}>
-      <PageHeader href="/" backLabel="Về trang chủ" title="Bộ giao diện dùng chung" />
+      <PageHeader href="/home" backLabel="Về trang chủ" title="Bộ giao diện dùng chung" />
       <header className="my-6 space-y-3">
         <h1 className="text-2xl font-bold text-primary">Căn phòng qua từng mốc</h1>
         <p className="max-w-prose text-muted-foreground">Mẫu nội bộ của hướng A. Số tiền và trạng thái bên dưới là dữ liệu giả; các nút mẫu không ký hay gửi giao dịch.</p>

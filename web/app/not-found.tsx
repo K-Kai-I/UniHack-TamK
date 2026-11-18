@@ -8,14 +8,14 @@ import { Button } from "@/components/ui/button";
 export default function NotFound() {
   return (
     <PageShell size="read">
-      <PageHeader href="/" backLabel="Về trang chủ" />
+      <PageHeader href="/home" backLabel="Về trang chủ" />
       <section className="mt-8 grid place-items-center gap-3 rounded-2xl bg-muted px-6 py-12 text-center">
         <SearchX className="size-8 text-muted-foreground" aria-hidden="true" />
         <h1 className="text-xl font-bold">Không tìm thấy trang này</h1>
         <p className="text-muted-foreground">Đường dẫn có thể bị sai hoặc trang đã được chuyển.</p>
         <div className="flex flex-wrap justify-center gap-3">
           <Button asChild>
-            <Link href="/">Về trang chủ</Link>
+            <Link href="/home">Về trang chủ</Link>
           </Button>
           <Button asChild variant="outline">
             <Link href="/deals">Hợp đồng của tôi</Link>
