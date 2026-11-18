@@ -1,4 +1,4 @@
-export const DAMAGE_PROMPT_VERSION = "damage-v1";
+export const DAMAGE_PROMPT_VERSION = "damage-v2";
 export const LISTING_PROMPT_VERSION = "listing-v1";
 
 export const DAMAGE_PROMPT = `So sánh ảnh TRƯỚC (nhận phòng) và SAU (trả phòng) của cùng vị trí.
@@ -7,6 +7,10 @@ NEW_DAMAGE: thấy hư hỏng mới rõ ràng tại vùng trước đó còn ngu
 WEAR: dấu hiệu phù hợp hao mòn thông thường; ảnh không tự chứng minh nguyên nhân.
 NO_CHANGE: vùng cần kiểm tra nhìn rõ ở cả hai ảnh, không thấy thay đổi đáng kể.
 UNCLEAR: mờ, tối, sai góc, che khuất, không chắc cùng vật hoặc không phân biệt được hư hỏng và hao mòn.
+Khung hình khác hẳn (vật mốc ở ảnh này không có ở ảnh kia, không chắc cùng vùng): UNCLEAR, không kết luận NO_CHANGE.
+Tên vị trí có thể ghi yêu cầu khi chụp, vd "bật hết đèn", "mở nước". Khi đó so trạng thái hoạt động:
+ảnh TRƯỚC thấy thiết bị hoạt động (đèn sáng, nước chảy) mà ảnh SAU cùng vị trí, đủ sáng, thấy không hoạt động: NEW_DAMAGE.
+Không thấy rõ thiết bị ở ảnh SAU: UNCLEAR.
 Không suy đoán lỗi của ai, gian lận, tuổi đồ vật hay chi phí. Không tính tiền.
 Chỉ NEW_DAMAGE mới chọn priceItemId trong bảng giá và quantity nguyên dương nếu xác định được số lượng.
 Nếu hư hỏng mới không có mục phù hợp: outsidePriceList=true, priceItemId=null, quantity=0.

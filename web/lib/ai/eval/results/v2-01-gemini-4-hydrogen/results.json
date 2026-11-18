@@ -1,0 +1,110 @@
+{
+  "startedAt": "2026-11-18T20:01:58.194Z",
+  "run": "v2-01",
+  "provider": "google",
+  "model": "gemini-4-hydrogen",
+  "endpoint": "interactions",
+  "dataset": "reference-v2/cases.json",
+  "qualification": "Provisional visual labels, not human ground truth. Rerun is stability, not held-out accuracy. Summary errors includes skipped rows; see requestCoverage.",
+  "requestCoverage": {
+    "attempted": 5,
+    "skipped": 0
+  },
+  "summary": [
+    {
+      "group": "gemini-4-hydrogen/damage",
+      "total": 5,
+      "valid": 0,
+      "errors": 5,
+      "labelMatches": 0,
+      "fieldMatches": 0,
+      "labelAccuracyOnValid": null,
+      "successAndLabelRate": 0,
+      "reviewed": 5,
+      "medianMs": null,
+      "confusion": {
+        "NEW_DAMAGE": {
+          "ERROR": 3
+        },
+        "UNCLEAR": {
+          "ERROR": 1
+        },
+        "NO_CHANGE": {
+          "ERROR": 1
+        }
+      }
+    }
+  ],
+  "rows": [
+    {
+      "name": "01 - Khay cửa tủ lạnh",
+      "task": "damage",
+      "model": "gemini-4-hydrogen",
+      "promptVersion": "damage-v1",
+      "expected": "NEW_DAMAGE",
+      "predicted": null,
+      "labelStatus": "reviewed",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 5681,
+      "error": "AI_FAILED: Dịch vụ AI trả HTTP 503. Dịch vụ AI đang lỗi hoặc quá tải; thử lại sau.",
+      "output": null
+    },
+    {
+      "name": "02 - Cửa gỗ",
+      "task": "damage",
+      "model": "gemini-4-hydrogen",
+      "promptVersion": "damage-v1",
+      "expected": "NEW_DAMAGE",
+      "predicted": null,
+      "labelStatus": "reviewed",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 181054,
+      "error": "AI_FAILED: Không kết nối được AI hoặc quá 90 giây. Hãy thử lại. Đã thử 2 lần.",
+      "output": null
+    },
+    {
+      "name": "03 - Quạt đứng",
+      "task": "damage",
+      "model": "gemini-4-hydrogen",
+      "promptVersion": "damage-v1",
+      "expected": "UNCLEAR",
+      "predicted": null,
+      "labelStatus": "reviewed",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 8920,
+      "error": "AI_FAILED: Dịch vụ AI trả HTTP 503. Dịch vụ AI đang lỗi hoặc quá tải; thử lại sau.",
+      "output": null
+    },
+    {
+      "name": "04 - Tường cạnh máy lạnh",
+      "task": "damage",
+      "model": "gemini-4-hydrogen",
+      "promptVersion": "damage-v1",
+      "expected": "NO_CHANGE",
+      "predicted": null,
+      "labelStatus": "reviewed",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 6234,
+      "error": "AI_FAILED: Dịch vụ AI trả HTTP 503. Dịch vụ AI đang lỗi hoặc quá tải; thử lại sau.",
+      "output": null
+    },
+    {
+      "name": "05 - Tường gần ổ điện",
+      "task": "damage",
+      "model": "gemini-4-hydrogen",
+      "promptVersion": "damage-v1",
+      "expected": "NEW_DAMAGE",
+      "predicted": null,
+      "labelStatus": "reviewed",
+      "labelMatch": false,
+      "fieldsMatch": false,
+      "durationMs": 107796,
+      "error": "AI_FAILED: Dịch vụ AI trả HTTP 503. Dịch vụ AI đang lỗi hoặc quá tải; thử lại sau.",
+      "output": null
+    }
+  ]
+}

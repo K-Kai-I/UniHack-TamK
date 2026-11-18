@@ -1,0 +1,44 @@
+[
+  {
+    "id": "i1",
+    "item": "Sơn lại 1 mảng tường",
+    "unit": "mảng",
+    "priceAmount": "16000000"
+  },
+  {
+    "id": "i2",
+    "item": "Thay ổ khóa cửa",
+    "unit": "cái",
+    "priceAmount": "12000000"
+  },
+  {
+    "id": "i3",
+    "item": "Thay 1 viên gạch sàn",
+    "unit": "viên",
+    "priceAmount": "4000000"
+  },
+  {
+    "id": "i4",
+    "item": "Thay khay cửa tủ lạnh",
+    "unit": "cái",
+    "priceAmount": "6000000"
+  },
+  {
+    "id": "i5",
+    "item": "Thay bóng đèn",
+    "unit": "bóng",
+    "priceAmount": "3200000"
+  },
+  {
+    "id": "i6",
+    "item": "Thay vòi nước",
+    "unit": "cái",
+    "priceAmount": "10000000"
+  },
+  {
+    "id": "i7",
+    "item": "Bọc lại mặt ghế",
+    "unit": "cái",
+    "priceAmount": "8000000"
+  }
+]
