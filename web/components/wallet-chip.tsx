@@ -11,7 +11,7 @@ export function WalletChip({ address }: { address?: string }) {
   if (!address) {
     return (
       <span className="inline-flex items-center gap-2 rounded-full bg-muted px-3 py-1.5 text-sm text-muted-foreground">
-        <Wallet className="size-4 animate-pulse" /> Đang tạo ví…
+        <Wallet className="size-4 motion-safe:animate-pulse" aria-hidden="true" /> Đang tạo ví…
       </span>
     );
   }
@@ -22,7 +22,7 @@ export function WalletChip({ address }: { address?: string }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      toast.error("Không copy được địa chỉ");
+      toast.error("Không sao chép được địa chỉ ví");
     }
   }
 
@@ -30,12 +30,13 @@ export function WalletChip({ address }: { address?: string }) {
     <button
       type="button"
       onClick={copy}
-      className="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1.5 font-mono text-sm shadow-sm transition hover:bg-accent"
-      aria-label="Copy địa chỉ ví"
+      className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 font-mono text-sm transition-colors duration-150 hover:bg-accent"
+      aria-label={`Sao chép địa chỉ ví ${shortAddress(address)}`}
     >
-      <Wallet className="size-4 text-success" />
+      <Wallet className="size-4 text-muted-foreground" aria-hidden="true" />
       {shortAddress(address)}
-      {copied ? <Check className="size-4 text-success" /> : <Copy className="size-4 text-muted-foreground" />}
+      {copied ? <Check className="size-4 text-success" aria-hidden="true" /> : <Copy className="size-4 text-muted-foreground" aria-hidden="true" />}
+      <span className="sr-only" role="status">{copied ? "Đã sao chép" : ""}</span>
     </button>
   );
 }

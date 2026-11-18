@@ -3,6 +3,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 import { cn } from "@/lib/utils";
+import { PageShell } from "@/components/page-shell";
+import { ActionArea } from "@/components/action-area";
 
 /** Một dòng "nhãn ..... giá trị" trong khung <dl>. */
 export function Row({
@@ -19,9 +21,9 @@ export function Row({
   tone?: "success" | "destructive";
 }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 px-4 py-3">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="text-right tabular-nums">
+    <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-5 py-3">
+      <dt className="min-w-0 break-words text-muted-foreground">{label}</dt>
+      <dd className="ml-auto min-w-0 text-right break-words tabular-nums">
         <span
           className={cn(
             strong ? "text-xl font-extrabold" : "font-semibold",
@@ -94,7 +96,7 @@ export function Blocked({
   children?: React.ReactNode;
 }) {
   return (
-    <main className="mx-auto min-h-dvh max-w-md px-5">
+    <PageShell size="read">
       <PageHeader href={back} backLabel="Về hợp đồng" title={header} />
       <div className="mt-8 grid place-items-center gap-3 rounded-2xl bg-muted px-6 py-12 text-center">
         <p className="font-semibold">{title}</p>
@@ -105,15 +107,11 @@ export function Blocked({
           </Button>
         )}
       </div>
-    </main>
+    </PageShell>
   );
 }
 
-/** Thanh nút cố định ở đáy màn (tay cái với tới được). */
+/** Giữ tên export cho các màn hiện có; dùng chung vùng hành động responsive. */
 export function BottomBar({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="fixed inset-x-0 bottom-0 z-30 border-t bg-background/95 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <div className="mx-auto max-w-md space-y-2 px-5 pt-3">{children}</div>
-    </div>
-  );
+  return <ActionArea>{children}</ActionArea>;
 }

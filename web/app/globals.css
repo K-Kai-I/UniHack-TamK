@@ -42,6 +42,7 @@
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
@@ -77,69 +78,150 @@
 }
 
 /*
- * Bộ màu Két Cọc Trọ: Navy (két an toàn) + Emerald (tiền về an toàn). Chỉ giao diện sáng.
+ * Hướng A — Căn phòng qua từng mốc. Token theo DESIGN.md; chỉ giao diện sáng.
  * Đổi màu ở đây, đừng viết mã màu thẳng trong component: dùng class bg-primary, text-success...
  * Màu trạng thái deal: xem web/lib/client/deal-status.ts.
  */
 :root {
-  --background: #f7f9fc;
-  --foreground: #0f172a;
+  --background: #ffffff;
+  --foreground: #241f30;
   --card: #ffffff;
-  --card-foreground: #0f172a;
+  --card-foreground: #241f30;
   --popover: #ffffff;
-  --popover-foreground: #0f172a;
+  --popover-foreground: #241f30;
 
-  --primary: #0b2545; /* navy: nút chính, header */
+  --primary: #30254b;
+  --primary-hover: #241b3a;
   --primary-foreground: #ffffff;
-  --secondary: #e8eef6; /* nền navy nhạt: nút phụ */
-  --secondary-foreground: #0b2545;
-  --muted: #eef2f7;
-  --muted-foreground: #64748b;
-  --accent: #e7f8f1; /* nền emerald nhạt: hover, mục đang chọn */
-  --accent-foreground: #065f46;
+  --secondary: #f2eff8;
+  --secondary-foreground: #30254b;
+  --muted: #f5f3f8;
+  --muted-foreground: #655f73;
+  --accent: #ebe6f4;
+  --accent-foreground: #30254b;
 
-  --success: #10b981; /* emerald: tiền, thành công */
+  --success: #16634a;
   --success-foreground: #ffffff;
-  --warning: #f59e0b; /* sắp hết hạn, chờ phản hồi */
-  --warning-foreground: #451a03;
-  --info: #3b82f6; /* đang chờ ký, đang xử lý */
+  --warning: #f4c36a;
+  --warning-foreground: #65420c;
+  --info: #245da8;
   --info-foreground: #ffffff;
-  --destructive: #dc2626; /* kháng nghị, lỗi */
+  --destructive: #b42336;
   --destructive-foreground: #ffffff;
 
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #10b981;
+  --border: #ded9e8;
+  --input: #898092;
+  --ring: #6e5597;
 
-  --chart-1: #0b2545;
-  --chart-2: #10b981;
-  --chart-3: #3b82f6;
-  --chart-4: #f59e0b;
-  --chart-5: #64748b;
+  --chart-1: var(--primary);
+  --chart-2: var(--success);
+  --chart-3: var(--info);
+  --chart-4: var(--warning);
+  --chart-5: var(--muted-foreground);
 
   --radius: 0.875rem; /* bo góc to cho mobile */
 
-  --sidebar: #ffffff;
-  --sidebar-foreground: #0f172a;
-  --sidebar-primary: #0b2545;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #e7f8f1;
-  --sidebar-accent-foreground: #065f46;
-  --sidebar-border: #e2e8f0;
-  --sidebar-ring: #10b981;
+  --sidebar: var(--card);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
   body {
     @apply bg-background text-foreground;
+    line-height: 1.6;
   }
   button:not(:disabled), [role="button"]:not(:disabled) {
     cursor: pointer;
   }
   html {
     @apply font-sans;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
+  ::selection { background: var(--accent); color: var(--accent-foreground); }
+  input, textarea { caret-color: var(--primary); scroll-margin-block: 1rem; }
+}
+
+/* Max-width đã gồm lề. Các cột và nội dung dài phải co được. */
+.page-shell {
+  --page-gutter: 1rem;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 75rem;
+  min-width: 0;
+  margin-inline: auto;
+  padding-left: max(var(--page-gutter), env(safe-area-inset-left));
+  padding-right: max(var(--page-gutter), env(safe-area-inset-right));
+  overflow-wrap: break-word;
+}
+.page-shell[data-page-shell="read"] { max-width: 48rem; }
+.page-shell[data-page-shell="form"] { max-width: 40rem; }
+.page-columns { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2rem; }
+.page-columns > * { min-width: 0; }
+
+.action-area { min-width: 0; }
+.action-area-spacer { height: calc(var(--action-area-height, 0px) + 1rem); }
+.action-area-bar {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 30;
+  max-height: min(45dvh, calc(100dvh - 1rem));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-top: 1px solid var(--border);
+  background: var(--background);
+  padding-block: 0.75rem max(1rem, env(safe-area-inset-bottom));
+  scroll-padding-block: 1rem;
+}
+.action-area-content {
+  --action-gutter: 1rem;
+  width: 100%;
+  max-width: 40rem;
+  margin-inline: auto;
+  padding-left: max(var(--action-gutter), env(safe-area-inset-left));
+  padding-right: max(var(--action-gutter), env(safe-area-inset-right));
+  overflow-wrap: anywhere;
+}
+.action-area-content > * + * { margin-top: 0.5rem; }
+.action-area-content [data-slot="button"] { height: auto; min-height: 3.5rem; }
+.action-area-content [data-slot="button"][data-variant="outline"] { min-height: 3rem; }
+.action-area[data-keyboard-open] .action-area-spacer { display: none; }
+.action-area[data-keyboard-open] .action-area-bar { position: static; max-height: none; }
+/* Màn thấp (điện thoại nằm ngang, zoom 200%): thanh đáy sẽ che hết nội dung, trả về luồng trang. */
+@media (max-height: 520px) {
+  .action-area-spacer { display: none; }
+  .action-area-bar { position: static; max-height: none; }
+}
+
+@media (min-width: 640px) {
+  .page-shell { --page-gutter: 1.5rem; }
+  .action-area-content { --action-gutter: 1.5rem; }
+}
+@media (min-width: 1024px) {
+  .page-shell { --page-gutter: 2rem; }
+  .page-columns { grid-template-columns: minmax(0, 1fr) 20rem; }
+  .action-area { width: 100%; max-width: 40rem; margin-inline: auto; }
+  .action-area-spacer { display: none; }
+  .action-area-bar { position: static; max-height: none; overflow: visible; padding-block: 1rem; }
+  .action-area-content { --action-gutter: 0px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

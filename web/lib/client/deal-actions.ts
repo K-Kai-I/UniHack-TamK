@@ -75,7 +75,8 @@ export function actionsFor(deal: DealView, role: Role, now: number, checkOutGrac
   if (role === "tenant") {
     switch (s) {
       case "RESERVED":
-        return hasCheckIn
+        // submitCheckIn và reportMismatch chỉ hợp lệ trước deadline (contract-spec). Quá hạn thì chỉ còn poke.
+        return hasCheckIn || deadlinePassed
           ? []
           : [act("checkin", "Chụp ảnh nhận phòng", "primary", "P0"), act("mismatch", "Phòng không đúng mô tả", "secondary", "P1")];
       case "ACTIVE":
@@ -107,7 +108,8 @@ export function actionsFor(deal: DealView, role: Role, now: number, checkOutGrac
           ? [act("contestCheckIn", "Phản đối ảnh nhận phòng", "secondary", "P2")]
           : [];
       case "MISMATCH_REPORTED":
-        return [act("contestMismatch", "Phản đối", "primary", "P1")];
+        // contestMismatch chỉ hợp lệ trước deadline.
+        return deadlinePassed ? [] : [act("contestMismatch", "Phản đối", "primary", "P1")];
       case "ACTIVE": {
         const list = [act("reportAbandon", "Báo người thuê bỏ đi", "secondary", "P1")];
         const from = checkoutForTenantFrom(deal, checkOutGraceSec);
@@ -115,7 +117,10 @@ export function actionsFor(deal: DealView, role: Role, now: number, checkOutGrac
         return list;
       }
       case "CHECKED_OUT":
-        return [act("propose", "Đề xuất mức trừ", "primary", "P0"), act("viewReport", "Xem báo cáo AI", "secondary", "P0")];
+        // proposeDeduction chỉ hợp lệ trước deadline; quá hạn vẫn xem được báo cáo.
+        return deadlinePassed
+          ? [act("viewReport", "Xem báo cáo AI", "secondary", "P0")]
+          : [act("propose", "Đề xuất mức trừ", "primary", "P0"), act("viewReport", "Xem báo cáo AI", "secondary", "P0")];
       case "DISPUTED":
         return [act("viewVotes", "Xem phiếu bồi thẩm", "secondary", "P1")];
       case "SETTLED":

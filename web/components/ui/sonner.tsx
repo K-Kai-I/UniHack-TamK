@@ -8,6 +8,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       theme="light" // app chỉ có giao diện sáng; bỏ next-themes
       className="toaster group"
+      containerAriaLabel="Thông báo"
       icons={{
         success: (
           <CircleCheckIcon className="size-4" />
@@ -37,6 +38,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
         classNames: {
           toast: "cn-toast",
         },
+        closeButtonAriaLabel: "Đóng thông báo",
       }}
       {...props}
     />

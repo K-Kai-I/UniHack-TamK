@@ -7,7 +7,12 @@ export const MIN_POSITIONS = 3; // data-contract: 3 đến 10 vị trí
 export const MAX_POSITIONS = 10;
 export const MAX_PRICE_ITEMS = 20; // TODO(spec): spec chưa nói tối đa bao nhiêu dòng bảng giá; tạm 20.
 
+/** Số tiền VND tối đa mỗi ô nhập (100 tỷ). Giữ giá thuê an toàn khi đổi sang number và chặn gõ nhầm thừa số 0. */
+export const MAX_VND = 100_000_000_000n;
+const TOO_BIG = "Số tiền quá lớn. Nhập tối đa 100.000.000.000 ₫.";
+
 export interface PhotoDraft {
+  id: string; // khóa React ổn định: chụp lại ảnh không đổi id nên ô ảnh và hộp thoại không bị dựng lại
   blob: Blob;
   previewUrl: string; // object URL, phải revoke khi bỏ ảnh
   capturedAt: string;
@@ -98,13 +103,16 @@ export function validateStep(step: StepId, d: ListingDraft): Errors {
     if (d.address.trim().length < 5) e.address = "Nhập địa chỉ đầy đủ.";
     const rent = parseVndInput(d.rentVnd);
     if (rent === null || rent <= 0n) e.rentVnd = "Nhập giá thuê mỗi tháng.";
+    else if (rent > MAX_VND) e.rentVnd = TOO_BIG;
     if (d.photos.length < 1) e.photos = "Chụp ít nhất 1 ảnh phòng.";
   }
   if (step === "money") {
     const dep = parseVndInput(d.depositVnd);
     const res = parseVndInput(d.reserveVnd);
     if (dep === null || dep <= 0n) e.depositVnd = "Nhập tiền cọc lớn hơn 0.";
+    else if (dep > MAX_VND) e.depositVnd = TOO_BIG;
     if (res === null) e.reserveVnd = "Nhập phí giữ chỗ (có thể là 0).";
+    else if (res > MAX_VND) e.reserveVnd = TOO_BIG;
     else if (dep !== null && res > dep) e.reserveVnd = "Phí giữ chỗ không được lớn hơn tiền cọc.";
   }
   if (step === "dates") {
@@ -127,6 +135,7 @@ export function validateStep(step: StepId, d: ListingDraft): Errors {
       const v = parseVndInput(it.priceVnd);
       if (!it.item.trim() || !it.unit.trim()) e[`prices.${it.key}`] = "Nhập tên hạng mục và đơn vị.";
       else if (v === null || v <= 0n) e[`prices.${it.key}`] = "Nhập đơn giá lớn hơn 0.";
+      else if (v > MAX_VND) e[`prices.${it.key}`] = TOO_BIG;
     }
   }
   return e;

@@ -4,10 +4,13 @@ import * as React from "react"
 import { cn } from "cn"
 import { Drawer as DrawerPrimitive } from "vaul"
 
+// vaul mặc định không đưa focus vào drawer: người dùng bàn phím mở drawer xong vẫn Tab trong trang phía sau.
+// Bật autoFocus mặc định để Radix bẫy focus trong drawer và trả focus về nút mở khi đóng.
 function Drawer({
+  autoFocus = true,
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Root>) {
-  return <DrawerPrimitive.Root data-slot="drawer" {...props} />
+  return <DrawerPrimitive.Root data-slot="drawer" autoFocus={autoFocus} {...props} />
 }
 
 function DrawerTrigger({
@@ -36,7 +39,7 @@ function DrawerOverlay({
     <DrawerPrimitive.Overlay
       data-slot="drawer-overlay"
       className={cn(
-        "fixed inset-0 z-50 bg-black/10 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        "fixed inset-0 z-50 bg-black/10 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
         className
       )}
       {...props}
@@ -47,8 +50,11 @@ function DrawerOverlay({
 function DrawerContent({
   className,
   children,
+  onOpenAutoFocus,
+  onCloseAutoFocus,
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Content>) {
+  const returnFocus = React.useRef<HTMLElement | null>(null)
   return (
     <DrawerPortal data-slot="drawer-portal">
       <DrawerOverlay />
@@ -56,8 +62,25 @@ function DrawerContent({
         data-slot="drawer-content"
         className={cn(
           "group/drawer-content fixed z-50 flex h-auto flex-col bg-popover text-sm text-popover-foreground data-[vaul-drawer-direction=bottom]:inset-x-0 data-[vaul-drawer-direction=bottom]:bottom-0 data-[vaul-drawer-direction=bottom]:mt-24 data-[vaul-drawer-direction=bottom]:max-h-[80vh] data-[vaul-drawer-direction=bottom]:rounded-t-xl data-[vaul-drawer-direction=bottom]:border-t data-[vaul-drawer-direction=left]:inset-y-0 data-[vaul-drawer-direction=left]:left-0 data-[vaul-drawer-direction=left]:w-3/4 data-[vaul-drawer-direction=left]:rounded-r-xl data-[vaul-drawer-direction=left]:border-r data-[vaul-drawer-direction=right]:inset-y-0 data-[vaul-drawer-direction=right]:right-0 data-[vaul-drawer-direction=right]:w-3/4 data-[vaul-drawer-direction=right]:rounded-l-xl data-[vaul-drawer-direction=right]:border-l data-[vaul-drawer-direction=top]:inset-x-0 data-[vaul-drawer-direction=top]:top-0 data-[vaul-drawer-direction=top]:mb-24 data-[vaul-drawer-direction=top]:max-h-[80vh] data-[vaul-drawer-direction=top]:rounded-b-xl data-[vaul-drawer-direction=top]:border-b data-[vaul-drawer-direction=left]:sm:max-w-sm data-[vaul-drawer-direction=right]:sm:max-w-sm",
+          "focus-visible:outline-none",
           className
         )}
+        onOpenAutoFocus={(event) => {
+          // Nhớ nút đã mở drawer (drawer điều khiển từ ngoài, không có DrawerTrigger) để trả focus khi đóng.
+          returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+          onOpenAutoFocus?.(event)
+          if (event.defaultPrevented) return
+          // Focus vào khung drawer thay vì ô nhập đầu tiên: không tự bật bàn phím điện thoại.
+          event.preventDefault()
+          ;(event.currentTarget as HTMLElement | null)?.focus({ preventScroll: true })
+        }}
+        onCloseAutoFocus={(event) => {
+          onCloseAutoFocus?.(event)
+          if (event.defaultPrevented) return
+          event.preventDefault()
+          const target = returnFocus.current
+          if (target?.isConnected) target.focus({ preventScroll: true })
+        }}
         {...props}
       >
         <div className="mx-auto mt-4 hidden h-1 w-[100px] shrink-0 rounded-full bg-muted group-data-[vaul-drawer-direction=bottom]/drawer-content:block" />

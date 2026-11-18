@@ -9,7 +9,7 @@
 //     Ví ngoài (MetaMask/Core) luôn đi đường 1.
 // Trước khi gửi luôn mô phỏng (simulateContract) để lỗi của contract hiện ra bằng tiếng Việt,
 // và để không đốt hạn mức trả gas hộ cho giao dịch chắc chắn revert.
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useSendTransaction, useWallets } from "@privy-io/react-auth";
 import { useAccount, usePublicClient, useWriteContract } from "wagmi";
 import { encodeFunctionData, isAddressEqual, zeroAddress, type Abi, type TransactionReceipt } from "viem";
@@ -25,6 +25,14 @@ export interface TxState {
   error?: string;
   /** true nếu giao dịch này đi đường trả gas hộ của Privy. */
   sponsored?: boolean;
+  /** true khi chuỗi đã chạy và báo revert: chắc chắn chưa đổi gì, ký lại là an toàn. Có hash mà không có cờ này nghĩa là chưa biết kết quả. */
+  reverted?: boolean;
+}
+
+/** Kết quả lần gửi gần nhất, đọc đồng bộ (state React chỉ cập nhật ở lần render sau). */
+export interface TxOutcome {
+  hash?: Hash;
+  reverted: boolean;
 }
 
 export interface TxRequest {
@@ -44,7 +52,12 @@ export function useTx() {
   const { writeContractAsync } = useWriteContract();
   const { sendTransaction } = useSendTransaction();
 
-  const reset = useCallback(() => setState({ phase: "idle" }), []);
+  const outcome = useRef<TxOutcome>({ reverted: false });
+
+  const reset = useCallback(() => {
+    outcome.current = { reverted: false };
+    setState({ phase: "idle" });
+  }, []);
 
   /** Gửi giao dịch. Trả về receipt nếu thành công, null nếu lỗi (lỗi nằm trong state.error). */
   const run = useCallback(
@@ -67,6 +80,7 @@ export function useTx() {
       const sponsored = SPONSOR_ENABLED && !!embedded;
 
       try {
+        outcome.current = { reverted: false };
         setState({ phase: "signing", sponsored });
 
         // Mô phỏng trước: revert thì ném lỗi custom của contract ngay, chưa tốn gas.
@@ -96,10 +110,12 @@ export function useTx() {
           });
         }
 
+        outcome.current = { hash, reverted: false };
         setState({ phase: "pending", hash, sponsored });
         const receipt = await publicClient.waitForTransactionReceipt({ hash });
         if (receipt.status !== "success") {
-          setState({ phase: "error", hash, sponsored, error: "Giao dịch bị chuỗi từ chối (reverted)." });
+          outcome.current = { hash, reverted: true };
+          setState({ phase: "error", hash, sponsored, reverted: true, error: "Giao dịch bị chuỗi từ chối (reverted)." });
           return null;
         }
         setState({ phase: "success", hash, sponsored });
@@ -112,5 +128,37 @@ export function useTx() {
     [account, publicClient, wallets, writeContractAsync, sendTransaction],
   );
 
-  return { state, run, reset, sponsorEnabled: SPONSOR_ENABLED };
+  /**
+   * Chờ lại kết quả của một giao dịch ĐÃ gửi (hash có sẵn) mà lần trước chưa biết kết quả.
+   * Không ký và không gửi gì mới. Trả về receipt nếu thành công, ngược lại null.
+   */
+  const resume = useCallback(
+    async (hash: Hash): Promise<TransactionReceipt | null> => {
+      if (!publicClient) {
+        setState((s) => ({ ...s, phase: "error", hash, error: "Chưa kết nối được chuỗi. Thử lại sau." }));
+        return null;
+      }
+      outcome.current = { hash, reverted: false };
+      setState((s) => ({ phase: "pending", hash, sponsored: s.sponsored }));
+      try {
+        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        if (receipt.status !== "success") {
+          outcome.current = { hash, reverted: true };
+          setState((s) => ({
+            phase: "error", hash, sponsored: s.sponsored, reverted: true,
+            error: "Giao dịch bị chuỗi từ chối (reverted).",
+          }));
+          return null;
+        }
+        setState((s) => ({ phase: "success", hash, sponsored: s.sponsored }));
+        return receipt;
+      } catch (e) {
+        setState((s) => ({ phase: "error", hash, sponsored: s.sponsored, error: friendlyTxError(e) }));
+        return null;
+      }
+    },
+    [publicClient],
+  );
+
+  return { state, run, resume, outcome, reset, sponsorEnabled: SPONSOR_ENABLED };
 }

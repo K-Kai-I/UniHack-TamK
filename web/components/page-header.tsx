@@ -14,16 +14,16 @@ export function PageHeader({
   right?: React.ReactNode;
 }) {
   return (
-    <header className="flex items-center gap-1 pt-3">
+    <header className="flex min-w-0 items-start gap-2 pt-3 pb-2">
       <Link
         href={href}
         aria-label={backLabel}
-        className="-ml-2 grid size-11 place-items-center rounded-full text-primary transition hover:bg-secondary focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+        className="-ml-2 grid size-11 shrink-0 place-items-center rounded-full text-primary transition-colors hover:bg-secondary"
       >
-        <ArrowLeft className="size-5" />
+        <ArrowLeft className="size-5" aria-hidden="true" />
       </Link>
-      {title && <p className="flex-1 truncate font-semibold text-primary">{title}</p>}
-      {right}
+      {title && <p className="min-w-0 flex-1 py-2.5 font-semibold break-words text-primary">{title}</p>}
+      {right && <div className="ml-auto min-w-0 max-w-[40%] shrink-0 py-2.5 break-words">{right}</div>}
     </header>
   );
 }

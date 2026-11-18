@@ -1,155 +1,124 @@
 "use client";
-// Trang xem nhanh design system cho cả nhóm: /dev/ui. Không phải màn của người dùng.
-import { toast } from "sonner";
-import { ShieldCheck, Wallet, Camera } from "lucide-react";
+// Trang mẫu nội bộ. Dữ liệu và thao tác bên dưới không gửi giao dịch.
+import Link from "next/link";
+import { useState } from "react";
+import { Camera, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { NumberTicker } from "@/components/ui/number-ticker";
-import { BorderBeam } from "@/components/ui/border-beam";
-import { ShimmerButton } from "@/components/ui/shimmer-button";
-import { ConfettiButton } from "@/components/ui/confetti";
 import { DealStatusBadge } from "@/components/deal-status-badge";
+import { PageHeader } from "@/components/page-header";
+import { PageShell, PageColumns } from "@/components/page-shell";
+import { BottomBar, InfoBox, Row, Rows } from "@/components/deal-bits";
 import { DEAL_STATES } from "@/lib/types";
-import { amountToVnd, formatToken, formatVnd, shortAddress } from "@/lib/client/money";
-import { explorerTxUrl } from "@/lib/chain";
 
 const SWATCHES = [
-  ["primary", "bg-primary", "#0B2545"],
-  ["success", "bg-success", "#10B981"],
-  ["info", "bg-info", "#3B82F6"],
-  ["warning", "bg-warning", "#F59E0B"],
-  ["destructive", "bg-destructive", "#DC2626"],
-  ["secondary", "bg-secondary", "#E8EEF6"],
-  ["accent", "bg-accent", "#E7F8F1"],
-  ["muted", "bg-muted", "#EEF2F7"],
+  ["primary", "bg-primary"], ["secondary", "bg-secondary"],
+  ["accent", "bg-accent"], ["muted", "bg-muted"],
+  ["success", "bg-success"], ["warning", "bg-warning"],
+  ["info", "bg-info"], ["destructive", "bg-destructive"],
 ] as const;
 
-const SAMPLE_DEPOSIT = "60000000"; // 60 mUSDC
-const VND_PER_TOKEN = 25000; // thật thì lấy từ GET /config
-const FAKE_TX = "0x" + "ab".repeat(32);
-
 export default function DevUiPage() {
-  const depositVnd = amountToVnd(SAMPLE_DEPOSIT, VND_PER_TOKEN);
-
-  function demoTx() {
-    const id = toast.loading("Đang chờ ký giao dịch…");
-    setTimeout(() => toast.loading("Đang xác nhận trên Avalanche…", { id }), 1200);
-    setTimeout(
-      () =>
-        toast.success("Đã gửi cọc", {
-          id,
-          action: { label: "Snowtrace", onClick: () => window.open(explorerTxUrl + FAKE_TX, "_blank") },
-        }),
-      2600,
-    );
-  }
+  const [size, setSize] = useState<"wide" | "read" | "form">("wide");
+  const [showError, setShowError] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   return (
-    <main className="mx-auto max-w-md space-y-8 p-5 pb-16">
-      <header className="space-y-1">
-        <p className="text-sm font-medium text-muted-foreground">/dev/ui</p>
-        <h1 className="text-3xl font-extrabold tracking-tight text-primary">Két Cọc Trọ</h1>
-        <p className="text-muted-foreground">Bộ màu, chữ và component dùng chung.</p>
+    <PageShell size={size}>
+      <PageHeader href="/" backLabel="Về trang chủ" title="Bộ giao diện dùng chung" />
+      <header className="my-6 space-y-3">
+        <h1 className="text-2xl font-bold text-primary">Căn phòng qua từng mốc</h1>
+        <p className="max-w-prose text-muted-foreground">Mẫu nội bộ của hướng A. Số tiền và trạng thái bên dưới là dữ liệu giả; các nút mẫu không ký hay gửi giao dịch.</p>
+        <nav aria-label="Đi tới màn sản phẩm" className="flex flex-wrap gap-2">
+          <Button asChild variant="outline"><Link href="/rooms">Phòng đang trống</Link></Button>
+          <Button asChild variant="outline"><Link href="/deals">Hợp đồng của tôi</Link></Button>
+        </nav>
+        <div className="max-w-sm space-y-2">
+          <Label htmlFor="shell-size">Khung trang để kiểm tra</Label>
+          <select id="shell-size" value={size} onChange={(event) => setSize(event.target.value as typeof size)} className="min-h-12 w-full rounded-lg border border-input bg-background px-3 text-base">
+            <option value="wide">Rộng · tối đa 1200px</option>
+            <option value="read">Đọc · tối đa 768px</option>
+            <option value="form">Form · tối đa 640px</option>
+          </select>
+        </div>
       </header>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-bold">Màu</h2>
-        <div className="grid grid-cols-4 gap-3">
-          {SWATCHES.map(([name, cls, hex]) => (
-            <div key={name} className="space-y-1">
-              <div className={`${cls} h-12 rounded-lg border`} />
-              <p className="text-xs font-semibold">{name}</p>
-              <p className="font-mono text-[10px] text-muted-foreground">{hex}</p>
+      <PageColumns style={size === "wide" ? undefined : { gridTemplateColumns: "minmax(0, 1fr)" }}>
+        <div className="space-y-8">
+          <section className="space-y-3" aria-labelledby="colors">
+            <h2 id="colors" className="text-lg font-bold">Màu và trạng thái</h2>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {SWATCHES.map(([name, cls]) => (
+                <div key={name} className="space-y-1">
+                  <div className={`${cls} h-12 rounded-lg border`} />
+                  <p className="text-xs font-semibold">{name}</p>
+                </div>
+              ))}
             </div>
-          ))}
+            <div className="flex flex-wrap gap-2">
+              {DEAL_STATES.map((state) => <DealStatusBadge key={state} state={state} />)}
+              <Badge variant="secondary">Nhãn dài được xuống dòng khi không đủ chỗ</Badge>
+            </div>
+          </section>
+
+          <section className="space-y-3" aria-labelledby="type">
+            <h2 id="type" className="text-lg font-bold">Chữ tiếng Việt</h2>
+            <p className="text-2xl leading-snug font-bold text-primary">Két Cọc Trọ — Ảnh nhận phòng</p>
+            <p>Đặng Thị Mỹ Duyên — Nguyễn Hữu Phước — Kháng nghị</p>
+            <p className="tabular-nums">6.000.000 ₫ · 17/11/2026</p>
+            <p className="max-w-prose text-sm text-muted-foreground">Tên phòng dài tự xuống dòng: Phòng trọ có cửa sổ, gác lửng tại đường Nguyễn Hữu Thọ, quận Hải Châu, Đà Nẵng.</p>
+            <p className="font-mono text-sm break-all">0x12ab34cd56ef7890a1b2c3d4e5f6a7b8c9d0ef12</p>
+          </section>
+
+          <section className="space-y-3" aria-labelledby="buttons">
+            <h2 id="buttons" className="text-lg font-bold">Nút và phản hồi</h2>
+            <div className="flex flex-wrap gap-3">
+              <Button size="lg"><Camera aria-hidden="true" /> Chụp ảnh nhận phòng</Button>
+              <Button variant="secondary">Xem ảnh gốc</Button>
+              <Button variant="outline">Xem hợp đồng</Button>
+              <Button variant="destructive">Kháng nghị</Button>
+              <Button disabled><Loader2 className="motion-safe:animate-spin" aria-hidden="true" /> Đang xác nhận…</Button>
+            </div>
+            <InfoBox icon={<Camera className="size-5" />} title="Chưa có ảnh nhận phòng">Mẫu trạng thái trống; ảnh bằng chứng sẽ hiển thị theo từng vị trí chụp.</InfoBox>
+          </section>
+
+          <section className="space-y-3" aria-labelledby="form">
+            <h2 id="form" className="text-lg font-bold">Form, lỗi và bản nháp</h2>
+            <p className="text-sm text-muted-foreground">Nhập nội dung rồi đổi khung trang hoặc kích thước cửa sổ để kiểm tra bản nháp.</p>
+            <div className="space-y-2">
+              <Label htmlFor="room-title">Tên phòng mẫu</Label>
+              <Input id="room-title" placeholder="Phòng có cửa sổ ở Hải Châu" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="deposit">Tiền cọc mẫu (VND)</Label>
+              <Input id="deposit" inputMode="numeric" placeholder="6.000.000" aria-invalid={showError} aria-describedby={showError ? "deposit-error" : undefined} />
+              {showError && <p id="deposit-error" className="text-sm text-destructive">Đây là lỗi mẫu nhiều dòng. Kiểm tra lại số tiền và thử lại; nội dung bạn đã nhập vẫn được giữ để sửa.</p>}
+            </div>
+            <Skeleton className="h-20 w-full" />
+            <p className="text-sm text-muted-foreground">Khối trên là mẫu đang tải có chủ ý.</p>
+          </section>
         </div>
-      </section>
 
-      <section className="space-y-2">
-        <h2 className="text-lg font-bold">Chữ (Be Vietnam Pro)</h2>
-        <p className="text-2xl font-extrabold">Tiền cọc nằm trong két</p>
-        <p className="text-lg font-semibold">Người thuê gửi cọc, chủ trọ đề xuất mức trừ</p>
-        <p>Ảnh nhận phòng, trả phòng; bồi thẩm phân xử. Ữ ỹ ặ ằ ẫ ợ ự ỡ.</p>
-        <p className="text-sm text-muted-foreground">Chữ phụ: hạn chót còn 2 giờ 15 phút.</p>
-        <p className="font-mono text-sm">{shortAddress("0x12ab34cd56ef7890a1b2c3d4e5f6a7b8c9d0ef12")}</p>
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-lg font-bold">Thẻ két (show off)</h2>
-        <Card className="relative overflow-hidden bg-primary text-primary-foreground">
-          <CardHeader>
-            <CardDescription className="flex items-center gap-2 text-primary-foreground/70">
-              <ShieldCheck className="size-4" /> Đang giữ trong két
-            </CardDescription>
-            <CardTitle className="text-4xl font-extrabold">
-              <NumberTicker value={Number(depositVnd)} className="text-primary-foreground" /> ₫
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex items-center justify-between text-sm text-primary-foreground/80">
-            <span>{formatToken(SAMPLE_DEPOSIT)}</span>
-            <DealStatusBadge state="ACTIVE" className="border-white/20 bg-white/10 text-white" />
-          </CardContent>
-          <BorderBeam size={120} duration={8} colorFrom="#10b981" colorTo="#6ee7b7" />
-        </Card>
-        <p className="text-sm text-muted-foreground">Định dạng tĩnh: {formatVnd(depositVnd)}</p>
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-lg font-bold">Nút</h2>
-        <Button size="lg" className="w-full">
-          <Wallet /> Gửi cọc
-        </Button>
-        <div className="grid grid-cols-2 gap-3">
-          <Button variant="secondary">Kháng nghị</Button>
-          <Button variant="outline">Xem hợp đồng</Button>
-          <Button variant="destructive">Báo phòng sai</Button>
-          <Button disabled>Đang xử lý…</Button>
-        </div>
-        <ShimmerButton className="w-full" background="#0b2545" shimmerColor="#6ee7b7">
-          <span className="flex items-center gap-2 font-semibold">
-            <Camera className="size-4" /> Chụp ảnh nhận phòng
-          </span>
-        </ShimmerButton>
-        <ConfettiButton
-          className="w-full bg-success text-success-foreground hover:bg-success/90"
-          options={{ colors: ["#10b981", "#0b2545", "#f59e0b"] }}
-        >
-          Đồng ý chia tiền
-        </ConfettiButton>
-        <Button variant="outline" className="w-full" onClick={demoTx}>
-          Thử toast 3 trạng thái giao dịch
-        </Button>
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-lg font-bold">Trạng thái deal</h2>
-        <div className="flex flex-wrap gap-2">
-          {DEAL_STATES.map((s) => (
-            <DealStatusBadge key={s} state={s} />
-          ))}
-        </div>
-        <div className="flex gap-2">
-          <Badge>Mặc định</Badge>
-          <Badge variant="secondary">Phụ</Badge>
-          <Badge variant="outline">Viền</Badge>
-        </div>
-      </section>
-
-      <Separator />
-
-      <section className="space-y-3">
-        <h2 className="text-lg font-bold">Form + đang tải</h2>
-        <div className="space-y-2">
-          <Label htmlFor="deposit">Tiền cọc (VND)</Label>
-          <Input id="deposit" inputMode="numeric" placeholder="1.500.000" />
-        </div>
-        <Skeleton className="h-20 w-full" />
-      </section>
-    </main>
+        <aside className="min-w-0 space-y-4" aria-label="Tóm tắt và hành động mẫu">
+          <h2 className="text-lg font-bold">Tiền cọc mẫu</h2>
+          <Rows>
+            <Row label="Tiền cọc" value="6.000.000 ₫" strong />
+            <Row label="Phí giữ chỗ (nằm trong cọc)" value="500.000 ₫" />
+            <Row label="Mức trừ đề xuất" value="400.000 ₫" />
+            <Row label="Dự kiến nhận lại" value="5.600.000 ₫" strong />
+          </Rows>
+          <p className="text-sm text-muted-foreground">Vùng nút nằm dưới trên điện thoại và trở về cột này trên desktop.</p>
+          <BottomBar>
+            {showError && <p role="alert" className="text-sm text-destructive">Lỗi mẫu: chưa gửi được. Kiểm tra số tiền ở trên, giữ nguyên bản nháp và thử lại khi đã sửa.</p>}
+            {saved && <p role="status" className="text-sm text-success">Đã bấm nút mẫu. Không có giao dịch nào được gửi.</p>}
+            <Button size="lg" className="w-full" onClick={() => setSaved(true)}>Thử hành động mẫu</Button>
+            <Button variant="outline" className="w-full" onClick={() => setShowError(!showError)}>{showError ? "Ẩn lỗi mẫu" : "Hiện lỗi nhiều dòng"}</Button>
+          </BottomBar>
+        </aside>
+      </PageColumns>
+    </PageShell>
   );
 }
