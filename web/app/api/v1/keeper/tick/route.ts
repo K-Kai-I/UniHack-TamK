@@ -40,9 +40,13 @@ async function tick(req: Request) {
       errors.push({ dealId: Number(id), error: ((e as Error).message ?? "lỗi").split("\n")[0] });
     }
   }
-  // Tiện thể đọc sự kiện mới cho mục history: đọc tối đa 25 giây mỗi lần (RPC Fuji chỉ cho 100 khối mỗi lần gọi).
-  const events = await syncEvents(1000, 25_000).catch((e) => {
-    console.error("[events]", e);
+  // Tiện thể đọc sự kiện mới cho mục history: đọc tối đa 20 giây mỗi lần (RPC Fuji chỉ cho 100 khối mỗi lần gọi).
+  // Chặn cứng 30 giây (newEvents = -2): lượt đọc dở vẫn an toàn vì con trỏ đã lưu sau mỗi đoạn, lần sau đọc tiếp.
+  const events = await Promise.race([
+    syncEvents(1000, 20_000),
+    new Promise<number>((resolve) => setTimeout(() => resolve(-2), 30_000)),
+  ]).catch((e) => {
+    console.error("[events]", (e as Error).message?.split("\n")[0]);
     return -1;
   });
   // Tin đăng đã lên chuỗi nhưng app chưa kịp báo máy chủ (mất bước POST /listings/:id/onchain): tự gắn.
