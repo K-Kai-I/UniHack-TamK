@@ -41,11 +41,25 @@ test("hao mòn luôn xóa mục khấu trừ", async () => {
   const out = (await compareDamage({ positions: [position], priceList })).positions[0];
   assert.equal(out.priceItemId, null); assert.equal(out.quantity, 0);
 });
-test("mã bảng giá bịa đặt bị từ chối sau tối đa 2 lần", async () => {
+test("mã bảng giá bịa đặt: giữ NEW_DAMAGE, chuyển thành ngoài bảng giá, không gọi lại", async () => {
   setup(); let calls = 0;
   globalThis.fetch = async () => { calls++; return response({ ...output, priceItemId: "invented" }); };
-  await assert.rejects(compareDamage({ positions: [position], priceList }), /AI_FAILED/);
-  assert.equal(calls, 2);
+  const out = (await compareDamage({ positions: [position], priceList })).positions[0];
+  assert.equal(out.verdict, "NEW_DAMAGE"); assert.equal(out.outsidePriceList, true);
+  assert.equal(out.priceItemId, null); assert.equal(out.quantity, 0); assert.equal(calls, 1);
+});
+test("quên bật outsidePriceList (mã null) hoặc số lượng 0: chuyển thành ngoài bảng giá", async () => {
+  setup();
+  for (const bad of [{ priceItemId: null, quantity: 1 }, { priceItemId: "i1", quantity: 0 }]) {
+    globalThis.fetch = async () => response({ ...output, ...bad });
+    const out = (await compareDamage({ positions: [position], priceList })).positions[0];
+    assert.deepEqual([out.verdict, out.outsidePriceList, out.priceItemId, out.quantity], ["NEW_DAMAGE", true, null, 0]);
+  }
+});
+test("ngoài bảng giá nhưng lỡ ghi mã/số lượng: xóa mã và số lượng, không tạo khoản trừ", async () => {
+  setup(); globalThis.fetch = async () => response({ ...output, priceItemId: "i1", quantity: 2, outsidePriceList: true });
+  const out = (await compareDamage({ positions: [position], priceList })).positions[0];
+  assert.deepEqual([out.outsidePriceList, out.priceItemId, out.quantity], [true, null, 0]);
 });
 test("sai positionId bị từ chối", async () => {
   setup(); globalThis.fetch = async () => response({ ...output, positionId: "p2" });

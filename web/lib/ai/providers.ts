@@ -14,15 +14,19 @@ function retryDelay(value: string | null) {
   return Number.isFinite(ms) ? Math.max(0, ms) : 1000;
 }
 
+/** Mỗi lần gọi tối đa 30 giây: backend cho cả báo cáo 50 giây (Vercel cắt hàm ở 60 giây),
+ *  nên lần thử lại vẫn còn chỗ. Model lite thường trả trong 3–10 giây. */
+const CALL_TIMEOUT_MS = 30_000;
+
 export async function postJson(url: string, headers: Record<string, string>, body: unknown) {
   let response: Response;
   try {
     response = await fetch(url, {
       method: "POST", headers: { "Content-Type": "application/json", ...headers },
-      body: JSON.stringify(body), signal: AbortSignal.timeout(90_000),
+      body: JSON.stringify(body), signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
     });
   } catch {
-    throw new AiRequestError("Không kết nối được AI hoặc quá 90 giây. Hãy thử lại.", true);
+    throw new AiRequestError(`Không kết nối được AI hoặc quá ${CALL_TIMEOUT_MS / 1000} giây. Hãy thử lại.`, true);
   }
   // Không đưa response thô hoặc headers vào lỗi: chúng có thể chứa dữ liệu riêng tư.
   if (!response.ok) {
@@ -87,6 +91,8 @@ export async function geminiJson<T>(input: unknown[], schema: object, parse: (va
       return parse(JSON.parse(text));
     } catch (error) {
       if (error instanceof AiRequestError && !error.retryable) throw new Error(`AI_FAILED: ${error.message}`);
+      // Ghi lý do câu trả lời bị loại (không ghi ảnh hay câu trả lời thô) để còn biết vì sao lỗi.
+      if (!(error instanceof AiRequestError)) console.warn("[ai] câu trả lời không hợp lệ:", String((error as Error)?.message ?? error).slice(0, 300));
       if (attempt === 1) throw new Error(error instanceof AiRequestError
         ? `AI_FAILED: ${error.message} Đã thử 2 lần.`
         : "AI_FAILED: Gemini không trả kết quả hợp lệ sau 2 lần gọi.");

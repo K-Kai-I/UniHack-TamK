@@ -17,7 +17,7 @@ async function main() {
   if (existsSync(".env.local")) loadEnvFile(".env.local");
   const [before, after, name = "Vị trí thử nghiệm", ...flags] = process.argv.slice(2);
   if (!before || !after) throw new Error('Cách chạy: npm run ai:demo -- "ảnh-trước.jpg" "ảnh-sau.jpg" "Tên vị trí" [--no-explain] [--listing]');
-  if (!process.env.AI_MODEL || process.env.AI_MODEL === "mock") throw new Error("Đặt AI_MODEL=gemini-4-hydrogen trong web/.env.local trước khi demo thật.");
+  if (!process.env.AI_MODEL || process.env.AI_MODEL === "mock") throw new Error("Đặt AI_MODEL=gemini-3.5-flash-lite trong web/.env.local trước khi demo thật.");
   // Dynamic import: nạp .env.local trước khi module đọc biến môi trường.
   const { compareDamage, compareListing } = await import("./index");
   const positions = [{ positionId: "p1", name, beforeUrl: image(before), afterUrl: image(after) }];

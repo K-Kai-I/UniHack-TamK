@@ -2,6 +2,32 @@
 
 Ngày báo cáo: 17/11/2026. Ảnh do người dùng tự chụp; T = trước, S = sau theo tên file. Người dùng xác nhận chưa ghi đáp án. Vì vậy đây là **so sánh với nhãn sơ bộ**, không phải độ chính xác đã được người chụp xác nhận.
 
+## Cập nhật 19/11/2026: bộ test v2 và chốt model
+
+**Quyết định: `gemini-3.5-flash-lite`.** Bộ `eval/reference-v2/` có 13 cặp ảnh thật, cả 13 nhãn do người chụp xác nhận
+(7 NEW_DAMAGE, 3 UNCLEAR, 3 NO_CHANGE; chưa có WEAR). Lượt `v2-01`, prompt damage-v1, bảng giá mẫu 3 dòng:
+
+| Model | Có kết quả | Khớp nhãn /13 | Báo hư sai (trừ oan) | Ảnh tối/mờ trả UNCLEAR | Trung vị |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| gemini-3.5-flash-lite | 12/13 | 9 | 0 | 2/2 | 7,2 s |
+| gemini-3.1-flash-lite | 13/13 | 8 | 0 | 1/2 | 5,1 s |
+| gemini-4-hydrogen | 0/5 (dừng) | 0 | — | — | 503 và quá 90 s |
+
+Lý do chọn: không trừ oan; ảnh tối thì nói không chắc (3.1-lite kết luận "quạt nguyên vẹn" trên ảnh tối, chắc 0,9, và
+"khay tủ lạnh nguyên vẹn" khi khay đã mất, chắc 1,0). Chênh lệch điểm chỉ 1 ca, nên lý do chính là kiểu lỗi, không phải điểm.
+Hydrogen lần thứ hai lỗi dịch vụ liên tục và chậm hơn giới hạn 50 giây của backend trên Vercel.
+
+Lỗi duy nhất của 3.5-lite (ca 01, mất khay) là câu trả lời bị bước kiểm tra loại 2 lần, không phải lỗi mạng: hư hỏng có thật
+nhưng không có hạng mục phù hợp trong bảng giá mẫu. Ca 10, 11 (vòi, đèn) cả hai model trả NO_CHANGE vì prompt chưa biết
+quy định "bật đèn, mở nước khi chụp".
+
+Sửa sau lượt v2-01 (cần chạy lại lượt `v2-02` để đo):
+- Kiểm tra đầu ra: NEW_DAMAGE mà mã hạng mục hoặc số lượng không hợp lệ thì giữ kết luận, chuyển thành ngoài bảng giá
+  (0 đồng tự động, chủ trọ tự đề xuất) thay vì loại cả câu trả lời.
+- Prompt damage-v2: khung hình khác hẳn là UNCLEAR; tên vị trí ghi "bật đèn"/"mở nước" thì so trạng thái hoạt động.
+- Mỗi lần gọi tối đa 30 giây (trước là 90) để lần thử lại lọt ngân sách 50 giây; ghi lý do câu trả lời bị loại vào log.
+- Bộ test mang bảng giá riêng `price-list.json` giống phòng thật.
+
 ## Cập nhật xác nhận ngày 17/11/2026
 
 Người chụp xác nhận cặp 03 là NEW_DAMAGE ngoài bảng giá và cặp 07 là NO_CHANGE. Ảnh sau của cặp 07 có vụn bẩn lau được và không thấy hư hỏng mới trên mặt bàn. Bộ nhãn hiện tại có 2/11 ca reviewed và 9 ca provisional, gồm 3 NEW_DAMAGE, 3 NO_CHANGE và 5 UNCLEAR. Các điểm và bảng kết quả lịch sử dùng snapshot nhãn sơ bộ tại thời điểm chạy.

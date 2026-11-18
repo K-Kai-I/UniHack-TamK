@@ -53,12 +53,12 @@ Promise<{ model: string; promptVersion: string; positions: DamagePositionOutput[
       if (out.verdict !== "NEW_DAMAGE") {
         return { ...out, priceItemId: null, quantity: 0, outsidePriceList: false };
       }
-      if (out.outsidePriceList) {
-        if (out.priceItemId !== null || out.quantity !== 0) throw new Error("Sai mục ngoài bảng giá");
-      } else if (!prices.some(i => i.id === out.priceItemId) || !Number.isSafeInteger(out.quantity) || out.quantity < 1) {
-        throw new Error("Mã hạng mục hoặc số lượng không hợp lệ");
-      }
-      return out;
+      // Hư hỏng có thật nhưng không khớp được bảng giá (mã bịa, số lượng 0, hoặc quên bật outsidePriceList):
+      // giữ kết luận NEW_DAMAGE, chuyển thành "ngoài bảng giá" thay vì loại cả câu trả lời.
+      // An toàn về tiền: mục ngoài bảng giá được tính 0 đồng tự động, chủ trọ tự đề xuất, người thuê được kháng nghị.
+      const priced = !out.outsidePriceList && prices.some(i => i.id === out.priceItemId)
+        && Number.isSafeInteger(out.quantity) && out.quantity >= 1;
+      return priced ? out : { ...out, outsidePriceList: true, priceItemId: null, quantity: 0 };
     });
     positions.push(result);
   }

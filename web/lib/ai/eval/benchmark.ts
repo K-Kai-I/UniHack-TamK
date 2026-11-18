@@ -9,7 +9,7 @@ import { damagePositionOutput } from '../schema';
 import { DAMAGE_PROMPT, DAMAGE_PROMPT_VERSION, damageJsonSchema } from '../prompts';
 import { postJson, imagePart, AiRequestError } from '../providers';
 import { compareDamage } from '../index';
-import terms from '../../../../shared/samples/terms.json';
+import sampleTerms from '../../../../shared/samples/terms.json';
 
 const {values}=parseArgs({options:{model:{type:'string'},run:{type:'string',default:'comparison'},'dry-run':{type:'boolean'},legacy:{type:'boolean'},set:{type:'string',default:'reference'},delay:{type:'string',default:'0'}}});
 const here=dirname(fileURLToPath(import.meta.url));
@@ -21,6 +21,9 @@ async function main(){
  if(!/^[a-z0-9-]+$/.test(values.set!))throw new Error('Invalid set');
  const source=resolve(here,values.set!,'cases.json');
  const cases=casesSchema.parse(JSON.parse(readFileSync(source,'utf8')));
+ // Bảng giá riêng của bộ test (nếu có), không thì dùng bảng giá mẫu 3 dòng.
+ const priceFile=resolve(here,values.set!,'price-list.json');
+ const terms={priceList:(existsSync(priceFile)?JSON.parse(readFileSync(priceFile,'utf8')):sampleTerms.priceList) as typeof sampleTerms.priceList};
  function url(name:string){
   const file=resolve(dirname(source),name),rel=relative(dirname(source),file);
   if(rel.startsWith('..')||isAbsolute(rel))throw new Error('Image outside dataset');
@@ -74,8 +77,8 @@ async function main(){
       if(out.positionId!==c.positionId)throw new Error('Invalid position');
       if(out.confidence<0.6)out.verdict='UNCLEAR';
       if(out.verdict!=='NEW_DAMAGE'){out.priceItemId=null;out.quantity=0;out.outsidePriceList=false;}
-      else if(out.outsidePriceList){if(out.priceItemId!==null||out.quantity!==0)throw new Error('Invalid outside price');}
-      else if(!terms.priceList.some(p=>p.id===out.priceItemId)||!Number.isSafeInteger(out.quantity)||out.quantity<1)throw new Error('Invalid deduction');
+      // Cùng quy tắc với compareDamage: không khớp bảng giá thì chuyển thành ngoài bảng giá.
+      else if(out.outsidePriceList||!terms.priceList.some(p=>p.id===out.priceItemId)||!Number.isSafeInteger(out.quantity)||out.quantity<1){out.outsidePriceList=true;out.priceItemId=null;out.quantity=0;}
       output=out;break;
      }catch(e){
       if(e instanceof AiRequestError&&!e.retryable)throw e;
