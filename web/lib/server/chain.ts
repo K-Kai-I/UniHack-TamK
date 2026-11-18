@@ -8,6 +8,9 @@ import { DEAL_STATES, DISPUTE_KINDS, type Address, type DealState } from "../typ
 
 // batch: gom nhiều lệnh đọc trong cùng một nhịp thành 1 request JSON-RPC.
 export const publicClient = createPublicClient({ chain, transport: http(env.fujiRpcUrl, { batch: true }) });
+/** Client KHÔNG gom request, dành cho eth_getLogs: RPC Fuji tính giới hạn 100 khối trên cả gói gom chung,
+ *  nên các đoạn đọc song song phải đi thành request HTTP riêng (xem events.ts). */
+export const logsClient = createPublicClient({ chain, transport: http(env.fujiRpcUrl) });
 
 function shape<T extends { state: number; landlord: string; tenant: string }>(deal: T) {
   return {
