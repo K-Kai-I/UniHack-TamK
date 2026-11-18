@@ -3,7 +3,7 @@
 import { addresses } from "@/lib/chain";
 import { hashJson } from "@/lib/hash";
 import { requireWallet } from "@/lib/server/auth";
-import { readDeals } from "@/lib/server/chain";
+import { publicClient, readDeals, readTimeouts } from "@/lib/server/chain";
 import { env } from "@/lib/server/env";
 import { ApiErr, json, photoUrl, readJson, route } from "@/lib/server/http";
 import { getPhotoMetas, insertListing, listBoundListings } from "@/lib/server/repo";
@@ -125,9 +125,14 @@ export const GET = route(async (req: Request) => {
   await linkOrphanListingsSoon(); // gắn nốt tin đăng mồ côi (nếu có) trước khi liệt kê
   const rows = await listBoundListings();
   const deals = await readDeals(rows.map((r) => BigInt(r.deal_id!)));
+  // Phòng OPEN đã quá moveInDate + moveInGrace thì contract không nhận cọc nữa (chỉ chờ poke đóng lại):
+  // không liệt kê như phòng còn trống, kẻo người thuê bấm cọc rồi gặp lỗi.
+  const moveInGrace = stateParam === "OPEN" ? (await readTimeouts()).moveInGrace : 0;
+  const nowSec = stateParam === "OPEN" ? Number((await publicClient.getBlock()).timestamp) : 0; // giờ trên chuỗi, như contract
   const items = rows
     .map((r, i) => ({ r, d: deals[i] }))
     .filter(({ d }) => d.stateName === (stateParam as DealState))
+    .filter(({ d }) => stateParam !== "OPEN" || nowSec <= Number(d.moveInDate) + moveInGrace)
     .map(({ r, d }) => ({
       listingId: r.id,
       dealId: Number(r.deal_id),
