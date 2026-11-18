@@ -71,7 +71,7 @@ export interface ListingRow {
 export async function insertListing(landlord: Address, terms: Terms, termsHash: Hash): Promise<string> {
   const id = newId("ls");
   await (await db()).query(
-    "INSERT INTO listings (id, landlord, terms, terms_hash) VALUES ($1, $2, $3::jsonb, $4)",
+    "INSERT INTO listings (id, landlord, terms, terms_hash) VALUES ($1, $2, $3::text::jsonb, $4)",
     [id, landlord, JSON.stringify(terms), termsHash],
   );
   return id;
@@ -137,7 +137,7 @@ export async function insertPhotoSet(
   const id = newId("ps");
   await (await db()).query(
     `INSERT INTO photo_sets (id, deal_id, kind, manifest, set_hash, photo_ids, created_by)
-     VALUES ($1,$2,$3,$4::jsonb,$5,$6::jsonb,$7)`,
+     VALUES ($1,$2,$3,$4::text::jsonb,$5,$6::text::jsonb,$7)`,
     [id, dealId.toString(), kind, JSON.stringify(manifest), setHash.toLowerCase(), JSON.stringify(photoIds), by],
   );
   return id;
@@ -185,7 +185,7 @@ export interface AiReportRow {
 
 /** Lưu lời giải thích phụ (OpenAI). Không đụng tới báo cáo đã hash và ký. */
 export async function setAiExplanation(id: string, explanation: unknown): Promise<void> {
-  await (await db()).query("UPDATE ai_reports SET explanation = $2::jsonb WHERE id = $1", [id, JSON.stringify(explanation)]);
+  await (await db()).query("UPDATE ai_reports SET explanation = $2::text::jsonb WHERE id = $1", [id, JSON.stringify(explanation)]);
 }
 
 /** Tạo bản ghi "processing" nếu chưa có. Trả về bản ghi hiện có và cờ created. */
@@ -236,7 +236,7 @@ export async function finishAiReport(
   r: { report: unknown; reportHash: string; sealedAmount?: string; verdict?: number; signature: string },
 ) {
   await (await db()).query(
-    `UPDATE ai_reports SET status='done', report=$2::jsonb, report_hash=$3, sealed_amount=$4, verdict=$5,
+    `UPDATE ai_reports SET status='done', report=$2::text::jsonb, report_hash=$3, sealed_amount=$4, verdict=$5,
        signature=$6, error=NULL, updated_at=now() WHERE id=$1`,
     [id, JSON.stringify(r.report), r.reportHash, r.sealedAmount ?? null, r.verdict ?? null, r.signature],
   );

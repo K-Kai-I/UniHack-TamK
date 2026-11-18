@@ -102,3 +102,12 @@ ALTER TABLE sync_state   ENABLE ROW LEVEL SECURITY;
 -- Chỉ mục cho các truy vấn hay chạy (thêm 16/11, không đổi dữ liệu).
 CREATE INDEX IF NOT EXISTS photos_owner_time ON photos (owner, created_at);
 CREATE INDEX IF NOT EXISTS ai_reports_deal ON ai_reports (deal_id, type, created_at);
+
+-- Sửa dữ liệu cũ (18/11): postgres.js tự JSON.stringify tham số jsonb, nên chuỗi JSON truyền vào bị bọc thêm một lớp
+-- và cột lưu một "chuỗi" thay vì object. Server đọc ra terms là string => mọi route đọc terms báo lỗi máy chủ.
+-- Code ghi đã đổi sang $n::text::jsonb. Các lệnh dưới gỡ lớp bọc ở dòng cũ; chạy lại nhiều lần vẫn an toàn.
+UPDATE listings   SET terms      = (terms #>> '{}')::jsonb      WHERE jsonb_typeof(terms)      = 'string';
+UPDATE photo_sets SET manifest   = (manifest #>> '{}')::jsonb   WHERE jsonb_typeof(manifest)   = 'string';
+UPDATE photo_sets SET photo_ids  = (photo_ids #>> '{}')::jsonb  WHERE jsonb_typeof(photo_ids)  = 'string';
+UPDATE ai_reports SET report     = (report #>> '{}')::jsonb     WHERE jsonb_typeof(report)     = 'string';
+UPDATE ai_reports SET explanation = (explanation #>> '{}')::jsonb WHERE jsonb_typeof(explanation) = 'string';
