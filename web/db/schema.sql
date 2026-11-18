@@ -111,3 +111,38 @@ UPDATE photo_sets SET manifest   = (manifest #>> '{}')::jsonb   WHERE jsonb_type
 UPDATE photo_sets SET photo_ids  = (photo_ids #>> '{}')::jsonb  WHERE jsonb_typeof(photo_ids)  = 'string';
 UPDATE ai_reports SET report     = (report #>> '{}')::jsonb     WHERE jsonb_typeof(report)     = 'string';
 UPDATE ai_reports SET explanation = (explanation #>> '{}')::jsonb WHERE jsonb_typeof(explanation) = 'string';
+
+-- Danh mục phòng và yêu cầu thuê (19/11, docs/data-contract.md > Bảng database).
+-- Chủ trọ đăng phòng một lần, CHƯA có ngày và CHƯA lên chuỗi (template = điều khoản kct.terms/1 thiếu createdAt, dates).
+-- Người thuê chọn ngày dọn vào + ngày hết hạn, gửi yêu cầu. Chủ trọ duyệt: server ghép ngày thành điều khoản đầy đủ,
+-- tạo một dòng listings (request_id trỏ về yêu cầu) rồi chủ trọ ký createDeal như cũ.
+CREATE TABLE IF NOT EXISTS rooms (
+  id          TEXT PRIMARY KEY,
+  landlord    TEXT NOT NULL,
+  template    JSONB NOT NULL,
+  active      BOOLEAN NOT NULL DEFAULT true,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS rental_requests (
+  id          TEXT PRIMARY KEY,
+  room_id     TEXT NOT NULL REFERENCES rooms(id),
+  tenant      TEXT NOT NULL,
+  move_in     TIMESTAMPTZ NOT NULL,
+  lease_end   TIMESTAMPTZ NOT NULL,
+  note        TEXT,
+  status      TEXT NOT NULL DEFAULT 'PENDING',   -- PENDING | APPROVED | REJECTED | CANCELLED
+  listing_id  TEXT,                               -- có khi APPROVED
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  decided_at  TIMESTAMPTZ
+);
+
+-- Tin đăng sinh ra từ một yêu cầu thuê: riêng cho người gửi yêu cầu, không hiện ở GET /listings.
+ALTER TABLE listings ADD COLUMN IF NOT EXISTS request_id TEXT;
+
+CREATE INDEX IF NOT EXISTS rooms_landlord ON rooms (landlord, created_at);
+CREATE INDEX IF NOT EXISTS rental_requests_room ON rental_requests (room_id, status);
+CREATE INDEX IF NOT EXISTS rental_requests_tenant ON rental_requests (tenant, created_at);
+
+ALTER TABLE rooms           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE rental_requests ENABLE ROW LEVEL SECURITY;

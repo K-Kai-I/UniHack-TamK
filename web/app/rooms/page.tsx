@@ -1,6 +1,6 @@
-import { RoomsList } from "@/components/rooms-list";
+import { CatalogList } from "@/components/catalog-list";
 
-// Phòng đang trống (người thuê). Logic phía client nằm trong components/rooms-list.tsx.
+// Tìm phòng trọ (người thuê): danh mục phòng, tìm và lọc. Logic phía client nằm trong components/catalog-list.tsx.
 export default function RoomsPage() {
-  return <RoomsList />;
+  return <CatalogList />;
 }

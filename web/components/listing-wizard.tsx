@@ -1,15 +1,13 @@
 "use client";
-// Màn "Đăng phòng + hợp đồng" nhiều bước (docs/user-flow.md GĐ1, P0).
-// Luồng bấm "Đăng phòng": POST /uploads từng ảnh → POST /listings (nhận createDealArgs + termsHash)
-// → ví ký createDeal → POST /listings/:id/onchain. Frontend không tự tính hash hay đổi ngày sang giây.
+// Màn "Đăng phòng" nhiều bước (docs/user-flow.md GĐ1, P0).
+// Luồng bấm "Đăng phòng": POST /uploads từng ảnh → POST /rooms. Phòng vào danh mục, CHƯA lên chuỗi, chưa có ngày:
+// người thuê chọn ngày và gửi yêu cầu; chủ trọ duyệt ở /requests mới ký createDeal (xem rental-requests.tsx).
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePrivy } from "@privy-io/react-auth";
 import { Check, CheckCircle2, Loader2 } from "lucide-react";
-import { toast } from "sonner";
 import { ActionArea } from "@/components/action-area";
 import { PageShell } from "@/components/page-shell";
-import { formatDate } from "@/lib/client/date";
 import { formatVnd, parseVndInput } from "@/lib/client/money";
 import type { TxState } from "@/lib/client/use-tx";
 import { Button } from "@/components/ui/button";
@@ -17,7 +15,6 @@ import { NetworkBanner } from "@/components/network-banner";
 import { PageHeader } from "@/components/page-header";
 import { TxStatus } from "@/components/tx-status";
 import {
-  DatesStep,
   InfoStep,
   MoneyStep,
   PositionsStep,
@@ -29,15 +26,15 @@ import { ApiClientError } from "@/lib/client/api";
 import {
   buildListingBody,
   emptyDraft,
-  dateToIso,
   firstInvalidStep,
   STEPS,
   validateStep,
   type Errors,
   type ListingDraft,
 } from "@/lib/client/listing-form";
-import { confirmOnchain, createListing, uploadPhoto, type CreateListingResponse } from "@/lib/client/listings-api";
-import { isUnresolved, sentHashOf, signOrResume, useCreateDeal } from "@/lib/client/use-create-deal";
+import { uploadPhoto } from "@/lib/client/listings-api";
+import { createRoom } from "@/lib/client/rooms-api";
+import { sentHashOf } from "@/lib/client/use-create-deal";
 import { useVndRate } from "@/lib/client/use-vnd-rate";
 
 export type ListingPhase =
@@ -48,30 +45,28 @@ export type ListingPhase =
   | { name: "signing" } // TxStatus hiện chi tiết chờ ký / chờ xác nhận / lỗi
   | { name: "checking" } // chờ lại giao dịch đã gửi, KHÔNG ký mới
   | { name: "confirming" }
-  | { name: "done"; dealId: number };
+  | { name: "done"; roomId: string };
 
 export const UNRESOLVED_TX = "Giao dịch đăng phòng đã được gửi nhưng chưa biết kết quả. Đừng ký lại. Bấm “Kiểm tra giao dịch” để xem lại.";
 
 export function ListingWizard() {
   const { ready, authenticated, login, getAccessToken } = usePrivy();
   const vndPerToken = useVndRate();
-  const deal = useCreateDeal();
-
-  const listingRef = useRef<CreateListingResponse | null>(null);
+  // Ảnh đã tải lên được giữ lại: bấm "Thử đăng lại" sau lỗi mạng không phải tải lại từ đầu.
+  const uploadedRef = useRef<{ listing: string[]; example: Record<string, string> } | null>(null);
 
   async function publish(draft: ListingDraft, setPhase: (phase: ListingPhase) => void) {
     try {
       const token = await getAccessToken();
-      let listing = listingRef.current;
-
-      if (!listing) {
-        // 1) Tải ảnh lên. Mọi ảnh trước, rồi mới tạo điều khoản.
+      let ids = uploadedRef.current;
+      if (!ids) {
+        // 1) Tải ảnh lên. Mọi ảnh trước, rồi mới đăng phòng.
         const jobs: { kind: "listing" | "example"; key?: string; photo: ListingDraft["photos"][number] }[] = [
           ...draft.photos.map((photo) => ({ kind: "listing" as const, photo })),
           ...draft.positions.map((p) => ({ kind: "example" as const, key: p.key, photo: p.photo! })),
         ];
-        const listingIds: string[] = [];
-        const exampleIds: Record<string, string> = {};
+        const listing: string[] = [];
+        const example: Record<string, string> = {};
         for (let i = 0; i < jobs.length; i++) {
           setPhase({ name: "uploading", done: i, total: jobs.length });
           const j = jobs[i];
@@ -79,59 +74,37 @@ export function ListingWizard() {
             { blob: j.photo.blob, purpose: j.kind, capturedAt: j.photo.capturedAt, positionKey: j.key },
             token,
           );
-          if (j.kind === "listing") listingIds.push(up.photoId);
-          else exampleIds[j.key!] = up.photoId;
+          if (j.kind === "listing") listing.push(up.photoId);
+          else example[j.key!] = up.photoId;
         }
-
-        // 2) Tạo điều khoản, nhận termsHash + createDealArgs từ API.
-        setPhase({ name: "terms" });
-        listing = await createListing(
-          buildListingBody(draft, vndPerToken, { listing: listingIds, example: exampleIds }),
-          token,
-        );
-        listingRef.current = listing;
+        ids = { listing, example };
+        uploadedRef.current = ids;
       }
 
-      // 3) Ví ký createDeal, dùng nguyên createDealArgs. Nếu lần trước ĐÃ gửi giao dịch mà chưa biết kết quả thì
-      //    không ký lại, chỉ chờ lại giao dịch cũ (signOrResume): ký lần hai sẽ tạo deal thứ hai cho cùng một tin.
-      const res = await signOrResume(deal.state, deal, listing.createDealArgs,
-        kind => setPhase({ name: kind === "check" ? "checking" : "signing" }));
-      if (!res.ok) {
-        if (isUnresolved(res)) throw new Error(UNRESOLVED_TX);
-        // Từ chối ký hoặc chuỗi báo revert: chưa có gì lên chuỗi, lỗi đã hiện trong TxStatus, ký lại được.
-        return null;
-      }
-
-      // 4) Báo API gắn dealId. Giao dịch đã lên chuỗi nên lỗi ở đây không làm mất phòng.
-      setPhase({ name: "confirming" });
-      try {
-        await confirmOnchain(listing.listingId, { dealId: Number(res.dealId), txHash: res.txHash }, token);
-      } catch (e) {
-        toast.warning(
-          "Phòng đã lên chuỗi nhưng chưa báo được cho máy chủ. Phòng có thể chưa hiện trong danh sách ngay.",
-        );
-        console.error(e);
-      }
-      return Number(res.dealId);
+      // 2) Đưa phòng vào danh mục. Chưa ký gì: ngày thuê do người thuê chọn khi gửi yêu cầu.
+      setPhase({ name: "terms" });
+      const { roomId } = await createRoom(buildListingBody(draft, vndPerToken, ids), token);
+      uploadedRef.current = null;
+      return roomId;
     } catch (e) {
-      const msg = e instanceof ApiClientError || (e instanceof Error && e.message === UNRESOLVED_TX)
-        ? e.message : "Có lỗi không rõ. Thử lại sau.";
+      const msg = e instanceof ApiClientError ? e.message : "Có lỗi không rõ. Thử lại sau.";
       throw new Error(msg);
     }
   }
 
   return <><NetworkBanner /><ListingWizardView ready={ready} authenticated={authenticated} onLogin={login}
-    vndPerToken={vndPerToken} transaction={deal.state} onPublish={publish}
-    onDraftChange={() => { listingRef.current = null; deal.reset(); }} /></>;
+    vndPerToken={vndPerToken} transaction={IDLE} onPublish={publish}
+    onDraftChange={() => { uploadedRef.current = null; }} /></>;
 }
+
+const IDLE: TxState = { phase: "idle" };
 
 const HELP = {
   info: "Ảnh và thông tin giúp người thuê nhận ra đúng căn phòng.",
-  money: "Tiền cọc và điều kiện phí giữ chỗ sẽ đi cùng hợp đồng.",
-  dates: "Chọn mốc nhận phòng và ngày hết hạn thuê.",
+  money: "Tiền cọc và điều kiện phí giữ chỗ sẽ đi cùng hợp đồng. Ngày thuê do người thuê chọn khi gửi yêu cầu.",
   positions: "Cùng vị trí, cùng góc chụp ở mốc nhận và trả phòng.",
   prices: "Thống nhất đơn giá sửa chữa trước khi người thuê gửi cọc.",
-  review: "Kiểm tra ảnh, tiền và điều khoản trước khi ký đăng phòng.",
+  review: "Kiểm tra ảnh, tiền và điều khoản trước khi đăng phòng.",
 };
 
 /** Cùng form cho route thật và preview; preview chỉ thay callback gửi, không gọi ví/API. */
@@ -144,7 +117,7 @@ export function ListingWizardView({
   onLogin: () => void;
   vndPerToken: number;
   transaction: TxState;
-  onPublish: (draft: ListingDraft, progress: (phase: ListingPhase) => void) => Promise<number | null>;
+  onPublish: (draft: ListingDraft, progress: (phase: ListingPhase) => void) => Promise<string | null>;
   onDraftChange?: () => void;
   initialDraft?: () => ListingDraft;
   initialStep?: number;
@@ -242,7 +215,7 @@ export function ListingWizardView({
     setPhase({ name: "preparing" });
     try {
       const id = await onPublish(draft, setPhase);
-      setPhase(id === null ? { name: "editing" } : { name: "done", dealId: id });
+      setPhase(id === null ? { name: "editing" } : { name: "done", roomId: id });
       if (id !== null) window.scrollTo({ top: 0, behavior: "instant" });
     } catch (error) {
       setFailure(error instanceof Error ? error.message : "Chưa đăng được phòng. Thử lại sau.");
@@ -250,12 +223,12 @@ export function ListingWizardView({
     } finally { actionLock.current = false; }
   }
 
-  if (phase.name === "done") return <Done dealId={phase.dealId} hash={transaction.hash} />;
+  if (phase.name === "done") return <Done roomId={phase.roomId} />;
   if (ready && !authenticated) return <PageShell size="read">
     <PageHeader href="/home" backLabel="Về trang chủ" title="Đăng phòng" />
     <section className="my-8 max-w-xl space-y-4 rounded-2xl bg-secondary p-6">
       <h1 className="text-2xl font-bold text-primary">Đăng nhập để đăng phòng</h1>
-      <p className="text-muted-foreground">Bạn sẽ xác nhận điều khoản và ký đăng phòng bằng tài khoản của mình.</p>
+      <p className="text-muted-foreground">Bạn sẽ đăng phòng và duyệt yêu cầu thuê bằng tài khoản của mình.</p>
       <Button size="lg" onClick={onLogin}>Đăng nhập</Button>
     </section>
   </PageShell>;
@@ -288,7 +261,6 @@ export function ListingWizardView({
             <legend className="sr-only">{step.label}</legend>
             {step.id === "info" && <InfoStep {...props} />}
             {step.id === "money" && <MoneyStep {...props} />}
-            {step.id === "dates" && <DatesStep {...props} />}
             {step.id === "positions" && <PositionsStep {...props} />}
             {step.id === "prices" && <PricesStep {...props} />}
             {step.id === "review" && <ReviewStep {...props} goto={edit} />}
@@ -301,7 +273,7 @@ export function ListingWizardView({
             {failure && <p role="alert" className="text-sm font-medium text-destructive [overflow-wrap:anywhere]">{failure}</p>}
             {phase.name === "preparing" && <Progress text="Đang chuẩn bị đăng phòng…" />}
             {phase.name === "uploading" && <Progress text={`Đang tải ảnh ${phase.done + 1}/${phase.total}…`} />}
-            {phase.name === "terms" && <Progress text="Đang chuẩn bị điều khoản…" />}
+            {phase.name === "terms" && <Progress text="Đang đưa phòng vào danh sách…" />}
             {phase.name === "checking" && <Progress text="Đang kiểm tra giao dịch đã gửi…" />}
             {phase.name === "confirming" && <Progress text="Đang ghi nhận phòng…" />}
             {(phase.name === "signing" || transaction.phase !== "idle") && <TxStatus state={transaction} doneText="Đã xác nhận đăng phòng" />}
@@ -315,7 +287,7 @@ export function ListingWizardView({
                   : returnTo !== null ? "Xong, về xem lại" : "Tiếp tục"}
               </Button>
             </div>
-            {last && <p className="text-xs text-muted-foreground">{unresolved ? "Giao dịch đã gửi đi. Chỉ kiểm tra kết quả, không ký lại." : "Ký một giao dịch. Bản thử nghiệm dùng tiền test trên Fuji."}</p>}
+            {last && <p className="text-xs text-muted-foreground">{unresolved ? "Giao dịch đã gửi đi. Chỉ kiểm tra kết quả, không ký lại." : "Chưa cần ký. Bạn ký hợp đồng khi duyệt yêu cầu của người thuê."}</p>}
           </ActionArea>
         </aside>
       </div>
@@ -333,12 +305,11 @@ function DraftSummary({ draft }: { draft: ListingDraft }) {
     </div>
     <dl className="space-y-3 text-sm">
       {[ ["Tiền cọc", amount(draft.depositVnd)], ["Phí giữ chỗ (trong cọc)", amount(draft.reserveVnd)],
-        ["Dọn vào", draft.moveIn ? formatDate(dateToIso(draft.moveIn)) : "Chưa chọn"],
-        ["Hết hạn thuê", draft.leaseEnd ? formatDate(dateToIso(draft.leaseEnd)) : "Chưa chọn"],
+        ["Ngày thuê", "Người thuê chọn"],
       ].map(([label, value]) => <div key={label} className="flex flex-wrap justify-between gap-x-3 gap-y-1"><dt className="text-muted-foreground">{label}</dt><dd className="font-semibold tabular-nums [overflow-wrap:anywhere]">{value}</dd></div>)}
     </dl>
     <p className="text-sm text-muted-foreground">{draft.photos.length} ảnh phòng · {draft.positions.filter(p => p.photo).length}/{draft.positions.length} ảnh ví dụ</p>
-    <p className="flex gap-2 border-t border-border pt-4 text-sm text-muted-foreground"><Check className="mt-0.5 size-4 shrink-0" aria-hidden="true" />Chưa công khai. Bạn còn sửa được trước khi ký đăng phòng.</p>
+    <p className="flex gap-2 border-t border-border pt-4 text-sm text-muted-foreground"><Check className="mt-0.5 size-4 shrink-0" aria-hidden="true" />Chưa công khai. Bạn còn sửa được trước khi bấm Đăng phòng.</p>
   </section>;
 }
 
@@ -346,18 +317,17 @@ function Progress({ text }: { text: string }) {
   return <div role="status" className="flex items-start gap-2 text-sm text-info"><Loader2 className="mt-0.5 size-4 shrink-0 animate-spin" aria-hidden="true" /><span>{text}</span></div>;
 }
 
-function Done({ dealId, hash }: { dealId: number; hash?: `0x${string}` }) {
+function Done({ roomId }: { roomId: string }) {
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => { heading.current?.focus(); }, []);
   return <PageShell size="read" className="py-12">
     <section className="mx-auto max-w-xl space-y-5">
       <CheckCircle2 className="size-12 text-success" aria-hidden="true" />
       <h1 ref={heading} tabIndex={-1} className="text-2xl font-bold text-primary">Đã đăng phòng</h1>
-      <p>Phòng #{dealId} đã được tạo. Ai gửi cọc trước sẽ thuê phòng.</p>
-      {hash && <TxStatus state={{ phase: "success", hash }} doneText="Giao dịch đăng phòng" />}
+      <p>Phòng đã có trong danh sách tìm trọ. Người thuê chọn ngày dọn vào và gửi yêu cầu; bạn duyệt trong mục “Yêu cầu thuê” rồi ký hợp đồng.</p>
       <div className="grid gap-3 sm:grid-cols-2">
-        <Button asChild size="lg"><Link href={`/rooms/${dealId}`}>Xem phòng của tôi</Link></Button>
-        <Button asChild size="lg" variant="outline"><Link href="/home">Về trang chủ</Link></Button>
+        <Button asChild size="lg"><Link href={`/rooms/r/${roomId}`}>Xem phòng</Link></Button>
+        <Button asChild size="lg" variant="outline"><Link href="/requests">Yêu cầu thuê</Link></Button>
       </div>
     </section>
   </PageShell>;

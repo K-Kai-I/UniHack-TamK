@@ -141,7 +141,9 @@ Database chỉ lưu nội dung ngoài chuỗi và bản ghi tra cứu nhanh. Kh�
 
 | Bảng | Cột chính |
 | --- | --- |
-| `listings` | `id`, `landlord`, `terms` (jsonb), `terms_hash`, `deal_id` (null tới khi lên chuỗi), `tx_hash`, `created_at` |
+| `listings` | `id`, `landlord`, `terms` (jsonb), `terms_hash`, `deal_id` (null tới khi lên chuỗi), `tx_hash`, `request_id` (có khi sinh ra từ yêu cầu thuê), `created_at` |
+| `rooms` | `id`, `landlord`, `template` (jsonb: `kct.terms/1` thiếu `createdAt`, `dates`), `active`, `created_at` |
+| `rental_requests` | `id`, `room_id`, `tenant`, `move_in`, `lease_end`, `note`, `status` (`PENDING` / `APPROVED` / `REJECTED` / `CANCELLED`), `listing_id`, `created_at`, `decided_at` |
 | `photos` | `id`, `owner`, `sha256`, `storage_path`, `purpose`, `position_id`, `captured_at`, `lat`, `lng`, `accuracy_m`, `created_at` |
 | `photo_sets` | `id`, `deal_id`, `kind`, `manifest` (jsonb), `set_hash`, `photo_ids` (jsonb, theo positionId), `created_by`, `created_at` |
 | `ai_reports` | `id`, `deal_id`, `type` (`damage` / `mismatch`), `input_hash`, `status`, `report` (jsonb), `report_hash`, `sealed_amount`, `verdict`, `signature`, `error`, `explanation` (jsonb, ngoài phần đã ký), `created_at`, `updated_at` |

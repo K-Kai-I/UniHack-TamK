@@ -78,7 +78,7 @@ export default function ListingPreview() {
       return null;
     }
     progress({ name: "confirming" }); await pause();
-    return 12;
+    return "rm_preview";
   }
   return <>
     <div className="flex flex-wrap items-center gap-3 border-b bg-muted p-4 text-sm">

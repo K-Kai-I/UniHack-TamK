@@ -1,4 +1,5 @@
 // Trạng thái + kiểm tra form "Đăng phòng" (docs/user-flow.md GĐ1). Chỉ là dữ liệu NHẬP; mọi hash do API tính.
+// Từ 19/11 chủ trọ KHÔNG chọn ngày: người thuê chọn ngày khi gửi yêu cầu thuê, chủ trọ duyệt rồi mới ký lên chuỗi.
 // Chủ trọ nhập tiền bằng VND; khi gửi thì đổi sang Amount (mUSDC, 6 số lẻ) theo vndPerToken.
 import { parseVndInput, vndToAmount } from "./money";
 
@@ -79,7 +80,6 @@ export function emptyDraft(): ListingDraft {
 export const STEPS = [
   { id: "info", label: "Thông tin" },
   { id: "money", label: "Tiền" },
-  { id: "dates", label: "Ngày" },
   { id: "positions", label: "Vị trí chụp" },
   { id: "prices", label: "Bảng giá" },
   { id: "review", label: "Xem lại" },
@@ -115,12 +115,6 @@ export function validateStep(step: StepId, d: ListingDraft): Errors {
     else if (res > MAX_VND) e.reserveVnd = TOO_BIG;
     else if (dep !== null && res > dep) e.reserveVnd = "Phí giữ chỗ không được lớn hơn tiền cọc.";
   }
-  if (step === "dates") {
-    if (!d.moveIn) e.moveIn = "Chọn ngày dọn vào.";
-    else if (d.moveIn < todayInput()) e.moveIn = "Ngày dọn vào không được ở quá khứ.";
-    if (!d.leaseEnd) e.leaseEnd = "Chọn ngày hết hạn thuê.";
-    else if (d.moveIn && d.leaseEnd <= d.moveIn) e.leaseEnd = "Ngày hết hạn phải sau ngày dọn vào.";
-  }
   if (step === "positions") {
     if (d.positions.length < MIN_POSITIONS) e.positions = `Cần ít nhất ${MIN_POSITIONS} vị trí.`;
     for (const p of d.positions) {
@@ -150,7 +144,8 @@ export function firstInvalidStep(d: ListingDraft): StepId | null {
 /** Ngày yyyy-mm-dd → ISO UTC lúc 02:00Z (= 09:00 giờ VN), khớp ví dụ trong data-contract. */
 export const dateToIso = (ymd: string) => `${ymd}T02:00:00Z`;
 
-/** Body của POST /listings (docs/api-contract.md). `photoIds` là kết quả POST /uploads đã làm trước đó. */
+/** Body của POST /rooms (docs/api-contract.md): như POST /listings nhưng không có `dates`.
+ *  `ids` là kết quả POST /uploads đã làm trước đó. */
 export function buildListingBody(
   d: ListingDraft,
   vndPerToken: number,
@@ -166,7 +161,6 @@ export function buildListingBody(
     },
     listingPhotoIds: ids.listing,
     money: { depositAmount: vnd(d.depositVnd), reserveFeeAmount: vnd(d.reserveVnd) },
-    dates: { moveInDate: dateToIso(d.moveIn), leaseEnd: dateToIso(d.leaseEnd) },
     positions: d.positions.map((p) => ({
       name: p.name.trim(),
       instruction: p.instruction.trim(),

@@ -49,7 +49,7 @@ async function open(): Promise<Db> {
 }
 
 /** Tạo id dạng tiền tố + chuỗi xếp theo thời gian, ví dụ ph_lz3k2j9a1b2c3d4e5f6a7b8. */
-export function newId(prefix: "ls" | "ph" | "ps" | "ai"): string {
+export function newId(prefix: "ls" | "ph" | "ps" | "ai" | "rm" | "rq"): string {
   const rand = Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => b.toString(16).padStart(2, "0")).join("");
   return `${prefix}_${Date.now().toString(36)}${rand}`;
 }
