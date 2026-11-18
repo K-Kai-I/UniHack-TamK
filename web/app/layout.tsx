@@ -33,7 +33,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="vi" className={cn("font-sans", sans.variable, mono.variable)}>
+    <html lang="vi" className={cn("font-sans", sans.variable, mono.variable)} suppressHydrationWarning>
       <body className="antialiased">
         <Providers>{children}</Providers>
         <Toaster position="top-center" richColors closeButton />
