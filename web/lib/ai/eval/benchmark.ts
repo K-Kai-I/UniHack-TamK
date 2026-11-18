@@ -11,14 +11,15 @@ import { postJson, imagePart, AiRequestError } from '../providers';
 import { compareDamage } from '../index';
 import terms from '../../../../shared/samples/terms.json';
 
-const {values}=parseArgs({options:{model:{type:'string'},run:{type:'string',default:'comparison'},'dry-run':{type:'boolean'},legacy:{type:'boolean'}}});
+const {values}=parseArgs({options:{model:{type:'string'},run:{type:'string',default:'comparison'},'dry-run':{type:'boolean'},legacy:{type:'boolean'},set:{type:'string',default:'reference'},delay:{type:'string',default:'0'}}});
 const here=dirname(fileURLToPath(import.meta.url));
 async function main(){
  if(existsSync('.env.local'))loadEnvFile('.env.local');
  const model=values.model??process.env.AI_MODEL;
  if(!model||! /^(gemini-|gpt-)[a-z0-9.-]+$/.test(model))throw new Error('Invalid model');
  if(!/^[a-z0-9-]+$/.test(values.run!))throw new Error('Invalid run');
- const source=resolve(here,'reference/cases.json');
+ if(!/^[a-z0-9-]+$/.test(values.set!))throw new Error('Invalid set');
+ const source=resolve(here,values.set!,'cases.json');
  const cases=casesSchema.parse(JSON.parse(readFileSync(source,'utf8')));
  function url(name:string){
   const file=resolve(dirname(source),name),rel=relative(dirname(source),file);
@@ -39,7 +40,7 @@ async function main(){
  const rows:EvalRow[]=[];
  const startedAt=new Date().toISOString();
  const save=()=>{
-  writeFileSync(resolve(dir,'results.json'),JSON.stringify({startedAt,run:values.run,provider,model,endpoint:provider==='google'?(values.legacy?'generateContent':'interactions'):'responses',dataset:'reference/cases.json',qualification:'Provisional visual labels, not human ground truth. Rerun is stability, not held-out accuracy. Summary errors includes skipped rows; see requestCoverage.',requestCoverage:{attempted:rows.filter(r=>!r.error?.startsWith('SKIPPED')).length,skipped:rows.filter(r=>r.error?.startsWith('SKIPPED')).length},summary:summarize(rows),rows},null,2));
+  writeFileSync(resolve(dir,'results.json'),JSON.stringify({startedAt,run:values.run,provider,model,endpoint:provider==='google'?(values.legacy?'generateContent':'interactions'):'responses',dataset:`${values.set}/cases.json`,qualification:'Provisional visual labels, not human ground truth. Rerun is stability, not held-out accuracy. Summary errors includes skipped rows; see requestCoverage.',requestCoverage:{attempted:rows.filter(r=>!r.error?.startsWith('SKIPPED')).length,skipped:rows.filter(r=>r.error?.startsWith('SKIPPED')).length},summary:summarize(rows),rows},null,2));
   writeFileSync(resolve(dir,'results.csv'),toCsv(rows));
  };
  for(const c of cases){
@@ -88,6 +89,8 @@ async function main(){
   }catch(e){row.error=e instanceof AiRequestError?e.message:e instanceof Error&&e.message.startsWith('AI_FAILED')?e.message:'Invalid output, timeout or provider configuration; no raw response logged';}
   row.durationMs=Math.round(performance.now()-start);rows.push(row);save();
   console.log(`${model} | ${c.name} | ${row.error?'ERROR':row.predicted} | ${row.durationMs}ms`);
+  // --delay: nghỉ giữa các ca để không chạm giới hạn số lần gọi mỗi phút của gói miễn phí.
+  if(Number(values.delay)>0)await new Promise(r=>setTimeout(r,Number(values.delay)));
   // Persistent authentication/quota errors cannot be fixed by sending the same 22 images again.
   if(row.error&&/HTTP (401|403|404|429)/.test(row.error)){
    for(const pending of cases.slice(rows.length))rows.push({...row,name:pending.name,expected:pending.expectVerdict,durationMs:0,error:'SKIPPED after provider access/quota error; not tested'});
