@@ -6,11 +6,13 @@ import { useRouter } from "next/navigation";
 import { usePrivy } from "@privy-io/react-auth";
 import { useAccount, useReadContract } from "wagmi";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, ChevronRight, FileText, Gavel, House, Inbox, LogOut, Search, ShieldCheck } from "lucide-react";
+import { FileText, Gavel, House, Inbox, LogOut, Search, ShieldCheck } from "lucide-react";
 import { isAddressEqual, zeroAddress } from "viem";
 import { addresses, chain, usdcAbi } from "@/lib/chain";
 import { amountToVnd, formatVnd } from "@/lib/client/money";
 import { useVndRate } from "@/lib/client/use-vnd-rate";
+import { fetchMyDeals, needsMe } from "@/lib/client/my-deals-api";
+import { fetchRequests } from "@/lib/client/rooms-api";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ActionArea } from "@/components/action-area";
@@ -36,6 +38,7 @@ export function Onboarding() {
   const { address } = useAccount();
   const { role, setRole } = useUiRole();
   const router = useRouter();
+  const todo = useTodo(address);
 
   // /home chỉ dành cho người đã đăng nhập. Hết phiên (bấm Đăng xuất, token hết hạn, đăng xuất ở tab khác)
   // thì về landing "/". Xóa dấu phiên trước để landing không nháy nút "Vào app" từ lần xem trước.
@@ -53,12 +56,13 @@ export function Onboarding() {
       role={role} onRoleChange={setRole} onLogin={login} onLogout={logout}
       wallet={<WalletChip address={address} />} faucet={<FaucetButton />} balance={<TestBalance address={address} />}
       jurorEntry={address ? <JurorEntry address={address} /> : null}
+      todo={todo}
     />
   );
 }
 
 /** Trang mẫu dùng cùng phần trình bày, không giả phiên đăng nhập sản phẩm. */
-export function OnboardingView({ ready, authenticated, email, role, onRoleChange, onLogin, onLogout, wallet, faucet, balance, jurorEntry }: {
+export function OnboardingView({ ready, authenticated, email, role, onRoleChange, onLogin, onLogout, wallet, faucet, balance, jurorEntry, todo }: {
   ready: boolean;
   authenticated: boolean;
   email?: string;
@@ -70,6 +74,7 @@ export function OnboardingView({ ready, authenticated, email, role, onRoleChange
   faucet: ReactNode;
   balance?: ReactNode;
   jurorEntry?: ReactNode;
+  todo?: { deals: number; requests: number } | null;
 }) {
   return (
     <PageShell className="flex flex-col gap-8 pt-5 sm:pt-6 lg:gap-12">
@@ -130,8 +135,8 @@ export function OnboardingView({ ready, authenticated, email, role, onRoleChange
             <div className="space-y-8">
               <section aria-labelledby="my-deals-title" className="space-y-3">
                 <h2 id="my-deals-title" className="text-xl font-bold">Tiếp tục với hợp đồng</h2>
-                <Entry href="/deals" icon={FileText} title="Hợp đồng của tôi" text="Xem phòng bạn thuê, phòng bạn cho thuê và việc cần làm trong từng hợp đồng." />
-                <Entry href="/requests" icon={Inbox} title="Yêu cầu thuê" text="Chủ trọ duyệt yêu cầu và ký hợp đồng; người thuê xem yêu cầu đã gửi và đi gửi cọc." />
+                <Entry href="/deals" icon={FileText} title="Hợp đồng của tôi" text="Xem phòng bạn thuê, phòng bạn cho thuê và việc cần làm trong từng hợp đồng." todo={todo?.deals} />
+                <Entry href="/requests" icon={Inbox} title="Yêu cầu thuê" text="Chủ trọ duyệt yêu cầu và ký hợp đồng; người thuê xem yêu cầu đã gửi và đi gửi cọc." todo={todo?.requests} />
                 {jurorEntry}
               </section>
               <section aria-label="Bắt đầu với một căn phòng" className="space-y-4 border-t pt-6">
@@ -168,17 +173,46 @@ function TestnetNote() {
   return <p className="text-sm text-muted-foreground"><strong className="font-semibold text-foreground">Bản thử nghiệm trên Avalanche Fuji.</strong> Chỉ dùng tiền thử, không dùng tiền thật.</p>;
 }
 
-function Entry({ href, icon: Icon, title, text }: { href: string; icon: typeof FileText; title: string; text: string }) {
+function Entry({ href, icon: Icon, title, text, todo = 0 }: { href: string; icon: typeof FileText; title: string; text: string; todo?: number }) {
   return (
-    <Link href={href} className="flex min-h-14 items-center gap-3 rounded-xl border border-input p-4 transition-colors hover:bg-secondary">
-      <Icon className="size-6 shrink-0 text-primary" aria-hidden="true" />
+    <Link href={href} className={cn("flex min-h-14 items-center gap-3 rounded-xl border p-4 transition-colors hover:bg-secondary", todo > 0 ? "border-destructive/40" : "border-input")}>
+      <span className="relative shrink-0">
+        <Icon className="size-6 text-primary" aria-hidden="true" />
+        {todo > 0 && <span aria-hidden="true" className="absolute -top-1.5 -right-1.5 grid min-w-5 place-items-center rounded-full bg-destructive px-1 text-xs font-bold text-white">{todo}</span>}
+      </span>
       <span className="min-w-0 flex-1 space-y-1">
         <span className="block font-bold text-primary">{title}</span>
-        <span className="block text-sm text-muted-foreground">{text}</span>
+        {todo > 0
+          ? <span className="block text-sm font-semibold text-destructive">{todo} việc đang chờ bạn</span>
+          : <span className="block text-sm text-muted-foreground">{text}</span>}
       </span>
-      <ChevronRight className="size-5 shrink-0 text-primary" aria-hidden="true" />
     </Link>
   );
+}
+
+/**
+ * Thông báo trong app (chưa có thông báo đẩy): đếm việc đang chờ người dùng để Home hiện chấm đỏ.
+ * Hợp đồng: theo trạng thái + vai (needsMe). Yêu cầu thuê: chủ trọ có yêu cầu chờ duyệt; người thuê được duyệt mà chưa cọc
+ * (đã gồm trong "Hợp đồng của tôi" nếu hợp đồng đã lên chuỗi, nên ở đây chỉ đếm yêu cầu chờ duyệt).
+ */
+function useTodo(address?: Address) {
+  const { getAccessToken } = usePrivy();
+  const deals = useQuery({
+    queryKey: ["home-todo-deals", address],
+    queryFn: async () => fetchMyDeals(address as Address, await getAccessToken()),
+    enabled: !!address, refetchInterval: 30_000,
+  });
+  const reqs = useQuery({
+    queryKey: ["home-todo-requests", address],
+    queryFn: async () => fetchRequests(await getAccessToken()),
+    enabled: !!address, refetchInterval: 30_000,
+  });
+  if (!address) return null;
+  const now = Date.now();
+  return {
+    deals: (deals.data ?? []).filter((d) => needsMe(d, now)).length,
+    requests: (reqs.data?.incoming ?? []).filter((r) => r.status === "PENDING").length,
+  };
 }
 
 /** Quyền bồi thẩm tiếp tục lấy từ API/contract, không lấy từ lựa chọn vai trò. */
@@ -196,7 +230,6 @@ function RoleCard({ role, active, onPick, icon: Icon, title, text }: { role: UiR
       className={cn("group flex min-w-0 items-center gap-3 rounded-2xl border p-5 transition-colors hover:border-primary hover:bg-secondary", active ? "border-primary/60" : "border-input")}>
       <span className="grid size-11 shrink-0 place-items-center rounded-full bg-secondary text-primary group-hover:bg-background"><Icon className="size-5" aria-hidden="true" /></span>
       <span className="min-w-0 flex-1 space-y-1"><span className="block font-bold text-primary">{title}</span><span className="block text-sm text-muted-foreground">{text}</span></span>
-      <ArrowRight className="size-5 shrink-0 text-primary transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
     </Link>
   );
 }

@@ -17,7 +17,8 @@ import { ApiClientError } from "@/lib/client/api";
 import { formatDate, monthsBetween } from "@/lib/client/date";
 import { confirmOnchain } from "@/lib/client/listings-api";
 import { shortAddress } from "@/lib/client/money";
-import { fetchDeal } from "@/lib/client/rooms-data";
+import { actionsFor, type Role } from "@/lib/client/deal-actions";
+import { fetchDealView, type DealView } from "@/lib/client/deals-data";
 import { approveRequest, decideRequest, fetchRequests, type RentalRequest, type RequestStatus } from "@/lib/client/rooms-api";
 import { isUnresolved, signOrResume, useCreateDeal } from "@/lib/client/use-create-deal";
 import { useSignAs } from "@/lib/client/use-sign-as";
@@ -83,7 +84,11 @@ export function RentalRequests() {
   </>;
 }
 
-function RequestCard({ r, side, getToken }: { r: RentalRequest; side: "incoming" | "outgoing"; getToken: () => Promise<string | null> }) {
+function RequestCard(props: { r: RentalRequest; side: "incoming" | "outgoing"; getToken: () => Promise<string | null> }) {
+  return props.r.status === "APPROVED" && props.r.dealId ? <DealCard r={props.r} side={props.side} /> : <PendingCard {...props} />;
+}
+
+function PendingCard({ r, side, getToken }: { r: RentalRequest; side: "incoming" | "outgoing"; getToken: () => Promise<string | null> }) {
   const qc = useQueryClient();
   const deal = useCreateDeal();
   const signAs = useSignAs();
@@ -165,9 +170,7 @@ function RequestCard({ r, side, getToken }: { r: RentalRequest; side: "incoming"
       <Button onClick={approve} disabled={!!busy} className="flex-1">{busy === "approve" && <Loader2 className="animate-spin" aria-hidden="true" />}Duyệt và ký hợp đồng</Button>
       <Button variant="outline" onClick={() => decide("reject")} disabled={!!busy}>Từ chối</Button>
     </div>}
-    {side === "incoming" && r.status === "APPROVED" && (r.dealId
-      ? <DealProgress dealId={r.dealId} side="incoming" />
-      : signed
+    {side === "incoming" && r.status === "APPROVED" && (signed
         ? <Button onClick={retryBind} disabled={!!busy}>{busy === "approve" && <Loader2 className="animate-spin" aria-hidden="true" />}Gắn lại hợp đồng #{signed.dealId}</Button>
         : <div className="space-y-2"><p className="text-sm text-muted-foreground">Đã duyệt nhưng chưa ký hợp đồng lên chuỗi.</p>
           <Button onClick={approve} disabled={!!busy}>{busy === "approve" && <Loader2 className="animate-spin" aria-hidden="true" />}Ký hợp đồng</Button></div>)}
@@ -176,42 +179,60 @@ function RequestCard({ r, side, getToken }: { r: RentalRequest; side: "incoming"
       <p className="text-sm text-muted-foreground">Chưa mất tiền. Chờ chủ trọ duyệt.</p>
       <Button variant="outline" size="sm" onClick={() => decide("cancel")} disabled={!!busy}>{busy === "cancel" ? "Đang hủy…" : "Hủy yêu cầu"}</Button>
     </div>}
-    {side === "outgoing" && r.status === "APPROVED" && (r.dealId
-      ? <DealProgress dealId={r.dealId} side="outgoing" />
-      : <p className="text-sm text-muted-foreground">Chủ trọ đã duyệt, đang ký hợp đồng lên chuỗi. Trang tự cập nhật.</p>)}
+    {side === "outgoing" && r.status === "APPROVED" && ( <p className="text-sm text-muted-foreground">Chủ trọ đã duyệt, đang ký hợp đồng lên chuỗi. Trang tự cập nhật.</p>)}
     {side === "outgoing" && r.status === "REJECTED" && <p className="text-sm text-muted-foreground">Bạn có thể chọn ngày khác hoặc <Link href="/rooms" className="text-primary underline">tìm phòng khác</Link>.</p>}
   </article>;
 }
 
 /**
- * Hợp đồng đã tạo từ yêu cầu: đọc trạng thái thật trên chuỗi (GET /deals/:id), không đoán.
- * Chưa cọc: người thuê đi gửi cọc. Đã cọc trở đi: cả hai bên mở trang hợp đồng (ảnh nhận/trả phòng, đề xuất, biên nhận).
+ * Yêu cầu đã thành hợp đồng: cả thẻ là một nút mở hợp đồng (chưa cọc thì người thuê mở trang gửi cọc).
+ * Trạng thái đọc thật từ GET /deals/:id (không đoán). Việc đang chờ chính người xem làm thì hiện một dòng đỏ
+ * "Đến lượt bạn: …", lấy từ cùng bảng nút theo trạng thái với trang hợp đồng (deal-actions.ts).
  */
-function DealProgress({ dealId, side }: { dealId: number; side: "incoming" | "outgoing" }) {
-  const q = useQuery({ queryKey: ["deal", dealId], queryFn: () => fetchDeal(dealId), refetchInterval: 15_000 });
-  const state = q.data?.onchain.state;
-  if (!state) return <p className="text-sm text-muted-foreground">Đã tạo hợp đồng #{dealId}. Đang đọc trạng thái…</p>;
+function DealCard({ r, side }: { r: RentalRequest; side: "incoming" | "outgoing" }) {
+  const dealId = r.dealId!;
+  const q = useQuery({ queryKey: ["deal-view", dealId], queryFn: () => fetchDealView(dealId), refetchInterval: 15_000 });
+  const p = q.data ? progressOf(q.data, side) : null;
+  const href = p?.href ?? `/deals/${dealId}`;
+  const s = STATUS[r.status];
+  return <Link href={href} className="block space-y-3 rounded-2xl border border-border p-5 transition-colors [overflow-wrap:anywhere] hover:border-primary hover:bg-secondary/50">
+    <div className="flex flex-wrap items-start justify-between gap-2">
+      <h2 className="font-bold">{r.title || "Phòng"}</h2>
+      <span className={"rounded-full px-2.5 py-1 text-xs font-semibold " + s.tone}>{s.label}</span>
+    </div>
+    <p className="flex items-start gap-2 text-sm"><CalendarDays className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+      Dọn vào {formatDate(r.moveInDate)} · hết hạn {formatDate(r.leaseEnd)} (khoảng {monthsBetween(r.moveInDate, r.leaseEnd)} tháng)</p>
+    {side === "incoming" && <p className="text-sm text-muted-foreground">Người thuê: <span className="font-mono">{shortAddress(r.tenant)}</span></p>}
+    <p className="text-sm">{p ? `Hợp đồng #${dealId}: ${p.text}` : `Hợp đồng #${dealId}. Đang đọc trạng thái…`}</p>
+    {p?.todo && <p className="text-sm font-semibold text-destructive">Đến lượt bạn: {p.todo}</p>}
+  </Link>;
+}
 
-  if (state === "OPEN") {
-    return side === "outgoing"
-      ? <Button asChild size="lg" className="w-full"><Link href={`/rooms/${dealId}`}>Xem hợp đồng và gửi cọc</Link></Button>
-      : <p className="text-sm">Đã tạo hợp đồng <Link href={`/deals/${dealId}`} className="font-semibold text-primary underline">#{dealId}</Link>. Chờ người thuê gửi cọc.</p>;
+const STEP_TEXT: Partial<Record<DealView["onchain"]["state"], string>> = {
+  OPEN: "Chờ người thuê gửi cọc.",
+  RESERVED: "Người thuê đã gửi cọc, đang chờ ảnh nhận phòng.",
+  ACTIVE: "Người thuê đang ở.",
+  CHECKED_OUT: "Người thuê đã trả phòng và gửi ảnh.",
+  PROPOSED: "Chủ trọ đã đề xuất mức trừ, chờ người thuê trả lời.",
+  DISPUTED: "Đang kháng nghị, chờ bồi thẩm.",
+  SETTLED: "Đã kết thúc và chia tiền.",
+  REFUNDED: "Đã hoàn cọc cho người thuê.",
+  CANCELLED: "Hợp đồng đã hủy.",
+  MISMATCH_REPORTED: "Người thuê báo phòng không giống mô tả.",
+  ABANDON_REPORTED: "Chủ trọ báo người thuê bỏ ngang.",
+};
+
+/** Câu trạng thái, việc đang chờ người xem làm (nếu có) và nơi thẻ mở ra. */
+export function progressOf(d: DealView, side: "incoming" | "outgoing"): { text: string; todo: string | null; href: string } {
+  const state = d.onchain.state;
+  const role: Role = side === "incoming" ? "landlord" : "tenant";
+  const hasCheckIn = d.photoSets.checkin !== null;
+  const passed = d.onchain.deadline !== null && Date.now() > Date.parse(d.onchain.deadline);
+  let text = STEP_TEXT[state] ?? "Đang chạy.";
+  if (state === "RESERVED" && hasCheckIn) {
+    text = passed ? "Người thuê đã gửi ảnh nhận phòng. Hợp đồng đang chuyển sang Đang ở." : "Người thuê đã gửi ảnh nhận phòng, chủ trọ đang xem ảnh.";
   }
-  const STEP: Partial<Record<typeof state, string>> = {
-    RESERVED: "Người thuê đã gửi cọc, đang chờ ảnh nhận phòng.",
-    ACTIVE: "Người thuê đang ở.",
-    CHECKED_OUT: "Người thuê đã trả phòng và gửi ảnh. Chủ trọ đề xuất mức trừ trong hợp đồng.",
-    PROPOSED: "Chủ trọ đã đề xuất mức trừ, chờ người thuê trả lời.",
-    DISPUTED: "Đang kháng nghị, chờ bồi thẩm.",
-    SETTLED: "Đã kết thúc và chia tiền.",
-    REFUNDED: "Đã hoàn cọc cho người thuê.",
-    CANCELLED: "Hợp đồng đã hủy.",
-    MISMATCH_REPORTED: "Người thuê báo phòng sai mô tả.",
-    ABANDON_REPORTED: "Chủ trọ báo người thuê bỏ ngang.",
-  };
-  const text = `Hợp đồng #${dealId}: ${STEP[state] ?? "đang chạy."}`;
-  return <div className="space-y-2">
-    <p className="text-sm">{text}</p>
-    <Button asChild size="lg" variant="secondary" className="w-full"><Link href={`/deals/${dealId}`}>Mở hợp đồng (ảnh nhận và trả phòng)</Link></Button>
-  </div>;
+  if (state === "OPEN" && role === "tenant") return { text, todo: "gửi cọc", href: `/rooms/${d.dealId}` };
+  const first = actionsFor(d, role, Date.now(), null).find((a) => a.variant === "primary");
+  return { text, todo: first ? first.label.charAt(0).toLowerCase() + first.label.slice(1) : null, href: `/deals/${d.dealId}` };
 }
