@@ -9,9 +9,9 @@
 // từ ~1024px camera và ảnh tham chiếu thành hai cột bằng nhau. Chỉ đổi bằng CSS (container query), không dựng lại
 // camera hay mất ảnh đã chụp khi xoay màn hình hoặc đổi cỡ cửa sổ. Bước kiểm tra có vùng hành động duy nhất (ActionArea).
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { usePrivy } from "@privy-io/react-auth";
 import { useAccount } from "wagmi";
+import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Check, Circle, ExternalLink, Hourglass, Loader2, Lock, RefreshCw, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,8 @@ import { NetworkBanner } from "@/components/network-banner";
 import { PageHeader } from "@/components/page-header";
 import { PageColumns, PageShell } from "@/components/page-shell";
 import { RoomCover } from "@/components/room-cover";
+import { SuccessScreen } from "@/components/success-screen";
+import { handOffShots, takeShots } from "@/lib/client/shot-handoff";
 import { TxStatus } from "@/components/tx-status";
 import { addresses, escrowAbi } from "@/lib/chain";
 import { ApiClientError } from "@/lib/client/api";
@@ -138,14 +140,19 @@ export function PhotoCaptureFlow({ dealId, kind, previewAs }: { dealId: string; 
 function Flow({ deal, kind, back }: { deal: DealView; kind: CaptureKind; back: string }) {
   const positions = deal.terms.positions;
   const n = positions.length;
-  const router = useRouter();
   const qc = useQueryClient();
   const { getAccessToken } = usePrivy();
   const tx = useTx();
 
-  const [shots, setShots] = useState<Record<string, Shot>>({});
-  const [step, setStep] = useState(0); // 0..n-1 = vị trí đang chụp, n = màn kiểm tra lại
+  // Quay lại từ màn "Phòng không giống mô tả" (AI thấy giống): dùng lại đúng bộ ảnh đã chụp, mở thẳng màn kiểm tra.
+  const [handed] = useState(() => {
+    const got = kind === "checkin" ? takeShots(deal.dealId) : null;
+    return got && positions.every((p) => got[p.id]) ? got : null;
+  });
+  const [shots, setShots] = useState<Record<string, Shot>>(() => handed ?? {});
+  const [step, setStep] = useState(handed ? n : 0); // 0..n-1 = vị trí đang chụp, n = màn kiểm tra lại
   const [phase, setPhase] = useState<Phase>("idle");
+  const router = useRouter();
   const [failedAt, setFailedAt] = useState<Phase | null>(null); // bước đang chạy khi lỗi, để đánh dấu đúng bước hỏng
   const [uploadedCount, setUploadedCount] = useState(0);
   const [apiError, setApiError] = useState("");
@@ -350,9 +357,11 @@ function Flow({ deal, kind, back }: { deal: DealView; kind: CaptureKind; back: s
                 />
                 {tx.state.phase !== "idle" && <TxStatus state={tx.state} doneText={COPY[kind].done} />}
                 {done ? (
-                  <Button size="lg" className="w-full text-base" onClick={() => router.push(back)}>
-                    Về hợp đồng
-                  </Button>
+                  <SuccessScreen
+                    title={COPY[kind].done}
+                    text={kind === "checkin" ? "Ảnh đã được khóa trên blockchain. Lúc trả phòng sẽ đối chiếu với bộ ảnh này." : "Ảnh đã được khóa trên blockchain. Chủ trọ sẽ xem và đề xuất mức trừ."}
+                    href={back}
+                  />
                 ) : (
                   <>
                     {!busy && blockReason && (
@@ -368,8 +377,22 @@ function Flow({ deal, kind, back }: { deal: DealView; kind: CaptureKind; back: s
                       onClick={submit}
                     >
                       {busy ? <Loader2 className="animate-spin" aria-hidden /> : <Lock aria-hidden />}
-                      {phase === "error" ? "Thử lại" : COPY[kind].submit}
+                      {phase === "error" ? "Thử lại" : kind === "checkin" ? "Phòng đúng mô tả · Nhận phòng" : COPY[kind].submit}
                     </Button>
+                    {kind === "checkin" && !busy && phase !== "error" && missing.length === 0 && !lateCheckIn && (
+                      // Cùng bộ ảnh này: AI so với ảnh lúc đăng phòng. Bắt đầu so rồi thì không chụp lại được nữa.
+                      <Button
+                        size="lg"
+                        variant="outline"
+                        className="w-full text-base"
+                        onClick={() => {
+                          handOffShots(deal.dealId, shots);
+                          router.push(back.replace(/(\/deals\/\d+)/, "$1/mismatch"));
+                        }}
+                      >
+                        Phòng không giống mô tả
+                      </Button>
+                    )}
                   </>
                 )}
               </ActionArea>

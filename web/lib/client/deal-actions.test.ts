@@ -25,8 +25,8 @@ function deal(state: DealState, o: { deadline?: number; checkin?: boolean } = {}
 }
 const ids = (d: DealView, role: "tenant" | "landlord") => actionsFor(d, role, T0, null).map((a) => a.id);
 
-test("RESERVED chưa ảnh: còn hạn thì chụp/báo sai; quá hạn thì không còn (submitCheckIn, reportMismatch cần trước hạn)", () => {
-  assert.deepEqual(ids(deal("RESERVED", { deadline: 5 }), "tenant"), ["checkin", "mismatch"]);
+test("RESERVED chưa ảnh: còn hạn thì một nút gửi ảnh (báo sai mô tả chọn sau khi chụp); quá hạn thì không còn", () => {
+  assert.deepEqual(ids(deal("RESERVED", { deadline: 5 }), "tenant"), ["checkin"]);
   assert.deepEqual(ids(deal("RESERVED", { deadline: -1 }), "tenant"), []);
   assert.equal(nextStepFor(deal("RESERVED", { deadline: -1 }), "tenant", true).title, "Đã quá hạn gửi ảnh nhận phòng");
   assert.ok(missingActionNote(deal("RESERVED", { deadline: -1 }), "tenant", T0));

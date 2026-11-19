@@ -164,7 +164,7 @@ export default function MismatchPreview() {
           onSign={() => note("ký")}
           onRetryAi={() => note("thử lại AI")}
           onReloadAi={() => note("tải lại AI")}
-          onRestart={() => note("chụp lại")}
+          onCheckin={() => note("quay lại nhận phòng")}
         />
       ) : (
         <MismatchEvidenceLayout
