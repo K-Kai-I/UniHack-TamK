@@ -3,11 +3,11 @@
 // Bố cục: tên phòng → (mobile: việc cần làm, hạn, tiền → mốc và ảnh) / (desktop: nội dung trái, tóm tắt + hành động phải).
 // Nút theo bảng "Nút trên app theo trạng thái" (lib/client/deal-actions.ts), nút "Xử lý quá hạn" khi canPoke.
 // Màn này là "nhà" của một hợp đồng: các màn chụp ảnh, đề xuất, trả lời, biên nhận đều mở từ đây.
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePrivy } from "@privy-io/react-auth";
 import { useAccount, useReadContract } from "wagmi";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Check, Clock, Gavel, Loader2, Minus, RefreshCw, SearchX } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -148,8 +148,13 @@ function StatusPanel({ deal, role, onExpire }: { deal: DealView; role: Role; onE
   const checkoutFrom = checkoutForTenantFrom(deal, useCheckOutGrace());
   const hasDeadline = !!info && !!onchain.deadline && msLeft !== null;
   const overdue = hasDeadline && passed;
-  const step = nextStepFor(deal, role, overdue);
-  const missingNote = missingActionNote(deal, role, now);
+  // Hết hạn phản đối ảnh nhận phòng không phải chuyện xấu: ảnh được chấp nhận, hợp đồng chỉ chờ một lệnh poke để
+  // sang Đang ở. Không hiện "Đã quá hạn" hay nút xử lý; app tự nhờ server poke (useConfirmCheckIn).
+  const confirming = isConfirmingCheckIn(deal, now);
+  const step = confirming
+    ? { title: "Đang chuyển sang Đang ở", body: "Ảnh nhận phòng đã được chấp nhận. Hợp đồng tự chuyển sang Đang ở trong ít phút, bạn không cần làm gì.", mine: false }
+    : nextStepFor(deal, role, overdue);
+  const missingNote = confirming ? null : missingActionNote(deal, role, now);
 
   const mismatchDispute = onchain.state === "DISPUTED" && onchain.disputeKind === "MISMATCH";
   const mismatchVerdict = deal.reports.mismatch?.verdict;
@@ -159,7 +164,7 @@ function StatusPanel({ deal, role, onExpire }: { deal: DealView; role: Role; onE
       aria-labelledby="status-title"
       className={cn(
         "space-y-3 rounded-2xl p-5 [overflow-wrap:anywhere]",
-        overdue ? "bg-destructive/5 ring-1 ring-destructive/20" : "bg-secondary",
+        overdue && !confirming ? "bg-destructive/5 ring-1 ring-destructive/20" : "bg-secondary",
       )}
     >
       {/* Không đặt nhãn nhỏ phía trên tiêu đề (DESIGN.md); "đến lượt bạn" là badge đi sau tiêu đề. */}
@@ -192,7 +197,13 @@ function StatusPanel({ deal, role, onExpire }: { deal: DealView; role: Role; onE
         </p>
       )}
 
-      {hasDeadline && info && (
+      {confirming && (
+        <p role="status" className="flex items-center gap-2 text-sm text-foreground/80">
+          <Loader2 className="size-4 shrink-0 motion-safe:animate-spin" aria-hidden="true" /> Đang cập nhật trên blockchain…
+        </p>
+      )}
+
+      {hasDeadline && info && !confirming && (
         <div className="space-y-1 border-t pt-3">
           <p className="text-sm font-medium text-foreground/80">{info.waiting}</p>
           <p
@@ -570,7 +581,10 @@ function ActionBar({ deal, role, previewAs }: { deal: DealView; role: Role; prev
   const checkOutGrace = useCheckOutGrace();
   const actions = actionsFor(deal, role, now, checkOutGrace);
   const { onchain } = deal;
-  const canPoke = usePokeStage(deal) === "ready";
+  const pokeReady = usePokeStage(deal) === "ready";
+  const confirming = isConfirmingCheckIn(deal, Date.now());
+  const canPoke = pokeReady && !confirming;
+  useConfirmCheckIn(deal, confirming && pokeReady);
   const receiptHref = hrefFor("receipt", deal.dealId, previewAs)!;
 
   // Người thuê tương lai nhìn thấy phòng OPEN: dẫn về màn Chi tiết phòng để gửi cọc.
@@ -788,4 +802,25 @@ function NotFound() {
       </div>
     </PageShell>
   );
+}
+
+/** Người thuê đã gửi ảnh nhận phòng và hạn chủ trọ phản đối đã qua: hợp đồng chỉ còn chờ chuyển sang Đang ở. */
+function isConfirmingCheckIn(deal: DealView, now: number): boolean {
+  const o = deal.onchain;
+  return o.state === "RESERVED" && deal.photoSets.checkin !== null && o.deadline !== null && now > Date.parse(o.deadline);
+}
+
+/** Nhờ server (ví keeper) poke một lần để sang Đang ở ngay, rồi tải lại hợp đồng. Bot cron vẫn là đường dự phòng. */
+function useConfirmCheckIn(deal: DealView, ready: boolean) {
+  const qc = useQueryClient();
+  const sent = useRef(false);
+  useEffect(() => {
+    if (!ready || sent.current) return;
+    sent.current = true;
+    void fetch(`/api/v1/deals/${deal.dealId}/confirm-checkin`, { method: "POST" })
+      .catch(() => null)
+      .finally(() => {
+        window.setTimeout(() => void qc.invalidateQueries({ queryKey: ["deal-view", deal.dealId] }), 4000);
+      });
+  }, [ready, deal.dealId, qc]);
 }
