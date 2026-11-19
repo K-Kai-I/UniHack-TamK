@@ -38,13 +38,23 @@ function EvidenceImage({
   return (
     <figure className="min-w-0 space-y-2">
       <figcaption className="text-sm font-semibold">{label}</figcaption>
-      <div className="aspect-[4/3] overflow-hidden rounded-xl border bg-muted">
-        {empty ? (
-          <div className="grid size-full place-items-center p-3 text-center text-sm text-muted-foreground">{empty}</div>
-        ) : (
-          <RoomCover key={attempt} url={url || null} alt={alt} fit="contain" onError={() => setFailed(true)} />
-        )}
-      </div>
+      {url && !empty && !failed ? (
+        // Khung theo đúng tỉ lệ ảnh: ảnh đủ khung, không cắt, không có dải xám trên dưới.
+        // Hai ảnh cùng camera nên cặp trước/sau tự cao bằng nhau.
+        <div className="overflow-hidden rounded-xl border bg-muted">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img key={attempt} src={url} alt={alt} loading="lazy" onError={() => setFailed(true)}
+            className="block h-auto max-h-[28rem] w-full object-contain" />
+        </div>
+      ) : (
+        <div className="aspect-[4/3] overflow-hidden rounded-xl border bg-muted">
+          {empty ? (
+            <div className="grid size-full place-items-center p-3 text-center text-sm text-muted-foreground">{empty}</div>
+          ) : (
+            <RoomCover url={null} alt={alt} label={failed ? "Không tải được ảnh" : undefined} />
+          )}
+        </div>
+      )}
       {url && !empty && (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
           {failed && (
@@ -53,7 +63,7 @@ function EvidenceImage({
               variant="outline"
               size="sm"
               aria-label={`Tải lại ảnh: ${alt}`}
-              onClick={() => setAttempt((n) => n + 1)}
+              onClick={() => { setFailed(false); setAttempt((n) => n + 1); }}
             >
               <RefreshCw className="size-4" aria-hidden="true" /> Tải lại ảnh
             </Button>
