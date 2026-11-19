@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { ExternalLink, ShieldCheck } from "lucide-react";
 import { AuthCta, StickyCta } from "./auth";
 import { CompareSlider } from "./compare-slider";
-import { EXAMPLE, POSITIONS, PRICE_LIST, WINDOWS, hasPhoto, vnd } from "./data";
+import { EXAMPLE, POSITIONS, WINDOWS, hasPhoto, vnd } from "./data";
 import { Hero } from "./hero";
 import { JourneyRail } from "./journey-rail";
 import { RoomPlate } from "./room-plates";
@@ -29,7 +29,6 @@ export function Landing() {
         <Hero />
         <Problem />
         <Journey photos={photos} />
-        <Landlord />
         <Close />
       </main>
       <Footer />
@@ -47,7 +46,7 @@ function Header() {
           <span className="text-lg font-extrabold tracking-tight">Két Cọc Trọ</span>
         </a>
         <nav aria-label="Trên trang này" className="hidden items-center gap-1 lg:flex">
-          {[["#hanh-trinh", "Cách hoạt động"], ["#chu-tro", "Cho chủ trọ"]].map(([href, label]) => (
+          {[["#hanh-trinh", "Cách hoạt động"]].map(([href, label]) => (
             <a key={href} href={href} className="rounded-lg px-3 py-2 text-[0.95rem] font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-primary">{label}</a>
           ))}
         </nav>
@@ -79,7 +78,7 @@ function Problem() {
     <section aria-labelledby="problem-title" className="py-20 md:py-28">
       <div className={`${s.wrap} space-y-12`}>
         <SectionHead id="problem-title" title="Cọc kiểu cũ: tiền ở một phía, bằng chứng ở trí nhớ.">
-          <p>Người thuê thường là bên yếu thế. Vài triệu đồng không đáng để ra tòa, nên khi bị trừ cọc không rõ lý do, phần lớn đành chịu.</p>
+          <p>Người thuê thường là bên yếu thế. Vài triệu đồng không đáng để ra tòa, nên khi bị trừ cọc không rõ lý do, phần lớn mọi người đành chịu.</p>
         </SectionHead>
 
         <div>
@@ -261,53 +260,6 @@ function Outcome() {
         Tiền về thẳng tài khoản trong app của mỗi bên, trong cùng một lần chia. Biên nhận ghi rõ từng khoản và có đường dẫn để ai cũng tự kiểm tra được.
       </p>
     </div>
-  );
-}
-
-/* ---------- Chủ trọ ---------- */
-function Landlord() {
-  const points = [
-    ["Bảng giá rõ từ đầu", "Người thuê thấy giá sửa từng hạng mục trước khi gửi cọc, nên lúc trả phòng ít phải giải thích."],
-    ["Ảnh bảo vệ cả hai bên", "Hư hỏng mới có ảnh trước và sau làm căn cứ, không còn là lời người này với người kia."],
-    ["Bỏ ngang cũng có luật", "Người thuê bỏ đi không báo, chủ trọ báo trong app. Người thuê im lặng tới hạn thì chủ trọ nhận cọc."],
-    ["Chỉ ký 2 lần", "Một lần lúc đăng phòng, một lần lúc đề xuất mức trừ. Phần còn lại hợp đồng tự lo."],
-  ];
-  return (
-    <section id="chu-tro" aria-labelledby="landlord-title" className="scroll-mt-20 border-t py-20 md:py-28">
-      <div className={`${s.wrap} grid gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:gap-16`}>
-        <div className="space-y-10">
-          <SectionHead id="landlord-title" title="Chủ trọ cũng bớt được một cuộc cãi nhau.">
-            <p>Két không đứng về phía nào. Luật chốt trước, áp như nhau cho cả hai bên.</p>
-          </SectionHead>
-          <dl className="grid gap-x-10 gap-y-8 sm:grid-cols-2">
-            {points.map(([k, v]) => (
-              <div key={k} className="space-y-2 border-t-2 border-primary pt-4">
-                <dt className="text-lg font-extrabold">{k}</dt>
-                <dd className="text-muted-foreground">{v}</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-        <figure className="self-start rounded-2xl border p-6">
-          <figcaption className="mb-2 flex items-baseline justify-between gap-2">
-            <span className="font-extrabold">Bảng giá sửa chữa</span>
-            <span className="text-sm text-muted-foreground">ví dụ minh họa</span>
-          </figcaption>
-          <table className="w-full text-left">
-            <thead className="sr-only"><tr><th scope="col">Hạng mục</th><th scope="col">Giá</th></tr></thead>
-            <tbody>
-              {PRICE_LIST.map((r) => (
-                <tr key={r.id} className="border-b last:border-0">
-                  <td className="py-4 pr-4">{r.item}<span className="block text-sm text-muted-foreground">mỗi {r.unit}</span></td>
-                  <td className="py-4 text-right font-bold tabular-nums">{vnd(r.vnd)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="mt-4 text-sm text-muted-foreground">Chốt lúc đăng phòng, không sửa được sau khi người thuê đã cọc.</p>
-        </figure>
-      </div>
-    </section>
   );
 }
 
