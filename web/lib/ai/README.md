@@ -11,7 +11,7 @@ Bộ đang dùng: **11 cặp ảnh thực tế / 22 ảnh gốc**, trong `eval/r
 Chạy tại thư mục `web`, dùng Node >=20.12 và dependencies của dự án. Khóa nằm trong `.env.local`, không commit hay gửi qua chat:
 
 ```dotenv
-AI_MODEL=gemini-3.1-flash-lite
+AI_MODEL=gemini-3.5-flash-lite
 AI_API_KEY=<khóa Gemini>
 OPENAI_MODEL=gpt-6-luna
 OPENAI_API_KEY=<khóa OpenAI>
@@ -24,7 +24,7 @@ OPENAI_API_KEY=<khóa OpenAI>
 ```powershell
 Set-Location 'L:\HACKATHON\UniHack-TamK\web'
 # Kiểm tra file, không gọi API
-node --conditions=react-server --import tsx lib/ai/eval/benchmark.ts --model gemini-3.1-flash-lite --dry-run
+node --conditions=react-server --import tsx lib/ai/eval/benchmark.ts --model gemini-3.5-flash-lite --dry-run
 # Model Gemini bất kỳ được tài khoản hỗ trợ; dùng tên run mới mỗi lượt
 node --conditions=react-server --import tsx lib/ai/eval/benchmark.ts --model gemini-4-hydrogen --run manual-01
 # Model OpenAI, cần khóa/hạn mức OpenAI

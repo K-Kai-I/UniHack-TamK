@@ -42,17 +42,19 @@ Bốn lựa chọn đầu là đề xuất, nhóm chốt trong buổi họp. Gi�
 | `POST /listings/:listingId/onchain` | Chủ trọ | Gắn `dealId` sau khi `createDeal` thành công | P0 | 14/11 |
 | `GET /listings?state=OPEN` | Mọi người | Deal OPEN công khai (không gồm tin đăng riêng từ yêu cầu thuê, không gồm deal đã quá hạn nhận cọc) | P0 | 14/11 |
 | `GET /deals/:dealId` | Mọi người | Điều khoản + trạng thái trên chuỗi + bộ ảnh + báo cáo AI | P0 | 15/11 |
-| `GET /deals?wallet=0x...` | Đã đăng nhập | Các hợp đồng của một ví | P0 | 15/11 |
+| `GET /deals?wallet=0x...` | Đã đăng nhập | Các hợp đồng của một ví (gồm cả hợp đồng tạo từ yêu cầu thuê); mỗi item có `hasCheckIn` | P0 | 15/11 |
 | `POST /deals/:dealId/photo-sets` | Người thuê (chủ trọ khi trả thay) | Gom ảnh thành bộ, trả `setHash` để ký lên chuỗi | P0 | 15/11 |
 | `POST /deals/:dealId/ai/damage` | Một trong 2 bên | Chạy AI so trước và sau, ký con dấu | P0 | 15/11 |
 | `GET /deals/:dealId/ai/damage` | Mọi người | Hỏi kết quả AI | P0 | 15/11 |
 | `POST /deals/:dealId/ai/mismatch` | Người thuê | Chạy AI so ảnh đăng tin với thực tế, ký con dấu | P1 | 17/11 |
+| `GET /deals/:dealId/ai/mismatch` | Mọi người | Hỏi lại kết quả AI phòng sai mô tả | P1 | 17/11 |
 | `GET /disputes?juror=0x...` | Bồi thẩm | Các vụ đang chờ phiếu | P1 | 17/11 |
 | `GET /disputes/:dealId` | Bồi thẩm | Bằng chứng của một vụ: chỉ các vị trí bị tranh chấp | P1 | 17/11 |
 | `POST /keeper/tick` | Cron (header bí mật) | Gọi `poke` cho mọi deal có `canPoke == true` | P1 | 17/11 |
-| `POST /ai/quality-check` | Đã đăng nhập | Kiểm tra ảnh mờ, tối, sai góc lúc chụp | P2 | 18/11 |
+| `POST /deals/:dealId/confirm-checkin` | Mọi người (trang hợp đồng tự gọi) | Hết hạn phản đối ảnh nhận phòng: ví keeper `poke` để sang ACTIVE ngay | P1 | 19/11 |
+| ~~`POST /ai/quality-check`~~ | — | Không làm endpoint: kiểm tra tối, chói, rung chạy ngay trên máy (`web/lib/client/photo-quality.ts`) | P2 | 18/11 |
 
-Nguyên tắc thứ tự giữa API và chuỗi: frontend gọi API để lấy hash trước, rồi mới ký giao dịch mang hash đó lên contract. Server không bao giờ gửi giao dịch thay người dùng, trừ `poke` và faucet.
+Nguyên tắc thứ tự giữa API và chuỗi: frontend gọi API để lấy hash trước, rồi mới ký giao dịch mang hash đó lên contract. Server không bao giờ gửi giao dịch thay người dùng, trừ `poke` (keeper tick, confirm-checkin) và faucet.
 
 ## Ba luồng gọi chính
 
@@ -267,6 +269,14 @@ Header `x-keeper-secret`. Server duyệt các deal chưa kết thúc, gọi `can
 ```
 
 Ví keeper chỉ cần AVAX để trả gas. Nó không nhận được tiền từ `poke`.
+
+### POST /deals/:dealId/confirm-checkin
+
+Không cần đăng nhập, không có body. Chỉ gửi `poke` khi deal đang RESERVED, đã có `checkInHash` và `canPoke == true` (hết `checkInObjection`, chủ trọ không phản đối): kết quả theo luật contract là ACTIVE. Ngoài trường hợp đó trả `{ "poked": false, "state": "RESERVED" }` và không làm gì. Gọi trùng (bot hoặc người khác vừa poke) cũng trả `poked: false`, không báo lỗi.
+
+```
+{ "poked": true, "txHash": "0x..." }
+```
 
 ## Mã lỗi
 

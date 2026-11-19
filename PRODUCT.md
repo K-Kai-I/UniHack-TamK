@@ -31,8 +31,8 @@ Tiền nằm trong contract chứ không nằm trong tay chủ trọ. Bằng ch�
 
 ## Operating Context
 
-- Luồng chuẩn 7 bước: Đăng phòng → Gửi cọc → Nhận phòng → Đang ở → Trả phòng → Đề xuất mức trừ → Chia tiền. Có các nhánh A–H (`docs/user-flow.md`).
-- Người thuê ký 3 lần (gửi cọc, ảnh nhận phòng, ảnh trả phòng); chủ trọ ký 2 lần (đăng phòng, đề xuất).
+- Luồng chuẩn: Đăng phòng → Người thuê gửi yêu cầu (chọn ngày) → Chủ trọ duyệt và ký → Gửi cọc → Nhận phòng → Đang ở → Trả phòng → Đề xuất mức trừ → Chia tiền. Có các nhánh A–H (`docs/user-flow.md`).
+- Người thuê xác nhận 3 lần (gửi cọc, ảnh nhận phòng, ảnh trả phòng); chủ trọ xác nhận 2 lần (duyệt yêu cầu thuê, đề xuất). Đăng phòng không cần ký.
 - Ảnh chỉ chụp bằng camera trong app, không được chọn ảnh từ thư viện.
 - Khi demo, hạn chót tính bằng phút; ngoài đời tính bằng ngày.
 - Giao dịch chốt trong 1–2 giây trên Avalanche, nên người thuê đứng trong phòng là thấy cọc đã khóa.
@@ -41,7 +41,8 @@ Tiền nằm trong contract chứ không nằm trong tay chủ trọ. Bằng ch�
 
 - Nguồn sự thật: `docs/contract-spec.md`, `docs/api-contract.md`, `docs/data-contract.md`; kiểu dùng chung ở `web/lib/types.ts`. Luật cho AI viết code ở `AGENTS.md`.
 - Trạng thái hợp đồng đọc từ contract. Nút hành động chỉ hiện khi contract đang ở đúng trạng thái.
-- Mỗi giao dịch hiện 3 trạng thái: đang chờ ký/xác nhận, xong (kèm link Snowtrace), lỗi (kèm lý do dễ hiểu).
+- Mỗi giao dịch hiện 3 trạng thái: đang chờ ký/xác nhận, xong (kèm link Snowtrace), lỗi (kèm lý do dễ hiểu). Xong bước chính thì có màn thành công rồi tự về hợp đồng.
+- Việc đang chờ người dùng hiện chấm đỏ ở Home và dòng đỏ "Đến lượt bạn: …" (chưa có thông báo đẩy).
 - Tiền hiển thị bằng VND, quy đổi qua `vndPerToken`. Trên chuỗi là stablecoin test có 6 số lẻ.
 - AI có thể trả `UNCLEAR`, và server AI có thể sập (nhánh H). UI phải chạy được khi không có phiếu AI.
 - Phạm vi MVP và danh sách "Không làm" ở `AGENTS.md`: không thanh toán tiền thuê/điện nước, không tìm kiếm nâng cao, không tiền thật.
@@ -55,7 +56,7 @@ Tiền nằm trong contract chứ không nằm trong tay chủ trọ. Bằng ch�
 
 ## Evidence on Hand
 
-- Dữ liệu mẫu: `shared/samples/*.json`. Các màn hiện tại dùng dữ liệu giả.
+- Dữ liệu mẫu: `shared/samples/*.json`. App chạy thật trên Fuji với API và database thật (unihack-tamk.vercel.app); dữ liệu giả chỉ còn ở các trang `/dev` và khi bật `NEXT_PUBLIC_MOCK_API`.
 - Chưa có logo, ảnh thật, người dùng thật, lời chứng thực hay số liệu. Đừng bịa ra.
 - Giới hạn đã biết phải nói thật (README): bồi thẩm do nhóm thêm; ảnh vẫn có thể bị dàn dựng; MVP chỉ dùng token test trên Fuji.
 

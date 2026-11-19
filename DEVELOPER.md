@@ -14,11 +14,11 @@ Lịch từng ngày và cổng kiểm tra nằm trong doc "Timeline UniHack – 
 
 ## Cài đặt
 
-Cần: Node 20 trở lên, Git, [Foundry](https://book.getfoundry.sh/getting-started/installation) (chỉ người làm contract), ví MetaMask hoặc Core để thử.
+Cần: Node 20 trở lên, Git, [Foundry](https://book.getfoundry.sh/getting-started/installation) (chỉ người làm contract), một tài khoản Google để đăng nhập thử (app chỉ đăng nhập bằng Google, ví do Privy tạo).
 
 ```bash
-git clone <link repo>
-cd ket-coc-tro
+git clone https://github.com/K-Kai-I/UniHack-TamK.git
+cd UniHack-TamK
 
 # web (cả nhóm)
 cd web
@@ -37,7 +37,7 @@ forge test -vv
 
 Deploy web lên Vercel: import repo, đặt **Root Directory = `web`**, giữ bật "Include files outside the root directory" (web đọc `../shared`), rồi thêm các biến trong `web/.env.example` vào Settings > Environment Variables.
 
-Hiện trạng (16/11): contract đủ P0 + P1 + vault P2, 83 test qua; đã deploy lên Fuji (địa chỉ trong `shared/deployments.json` và README). Backend có đủ 14 endpoint trong `docs/api-contract.md`, chạy trên Vercel. Giữ `wagmi` ở bản 2.x (bản 3 lỗi build với Privy).
+Hiện trạng (19/11, MVP xong): contract đủ P0 + P1 + vault P2, 87 test qua; đã deploy lên Fuji (địa chỉ trong `shared/deployments.json` và README). Backend có 20 route trong `web/app/api/v1/` (danh sách ở `docs/api-contract.md`), chạy trên Vercel. Từ 19/11 app có danh mục phòng + yêu cầu thuê, chỉ đăng nhập Google. Giữ `wagmi` ở bản 2.x (bản 3 lỗi build với Privy).
 
 ### Biến môi trường của backend (`web/.env.local` và Vercel)
 
@@ -54,7 +54,12 @@ Hiện trạng (16/11): contract đủ P0 + P1 + vault P2, 83 test qua; đã dep
 | `AI_MODEL`, `AI_API_KEY` | Có (key) | Gemini; `AI_MODEL=mock` để chạy không cần AI |
 | `OPENAI_API_KEY`, `OPENAI_MODEL` | Có (key) | Không bắt buộc: có thì báo cáo có thêm lời giải thích tiếng Việt |
 | `NEXT_PUBLIC_MOCK_API` | Không | `0` = frontend gọi API thật |
+| `FUJI_RPC_URL` | Không | RPC Fuji; bỏ trống dùng RPC công khai (giới hạn 100 khối mỗi lần đọc sự kiện) |
+| `VND_PER_TOKEN`, `FEE_BPS` | Không | Tỉ giá hiển thị và phí sàn (trả ở `GET /config`) |
 | `FAUCET_AVAX` | Không | AVAX gửi cho ví mới ở faucet, mặc định `0.005` |
+| `NEXT_PUBLIC_SPONSOR_GAS` | Không | `1` = Privy trả gas hộ cho ví Google (cần bật Fee sponsorship trong Privy dashboard) |
+| `LOGS_CHUNK`, `EXPLORER_API_URL` | Không | Đọc sự kiện cho lịch sử: số khối mỗi lần (mặc định 100) và API Routescan để đuổi kịp lịch sử cũ |
+| `PGLITE_DIR` | Không | Chỉ máy local: thư mục database PGlite khi bỏ trống `DATABASE_URL` |
 | `AUTH_DEV_BYPASS` | Không | **Chỉ máy local**: `1` = nhận header `x-dev-wallet` thay token Privy. Vercel luôn bỏ qua |
 
 Biến `NEXT_PUBLIC_` được đóng gói lúc build: sửa trên Vercel xong phải Redeploy. Không bao giờ đặt `NEXT_PUBLIC_` trước biến bí mật.
@@ -64,16 +69,18 @@ Biến `NEXT_PUBLIC_` được đóng gói lúc build: sửa trên Vercel xong p
 Bot là `POST /api/v1/keeper/tick` (header `x-keeper-secret`): gọi `poke` cho mọi deal quá hạn và đọc sự kiện mới cho mục lịch sử. Gói Hobby của Vercel không chạy cron mỗi phút, nên dùng một trong hai:
 
 - [cron-job.org](https://cron-job.org): job mỗi 1 phút gọi URL trên, thêm header `x-keeper-secret`. Khuyên dùng khi demo.
-- GitHub Actions (`.github/workflows/keeper.yml`, mỗi 5 phút, có thể trễ): thêm secret `KEEPER_SECRET` ở Settings > Secrets and variables > Actions.
+- GitHub Actions (`.github/workflows/keeper.yml`, mỗi 5 phút, có thể trễ; bấm Actions > keeper > Run workflow để chạy ngay): thêm secret `KEEPER_SECRET` ở Settings > Secrets and variables > Actions.
 
-Bot ngừng thì tiền không kẹt: ai cũng gọi được `poke` (nút "Xử lý quá hạn" trên app).
+Bot ngừng thì tiền không kẹt: ai cũng gọi được `poke` (nút "Xử lý quá hạn" trên app). Riêng bước hết hạn phản đối ảnh nhận phòng, trang hợp đồng tự gọi `POST /api/v1/deals/:id/confirm-checkin` để sang Đang ở ngay, không chờ cron.
 
 ## Cấu trúc repo
 
 ```
-ket-coc-tro/
+UniHack-TamK/
+  README.md            giới thiệu cho giám khảo
   AGENTS.md            luật cho AI
   DEVELOPER.md         file này
+  PRODUCT.md, DESIGN.md  người dùng, giọng văn, hệ thiết kế giao diện
   docs/                3 hợp đồng: contract, API, dữ liệu (nguồn sự thật)
                        + user-flow.md: luồng, màn hình, nhánh A–H
   contracts/           Foundry: src/, test/, script/
@@ -105,7 +112,7 @@ ket-coc-tro/
 
 ## Prompt cho AI thế nào
 
-Mở repo trong Cursor, Claude Code hoặc VS Code có Copilot; công cụ sẽ tự đọc `AGENTS.md` (Claude đọc qua `CLAUDE.md`, Copilot qua `.github/copilot-instructions.md`). Mỗi lần nhờ một việc nhỏ và chỉ rõ file spec.
+Mở repo trong Cursor, Claude Code hoặc VS Code có Copilot; công cụ sẽ tự đọc `AGENTS.md` (Claude đọc qua `CLAUDE.md`; với Copilot thì nhắc "đọc AGENTS.md" trong prompt). Mỗi lần nhờ một việc nhỏ và chỉ rõ file spec.
 
 Mẫu prompt:
 
@@ -160,7 +167,7 @@ Sau khi AI viết xong: tự đọc lại, chạy lệnh kiểm tra, và hỏi l
 
 - Avalanche Fuji C-Chain, chain ID `43113`, explorer `https://testnet.snowtrace.io`.
 - AVAX test: faucet chính thức của Avalanche Builder Hub (link trên trang team1vn.xyz).
-- mUSDC: gọi `faucet()` trên `MockUSDC` hoặc bấm "Nhận tiền test" trong app.
+- mUSDC và một ít AVAX phí mạng: bấm "Nhận thêm tiền thử" ở Home (mỗi ví 1 lần mỗi 24 giờ), hoặc gọi `faucet()` trên `MockUSDC`.
 
 ## An toàn
 

@@ -6,10 +6,10 @@ File này không chép lại công thức chia tiền, hạn chót hay schema JS
 
 ## Nguyên tắc
 
-- Tạo hợp đồng = đăng phòng. Ai gửi cọc trước người đó thuê.
+- Từ 19/11: chủ trọ đăng phòng vào danh mục; người thuê chọn ngày và gửi yêu cầu; chủ trọ duyệt thì mới tạo hợp đồng trên chuỗi (`createDeal`). Một khoảng ngày chỉ một người thuê.
 - Người dùng làm ít thao tác nhất. Bên nào im lặng tới hạn thì bên đó chịu; bot keeper gọi `poke`, nút "Xử lý quá hạn" là đường dự phòng khi bot ngừng.
-- Luồng chuẩn 7 bước: Đăng phòng → Gửi cọc → Nhận phòng → Đang ở → Trả phòng → Đề xuất mức trừ → Chia tiền.
-- Người thuê ký 3 lần (gửi cọc, ảnh nhận phòng, ảnh trả phòng). Chủ trọ ký 2 lần (đăng phòng, đề xuất). Ảnh nhận phòng được chấp nhận khi chủ trọ im lặng.
+- Luồng chuẩn: Đăng phòng → Gửi yêu cầu thuê → Duyệt và ký → Gửi cọc → Nhận phòng → Đang ở → Trả phòng → Đề xuất mức trừ → Chia tiền.
+- Người thuê xác nhận 3 lần (gửi cọc, ảnh nhận phòng, ảnh trả phòng; chữ ký permit khi gửi cọc chạy ngầm với ví Google). Chủ trọ xác nhận 2 lần (duyệt yêu cầu thuê, đề xuất). Ảnh nhận phòng được chấp nhận khi chủ trọ im lặng.
 - Chỉ trừ hư hỏng. Không trừ nợ tiền phòng, điện nước. Chủ trọ đề xuất một con số tổng (duyệt từng dòng là tầm nhìn).
 - Khi demo, mọi hạn chót tính bằng phút (cột Demo trong `contract-spec.md`).
 
@@ -63,8 +63,8 @@ Ký hiệu nhánh dùng chung với doc User flow.
 
 | # | Ai | Thao tác | API | Contract |
 | --- | --- | --- | --- | --- |
-| 1 | Cả hai | Đăng nhập Google hoặc ví (Privy), chọn vai trò | `GET /config` | — |
-| 2 | Cả hai | "Nhận tiền test" | `POST /faucet` | — |
+| 1 | Cả hai | Đăng nhập Google (Privy tạo ví ngầm), chạm ô "Tôi thuê phòng" / "Tôi cho thuê" | `GET /config` | — |
+| 2 | Cả hai | "Nhận thêm tiền thử" (Home hiện số dư bằng VND) | `POST /faucet` | — |
 
 Edge case: sai mạng → banner + nút chuyển Fuji; hết gas → hướng dẫn faucet, demo dùng ví nạp sẵn; chủ trọ tự cọc phòng mình → `LandlordCannotRent`; mất ví → khôi phục qua tài khoản Google (Privy).
 
@@ -94,9 +94,9 @@ Luồng app từ 19/11 (contract không đổi):
 | 2 | Người thuê | Tìm phòng: từ khóa, khoảng giá, sắp xếp | `GET /rooms`, `GET /rooms/:roomId` |
 | 3 | Người thuê | Chọn ngày dọn vào + số tháng thuê, lời nhắn, gửi yêu cầu (chưa mất tiền) | `POST /rooms/:roomId/requests` |
 | 4 | Chủ trọ | Mục "Yêu cầu thuê": duyệt (ký 1 lần) hoặc từ chối | `POST /requests/:id/approve` → `createDeal(createDealArgs)` → `POST /listings/:id/onchain` → OPEN |
-| 5 | Người thuê | Thấy "Đã duyệt", bấm "Xem hợp đồng và gửi cọc" | `GET /requests` → `/rooms/:dealId` → `deposit` → RESERVED |
+| 5 | Người thuê | Thấy "Đã duyệt" và dòng đỏ "Đến lượt bạn: gửi cọc", bấm vào thẻ | `GET /requests` → `/rooms/:dealId` → `depositWithPermit` → RESERVED |
 
-Edge case: chủ trọ duyệt sát hoặc sau ngày dọn vào → API từ chối, người thuê gửi lại ngày khác; chủ trọ bấm duyệt rồi hủy ký → bấm "Ký hợp đồng" lại dùng đúng điều khoản cũ; người thuê hủy khi còn chờ duyệt.
+Edge case: trùng khoảng ngày đã có người thuê → API từ chối (`409`), màn chi tiết phòng hiện các khoảng đã kín; duyệt một yêu cầu → các yêu cầu chờ trùng ngày tự bị từ chối; chủ trọ duyệt sát hoặc sau ngày dọn vào → API từ chối, người thuê gửi lại ngày khác; chủ trọ bấm duyệt rồi hủy ký → bấm "Ký hợp đồng" lại dùng đúng điều khoản cũ; người thuê hủy khi còn chờ duyệt.
 
 Luồng cũ (phòng có sẵn ngày, ai cọc trước thì thuê):
 
@@ -117,7 +117,7 @@ Edge case: hai người cọc cùng lúc → giao dịch sau revert, không mấ
 | --- | --- | --- | --- |
 | 1 | Người thuê | Ngày dọn vào: chụp từng vị trí, có ảnh ví dụ hướng dẫn góc | `POST /uploads` (`purpose=checkin`) cho từng vị trí |
 | 2 | Người thuê | "Gửi ảnh nhận phòng" (ký) | `POST /deals/:id/photo-sets` (`kind=checkin`) → `submitCheckIn(id, setHash)` |
-| 3 | Chủ trọ | Có `checkInObjection` để phản đối; im lặng là đồng ý | `poke` → ACTIVE |
+| 3 | Chủ trọ | Có `checkInObjection` để phản đối; im lặng là đồng ý | Trang hợp đồng gọi `POST /deals/:id/confirm-checkin` (ví keeper `poke`) → ACTIVE; bot keeper là đường dự phòng |
 
 Nhánh C (từ 19/11: một nút "Gửi ảnh nhận phòng"; chụp xong người thuê chọn "Phòng đúng mô tả · Nhận phòng" hoặc "Phòng không giống mô tả"): chọn không giống thì app dùng lại đúng bộ ảnh vừa chụp (tải lên lại với `purpose=mismatch`, `kind=mismatch`, không chụp lại) → `POST /deals/:id/ai/mismatch` → `reportMismatch(id, verdict, evidenceHash, reportHash, aiSig)`. AI đã so thì không chụp lại ảnh thực tế; AI thấy giống thì quay lại nhận phòng với cùng bộ ảnh.
 
@@ -167,7 +167,7 @@ Cột Mức theo `AGENTS.md` (P0/P1/P2); doc User flow ghi MUST/SHOULD.
 
 | Màn hình | Vai trò | GĐ | Nội dung chính | Mức |
 | --- | --- | --- | --- | --- |
-| Đăng nhập, chọn vai trò | Cả hai | 0 | Google hoặc ví, mạng Fuji, nút nhận tiền test | P0 |
+| Home (đăng nhập, chọn vai trò) | Cả hai | 0 | Google, 2 ô chọn vai, số dư tiền thử bằng VND, chấm đỏ việc đang chờ | P0 |
 | Tìm phòng trọ (`/rooms`) | Người thuê | 2 | Danh mục phòng, ô tìm (không dấu), khoảng giá, sắp xếp | P1 |
 | Chi tiết phòng + Gửi yêu cầu thuê (`/rooms/r/:roomId`) | Người thuê | 2 | Ảnh, tiền, vị trí chụp, bảng giá, chọn ngày dọn vào + số tháng | P1 |
 | Yêu cầu thuê (`/requests`) | Cả hai | 2 | Chủ trọ duyệt (ký `createDeal`) / từ chối; người thuê xem trạng thái, hủy, đi gửi cọc | P1 |
@@ -175,7 +175,7 @@ Cột Mức theo `AGENTS.md` (P0/P1/P2); doc User flow ghi MUST/SHOULD.
 | Chi tiết phòng + Gửi cọc | Người thuê | 2 | Ảnh, điều khoản, bảng giá, ô "Cho cọc sinh lãi", nút Gửi cọc | P0 |
 | Chi tiết hợp đồng | Cả hai | 1–6 | Trạng thái, đếm ngược `deadline`, nút theo bảng "Nút trên app theo trạng thái", nút "Xử lý quá hạn" khi `canPoke` | P0 |
 | Camera chụp theo vị trí | Người thuê (chủ trọ khi trả thay) | 3, 5 | Từng vị trí một, ảnh ví dụ, ảnh cũ mờ đè khung | P0 (lớp mờ: P2) |
-| Báo phòng không đúng | Người thuê | 3 | Chụp thực tế, kết quả AI so với ảnh đăng tin | P1 |
+| Báo phòng không đúng | Người thuê | 3 | Dùng lại bộ ảnh nhận phòng vừa chụp, kết quả AI so với ảnh đăng tin | P1 |
 | Kết quả AI + Đề xuất mức trừ | Chủ trọ | 6 | Báo cáo AI, mức trừ điền sẵn, nút Đề xuất | P0 |
 | Phản hồi / Kháng nghị | Người thuê | 6 | Báo cáo, mức trừ, nút Đồng ý và Kháng nghị | P0 (Kháng nghị: P1) |
 | Biên nhận cuối | Cả hai | 6 | Ai nhận bao nhiêu (event `Paid`), link Snowtrace | P0 (link Snowtrace: P1) |
@@ -188,9 +188,9 @@ Làm phương án đơn giản nhất ghi ở cột phải; ai đổi thì sửa
 
 | # | Doc User flow cần | Phương án tạm |
 | --- | --- | --- |
-| 1 | Chủ trọ "nhận thông báo" khi có người cọc (GĐ2 bước 3) | Không push. Màn "Hợp đồng của tôi" gọi `GET /deals?wallet=` khi mở và hiện trạng thái mới |
+| 1 | Chủ trọ "nhận thông báo" khi có người cọc (GĐ2 bước 3) | Không push. Home đếm việc đang chờ (`GET /deals?wallet=`, `GET /requests`, 30 giây/lần) và hiện chấm đỏ; thẻ hợp đồng ghi "Đến lượt bạn: …" |
 | 2 | "Chọn vai trò" lúc onboarding | Chỉ là lựa chọn giao diện, không lưu. Quyền thật theo địa chỉ ví `landlord` / `tenant` trong deal |
-| 3 | Kết quả AI phòng sai mô tả | `api-contract.md` chỉ có `POST /deals/:id/ai/mismatch`, chưa có `GET` để hỏi lại như AI hư hỏng. Cần Khải chốt: chạy đồng bộ hay gửi việc rồi hỏi |
+| 3 | Kết quả AI phòng sai mô tả | Đã chốt: có `GET /deals/:id/ai/mismatch` để hỏi lại như AI hư hỏng |
 | 4 | "Lãi tạm tính" ở GĐ4 | Chưa có trường. Khi có vault (P2): `vault.convertToAssets(vaultShares) - deposit`, trước phí sàn |
 | 5 | "Phòng tự ẩn khỏi danh sách" | `GET /listings?state=OPEN` phải lọc bằng trạng thái đọc từ contract, không lưu cột trạng thái |
 
