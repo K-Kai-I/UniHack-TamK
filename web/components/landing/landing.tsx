@@ -1,8 +1,8 @@
 // Landing "Dải tiền cọc" cho người chưa đăng nhập. Phần tĩnh render phía server;
 // chỉ dải hành trình, so ảnh, mô phỏng im lặng và nút đăng nhập chạy ở client.
 import "server-only";
-import { Suspense, type ReactNode } from "react";
-import { ExternalLink, Plus, ShieldCheck } from "lucide-react";
+import type { ReactNode } from "react";
+import { ExternalLink, ShieldCheck } from "lucide-react";
 import { AuthCta, StickyCta } from "./auth";
 import { CompareSlider } from "./compare-slider";
 import { EXAMPLE, POSITIONS, PRICE_LIST, WINDOWS, hasPhoto, vnd } from "./data";
@@ -10,7 +10,6 @@ import { Hero } from "./hero";
 import { JourneyRail } from "./journey-rail";
 import { RoomPlate } from "./room-plates";
 import { SilenceSim } from "./silence-sim";
-import { UnderWater } from "./under-water";
 import s from "./landing.module.css";
 
 
@@ -19,12 +18,6 @@ function photoMap() {
   for (const p of POSITIONS) for (const k of ["checkin", "checkout"]) m[`${p.id}-${k}`] = hasPhoto(`${p.id}-${k}`);
   return m;
 }
-
-const TEAM = [
-  { slug: "khai", name: "Lê Quang Khải", role: "Contract + Backend", work: "Hợp đồng giữ cọc, hạn chót, con dấu AI, API và bot xử lý quá hạn." },
-  { slug: "khanh", name: "Nguyễn Quốc Khánh", role: "Frontend", work: "Mọi màn hình, camera trong app, đăng nhập Google và luồng ký." },
-  { slug: "khoa", name: "Lê Đăng Khoa", role: "AI", work: "So ảnh trước và sau, prompt, bộ đánh giá trên các cặp ảnh." },
-];
 
 export function Landing() {
   const photos = photoMap();
@@ -37,12 +30,6 @@ export function Landing() {
         <Problem />
         <Journey photos={photos} />
         <Landlord />
-        <Suspense fallback={<section className={`${s.deep} h-[40rem]`} aria-label="Đang đọc chuỗi" />}>
-          <UnderWater />
-        </Suspense>
-        <Limits />
-        <Faq />
-        <Team />
         <Close />
       </main>
       <Footer />
@@ -60,7 +47,7 @@ function Header() {
           <span className="text-lg font-extrabold tracking-tight">Két Cọc Trọ</span>
         </a>
         <nav aria-label="Trên trang này" className="hidden items-center gap-1 lg:flex">
-          {[["#hanh-trinh", "Cách hoạt động"], ["#chu-tro", "Cho chủ trọ"], ["#kiem-chung", "Kiểm chứng"], ["#hoi-dap", "Hỏi đáp"]].map(([href, label]) => (
+          {[["#hanh-trinh", "Cách hoạt động"], ["#chu-tro", "Cho chủ trọ"]].map(([href, label]) => (
             <a key={href} href={href} className="rounded-lg px-3 py-2 text-[0.95rem] font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-primary">{label}</a>
           ))}
         </nav>
@@ -319,104 +306,6 @@ function Landlord() {
           </table>
           <p className="mt-4 text-sm text-muted-foreground">Chốt lúc đăng phòng, không sửa được sau khi người thuê đã cọc.</p>
         </figure>
-      </div>
-    </section>
-  );
-}
-
-/* ---------- Giới hạn nói thật ---------- */
-function Limits() {
-  const items = [
-    ["Bồi thẩm do nhóm thêm.", "Nhóm vẫn ảnh hưởng được kết quả tranh chấp, nhưng không lấy được tiền, vì tiền chỉ về hai bên. Hướng sau: bồi thẩm đặt cọc và nhận thưởng khi bỏ phiếu đúng."],
-    ["AI chưa được đo trên ảnh phòng trọ thật.", "AI chỉ đề xuất và là một phiếu. Người thuê luôn kháng nghị được."],
-    ["Ảnh vẫn có thể bị dàn dựng.", "Camera trong app, thời điểm chụp và mã ảnh trên chuỗi làm việc gian lận khó hơn, chứ không loại bỏ hẳn."],
-    ["Mới là bản thử nghiệm.", "Chỉ dùng tiền thử trên Avalanche Fuji. Luật chia tiền cần luật sư xem trước khi dùng tiền thật."],
-  ];
-  return (
-    <section aria-labelledby="limits-title" className="py-20 md:py-28">
-      <div className={`${s.wrap} grid gap-12 lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] lg:gap-16`}>
-        <SectionHead id="limits-title" title="Những gì chưa làm được.">
-          <p>Nói trước để bạn quyết định có căn cứ.</p>
-        </SectionHead>
-        <ul className="divide-y border-y">
-          {items.map(([k, v]) => (
-            <li key={k} className="grid gap-2 py-6 md:grid-cols-[minmax(0,18rem)_minmax(0,1fr)] md:gap-8">
-              <p className="text-lg font-bold">{k}</p>
-              <p className="text-muted-foreground">{v}</p>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </section>
-  );
-}
-
-/* ---------- Hỏi đáp ---------- */
-function Faq() {
-  const qa = [
-    ["AI so sai thì sao?", "AI không chạm vào tiền. Nó chỉ trả kết luận và hạng mục bảng giá, rồi ký con dấu. Chủ trọ vẫn tự đề xuất, người thuê vẫn kháng nghị được, và khi tranh chấp, con dấu AI chỉ là một phiếu."],
-    ["Nhóm làm app có rút được tiền cọc không?", "Không. Hợp đồng không có hàm nào cho nhóm, server hay AI rút tiền. Tiền chỉ đi tới người thuê, chủ trọ, ví phí (chỉ phí trên tiền lãi) và két lãi."],
-    ["Mất điện thoại thì cọc có mất không?", "Không. Cọc nằm trong hợp đồng, không nằm trong điện thoại. Đăng nhập lại bằng Google trên máy khác là thấy đủ."],
-    ["Bao lâu thì nhận lại cọc?", `Trả phòng xong, chủ trọ có ${WINDOWS.propose} để đề xuất mức trừ, người thuê có ${WINDOWS.respond} để phản hồi. Ai im lặng tới hạn thì tiền đi theo luật, không phải chờ.`],
-    ["Tôi không biết gì về tiền mã hóa, có dùng được không?", "Được. Bạn đăng nhập bằng Google, ví được tạo ngầm. Trên màn hình chỉ có tiền cọc bằng VND, việc cần làm và hạn chót."],
-    ["Chủ trọ không đồng ý dùng thì sao?", "Két cần cả hai bên đồng ý từ đầu. Chủ trọ đăng phòng kèm điều khoản và bảng giá; người thuê thấy hết trước khi gửi cọc."],
-  ];
-  return (
-    <section id="hoi-dap" aria-labelledby="faq-title" className="scroll-mt-20 border-t py-20 md:py-28">
-      <div className={`${s.wrap} grid gap-12 lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] lg:gap-16`}>
-        <SectionHead id="faq-title" title="Hỏi đáp" />
-        <div className={`${s.faq} divide-y border-y`}>
-          {qa.map(([q, a]) => (
-            <details key={q} className="group">
-              <summary className="flex min-h-16 cursor-pointer items-center justify-between gap-6 py-4 text-lg font-bold">
-                {q}
-                <Plus className={`${s.chev} size-6 shrink-0 text-primary transition-transform duration-200`} aria-hidden="true" />
-              </summary>
-              <p className="max-w-[62ch] pb-6 text-muted-foreground">{a}</p>
-            </details>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ---------- Đội ngũ ---------- */
-function Team() {
-  return (
-    <section aria-labelledby="team-title" className="border-t py-20 md:py-28">
-      <div className={`${s.wrap} space-y-12`}>
-        <SectionHead id="team-title" title="Ba người làm Két Cọc Trọ.">
-          <p>Sinh viên, dự thi Team1 Vietnam UniHack 2026.</p>
-        </SectionHead>
-        {TEAM.every((m) => hasPhoto(`team/${m.slug}`)) ? (
-          <ul className="grid gap-10 sm:grid-cols-3">
-            {TEAM.map((m) => (
-              <li key={m.slug} className="space-y-4">
-                <div className="aspect-[4/5] overflow-hidden rounded-2xl bg-secondary">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={`/landing/team/${m.slug}.webp`} alt={`Chân dung ${m.name}`} loading="lazy" className="size-full object-cover" />
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xl font-extrabold">{m.name}</p>
-                  <p className="font-semibold text-primary">{m.role}</p>
-                  <p className="text-muted-foreground">{m.work}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          // Chưa đủ ảnh chân dung: danh sách kẻ dòng, không dựng ô trống thay ảnh.
-          <ul className="divide-y border-y">
-            {TEAM.map((m) => (
-              <li key={m.slug} className="grid gap-1 py-6 md:grid-cols-[minmax(0,18rem)_minmax(0,12rem)_minmax(0,1fr)] md:items-baseline md:gap-8">
-                <p className="text-xl font-extrabold">{m.name}</p>
-                <p className="font-semibold text-primary">{m.role}</p>
-                <p className="text-muted-foreground">{m.work}</p>
-              </li>
-            ))}
-          </ul>
-        )}
       </div>
     </section>
   );

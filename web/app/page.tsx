@@ -8,7 +8,7 @@ import { Landing } from "@/components/landing/landing";
 const SESSION_HINT = `try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(/^privy:(.+:)?(token|refresh_token)$/.test(k)&&localStorage.getItem(k)){document.documentElement.dataset.session="1";break}}}catch(e){}`;
 
 // "/" luôn là landing, kể cả khi đã đăng nhập (giám khảo xem được). Màn home của app ở /home.
-// Phần "Dưới mặt nước" đọc chuỗi, nên trang làm mới mỗi 60 giây.
+// Landing không còn đọc chuỗi; giữ làm mới 60 giây cho an toàn.
 export const revalidate = 60;
 
 export const metadata: Metadata = {
