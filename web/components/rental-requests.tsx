@@ -19,6 +19,7 @@ import { confirmOnchain } from "@/lib/client/listings-api";
 import { shortAddress } from "@/lib/client/money";
 import { approveRequest, decideRequest, fetchRequests, type RentalRequest, type RequestStatus } from "@/lib/client/rooms-api";
 import { isUnresolved, signOrResume, useCreateDeal } from "@/lib/client/use-create-deal";
+import { useSignAs } from "@/lib/client/use-sign-as";
 import type { Hash } from "@/lib/types";
 
 const STATUS: Record<RequestStatus, { label: string; tone: string }> = {
@@ -84,6 +85,7 @@ export function RentalRequests() {
 function RequestCard({ r, side, getToken }: { r: RentalRequest; side: "incoming" | "outgoing"; getToken: () => Promise<string | null> }) {
   const qc = useQueryClient();
   const deal = useCreateDeal();
+  const signAs = useSignAs();
   const [busy, setBusy] = useState<null | "approve" | "reject" | "cancel">(null);
   const [error, setError] = useState<string | null>(null);
   // Hợp đồng vừa lên chuỗi nhưng chưa gắn được vào yêu cầu. Còn giá trị này thì KHÔNG cho ký lại (ký lại = tạo deal thứ hai),
@@ -107,6 +109,9 @@ function RequestCard({ r, side, getToken }: { r: RentalRequest; side: "incoming"
       const token = await getToken();
       const a = await approveRequest(r.requestId, token);
       if (a.dealId === null) {
+        // Chặn ký nhầm ví trước khi ký (ký nhầm = hợp đồng lên chuỗi mà không gắn được).
+        const wrong = await signAs(r.landlord);
+        if (wrong) { setError(wrong); await refresh(); return; }
         const res = await signOrResume(deal.state, deal, a.createDealArgs);
         if (!res.ok) {
           if (isUnresolved(res)) setError("Giao dịch đã gửi nhưng chưa biết kết quả. Đừng ký lại, bấm “Ký hợp đồng” để kiểm tra.");
