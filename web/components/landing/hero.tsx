@@ -19,7 +19,7 @@ export function Hero() {
           Luôn biết tiền cọc của bạn đang ở đâu.
         </h1>
         <p className="max-w-[30rem] text-lg text-muted-foreground lg:text-xl">
-          Cọc nằm trong một hợp đồng tự chạy, không nằm trong tay ai. Mỗi khoản trừ có ảnh và giá chốt sẵn. Mỗi bước có hạn chót.
+          Cọc nằm trong một hợp đồng tự động, không nằm trong tay ai. Mỗi khoản trừ có ảnh và giá chốt sẵn. Mỗi bước có hạn chót.
         </p>
         <div id="hero-cta" className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <AuthCta className="min-h-16 px-8 text-lg" />
@@ -29,7 +29,8 @@ export function Hero() {
         </div>
         <p className="text-sm text-muted-foreground">
           <span data-when-guest>Đăng nhập bằng Google là dùng được, không cần cài thêm gì.</span>
-          <span data-when-session>Bạn đã đăng nhập. Vào app để xem hợp đồng và việc cần làm.</span>{" "}
+          <span data-when-session>Bạn đã đăng nhập. Vào app để xem hợp đồng và việc cần làm.</span>
+          <br />
           <strong className="font-semibold text-foreground">Bản thử nghiệm:</strong> chỉ dùng tiền thử.
         </p>
       </div>
@@ -53,7 +54,6 @@ function Fold({ x, y, delay, r = 11 }: { x: number; y: number; delay: number; r?
 function DesktopRibbon() {
   return (
     <svg viewBox="0 0 900 880" className="hidden h-auto w-full md:block" aria-hidden="true">
-      <text x={892} y={40} textAnchor="end" className={s.svgMuted} fontSize={16} fontWeight={600}>Ví dụ minh họa · {EXAMPLE.room}</text>
       {/* 6.000.000 ₫ đi vào, gập ở Gửi cọc, tới Nhận phòng */}
       <path d="M300 -40 C300 60 520 70 520 170 C520 270 230 250 230 360" pathLength={1} fill="none" stroke="var(--ink)" strokeWidth={W} className={s.draw} style={d(0.15, 1.0)} />
       {/* 6 tháng ở: nét đứt = đang chờ, tiền nằm yên trong hợp đồng */}
