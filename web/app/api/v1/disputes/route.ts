@@ -10,7 +10,7 @@ export const GET = route(async (req: Request) => {
   if (!/^0x[0-9a-f]{40}$/.test(juror)) throw new ApiErr("BAD_REQUEST", "Cần ?juror=0x...");
   if (!(await readIsJuror(juror))) return json({ items: [], isJuror: false });
 
-  const rows = await listBoundListings();
+  const rows = await listBoundListings({ includePrivate: true });
   const deals = (await readDeals(rows.map((r) => BigInt(r.deal_id!)))).map((d, i) => ({ d, r: rows[i] }));
   const open = deals.filter(({ d }) => d.stateName === "DISPUTED" && d.landlord !== juror && d.tenant !== juror);
   const voted = await Promise.all(
