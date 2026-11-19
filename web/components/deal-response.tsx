@@ -36,6 +36,7 @@ import {
 import { ActionArea } from "@/components/action-area";
 import { InfoBox, Row, Rows } from "@/components/deal-bits";
 import { Field, MoneyInput } from "@/components/listing-fields";
+import { SuccessScreen } from "@/components/success-screen";
 import { TxStatus } from "@/components/tx-status";
 import { addresses, escrowAbi } from "@/lib/chain";
 import type { DamageAiResponse } from "@/lib/client/ai-report-api";
@@ -372,9 +373,7 @@ export function ProposeView({
           Số bạn đã nhập vẫn còn nguyên. Sửa rồi ký lại.
         </KeptNote>
         {done ? (
-          <Button asChild size="lg" className="w-full text-base">
-            <Link href={back}>Về hợp đồng</Link>
-          </Button>
+          <SuccessScreen title="Đã gửi đề xuất" text="Người thuê sẽ đồng ý hoặc kháng nghị trước hạn. Im lặng tới hạn thì chia theo con số của bạn." href={back} />
         ) : (
           <Button
             size="lg"
@@ -598,9 +597,7 @@ export function RespondView({
               : "Kháng nghị"}
         </Button>
         {disputed && (
-          <Button asChild variant="ghost" className="w-full">
-            <Link href={back}>Về hợp đồng</Link>
-          </Button>
+          <SuccessScreen title="Đã gửi kháng nghị" text="Bồi thẩm sẽ xem ảnh và kết quả AI rồi bỏ phiếu. Tiền cọc vẫn nằm trong két tới khi có kết quả." href={back} />
         )}
       </ActionArea>
 

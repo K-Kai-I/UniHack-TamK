@@ -4,8 +4,8 @@
 //
 // Hai đường gửi:
 //  1. Mặc định: wagmi writeContractAsync (ví Privy hoặc ví ngoài), người dùng tự trả gas bằng AVAX test.
-//  2. Trả gas hộ: bật NEXT_PUBLIC_SPONSOR_GAS=1 VÀ ví đang dùng là ví embedded của Privy →
-//     useSendTransaction(..., { sponsor: true }). Cần bật "Fee sponsorship" cho Fuji trong Privy dashboard.
+//  2. Ví embedded của Privy: luôn đi useSendTransaction để hộp ký có chữ tiếng Việt (uiOptions, bảng TX_UI).
+//     Trả gas hộ chỉ khi bật NEXT_PUBLIC_SPONSOR_GAS=1 (cần bật "Fee sponsorship" cho Fuji trong Privy dashboard).
 //     Ví ngoài (MetaMask/Core) luôn đi đường 1.
 // Trước khi gửi luôn mô phỏng (simulateContract) để lỗi của contract hiện ra bằng tiếng Việt,
 // và để không đốt hạn mức trả gas hộ cho giao dịch chắc chắn revert.
@@ -44,6 +44,25 @@ export interface TxRequest {
 
 const SPONSOR_ENABLED = process.env.NEXT_PUBLIC_SPONSOR_GAS === "1";
 
+/**
+ * Chữ trên hộp ký của ví Privy, theo từng hàm contract. Mặc định Privy chỉ hiện địa chỉ contract và phí bằng tiếng Anh,
+ * người thuê trọ không biết mình đang ký gì. Ở đây nói bằng tiếng Việt: việc gì, có chuyển tiền không.
+ */
+const TX_UI: Record<string, { action: string; description: string; button: string }> = {
+  createDeal: { action: "Ký hợp đồng thuê", description: "Ghi hợp đồng thuê phòng lên blockchain. Bước này không chuyển tiền.", button: "Ký hợp đồng" },
+  deposit: { action: "Gửi tiền cọc", description: "Chuyển tiền cọc vào két của hợp đồng. Không ai rút riêng được; tiền chỉ chia theo luật đã chốt.", button: "Gửi cọc" },
+  depositWithPermit: { action: "Gửi tiền cọc", description: "Chuyển tiền cọc vào két của hợp đồng. Không ai rút riêng được; tiền chỉ chia theo luật đã chốt.", button: "Gửi cọc" },
+  submitCheckIn: { action: "Xác nhận nhận phòng", description: "Khóa mã bộ ảnh nhận phòng lên blockchain để sau này đối chiếu. Không chuyển tiền.", button: "Xác nhận" },
+  submitCheckOut: { action: "Xác nhận trả phòng", description: "Khóa mã bộ ảnh trả phòng lên blockchain. Không chuyển tiền.", button: "Xác nhận" },
+  reportMismatch: { action: "Báo phòng sai mô tả", description: "Gửi kết quả AI so ảnh lên hợp đồng để xin hoàn cọc.", button: "Gửi báo cáo" },
+  proposeDeduction: { action: "Đề xuất mức trừ", description: "Gửi mức trừ cọc cho người thuê xem. Chưa chuyển tiền cho tới khi người thuê đồng ý hoặc hết hạn.", button: "Gửi đề xuất" },
+  acceptProposal: { action: "Đồng ý mức trừ", description: "Đồng ý mức trừ của chủ trọ. Hợp đồng chia tiền cọc ngay sau bước này.", button: "Đồng ý" },
+  disputeProposal: { action: "Kháng nghị", description: "Không đồng ý mức trừ; bồi thẩm sẽ phân xử. Chưa chuyển tiền.", button: "Kháng nghị" },
+  poke: { action: "Xử lý quá hạn", description: "Bên kia đã quá hạn. Hợp đồng làm theo luật đã chốt cho trường hợp im lặng.", button: "Xử lý" },
+  vote: { action: "Bỏ phiếu", description: "Gửi phiếu của bạn cho vụ tranh chấp này.", button: "Bỏ phiếu" },
+};
+const TX_UI_DEFAULT = { action: "Thao tác trên hợp đồng", description: "Xác nhận thao tác trên hợp đồng giữ cọc.", button: "Xác nhận" };
+
 export function useTx() {
   const [state, setState] = useState<TxState>({ phase: "idle" });
   const { address: account } = useAccount();
@@ -78,6 +97,7 @@ export function useTx() {
         (w) => w.walletClientType === "privy" && isAddressEqual(w.address as Address, account),
       );
       const sponsored = SPONSOR_ENABLED && !!embedded;
+      const ui = TX_UI[req.functionName] ?? TX_UI_DEFAULT;
 
       try {
         outcome.current = { reverted: false };
@@ -93,11 +113,22 @@ export function useTx() {
         });
 
         let hash: Hash;
-        if (sponsored) {
+        if (embedded) {
+          // Ví Privy: gửi qua Privy để hộp ký nói bằng tiếng Việt (uiOptions). Trả gas hộ chỉ khi bật cờ.
           const data = encodeFunctionData({ abi: req.abi, functionName: req.functionName, args: req.args });
           const res = await sendTransaction(
             { to: req.address, data, chainId: chain.id },
-            { sponsor: true, address: embedded!.address },
+            {
+              sponsor: sponsored,
+              address: embedded.address,
+              uiOptions: {
+                description: ui.description,
+                buttonText: ui.button,
+                transactionInfo: { title: "Chi tiết", action: ui.action, contractInfo: { name: "Két Cọc Trọ" } },
+                successHeader: "Đã gửi",
+                successDescription: "Đang chờ blockchain xác nhận.",
+              },
+            },
           );
           hash = res.hash;
         } else {

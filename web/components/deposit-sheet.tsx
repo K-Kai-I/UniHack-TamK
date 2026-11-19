@@ -10,6 +10,7 @@ import { CheckCircle2, ExternalLink, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
 import { FaucetButton } from "@/components/faucet-button";
+import { SuccessScreen } from "@/components/success-screen";
 import { addresses, chain, explorerTxUrl, usdcAbi } from "@/lib/chain";
 import { formatVnd, amountToVnd } from "@/lib/client/money";
 import type { DealDetail } from "@/lib/client/rooms-data";
@@ -135,6 +136,7 @@ export function DepositSheetView({ deal, open, onOpenChange, state, signingStep 
       <div ref={scroll} className="min-h-0 overflow-y-auto overscroll-contain px-4 py-5 [overflow-wrap:anywhere] sm:px-6" data-deposit-scroll>
         {state.phase !== "idle" && <div className="mb-5"><DepositProgress state={state} signingStep={signingStep} /></div>}
         <DrawerDescription className="mb-5 text-base text-foreground">{deal.terms.room.title}</DrawerDescription>
+        {done && <SuccessScreen title="Đã gửi cọc" text={`${vnd(amount)} đã nằm trong két của hợp đồng. Bước tiếp theo: chụp ảnh nhận phòng.`} href={`/deals/${deal.dealId}`} />}
         {done ? <div className="space-y-5">
           <div className="flex items-start gap-3">
             <CheckCircle2 className="mt-1 size-6 shrink-0 text-success" aria-hidden="true" />
@@ -190,7 +192,6 @@ export function DepositSheetView({ deal, open, onOpenChange, state, signingStep 
             {balanceState === "error" && !blocked && <div role="status" className="space-y-2 rounded-xl bg-warning/15 p-3 text-sm text-warning-foreground"><p>Không đọc được số dư ví. Thử lại trước khi gửi cọc.</p><Button variant="outline" onClick={onReload}>Thử lại số dư</Button></div>}
             {short && balanceState === "ready" && !blocked && <div role="status" className="space-y-3 rounded-xl bg-warning/15 p-3 text-sm text-warning-foreground"><p>Ví còn thiếu <strong className="tabular-nums">{vnd(BigInt(amount) - balance!)}</strong> để gửi cọc.</p>{faucet}<Button variant="outline" className="w-full" onClick={onReload}>Cập nhật số dư</Button></div>}
           </>}
-        <p className="text-sm text-muted-foreground">Mạng thử nghiệm Fuji · dùng token thử, không phải tiền thật.</p>
         {done ? <Button asChild size="lg" className="w-full"><Link href={`/deals/${deal.dealId}`}>Xem hợp đồng</Link></Button>
           : <Button size="lg" className="w-full [overflow-wrap:anywhere]" disabled={disabled} onClick={onSubmit}>
             {busy && <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden="true" />}
