@@ -17,6 +17,7 @@ import { ApiClientError } from "@/lib/client/api";
 import { formatDate, monthsBetween } from "@/lib/client/date";
 import { confirmOnchain } from "@/lib/client/listings-api";
 import { shortAddress } from "@/lib/client/money";
+import { fetchDeal } from "@/lib/client/rooms-data";
 import { approveRequest, decideRequest, fetchRequests, type RentalRequest, type RequestStatus } from "@/lib/client/rooms-api";
 import { isUnresolved, signOrResume, useCreateDeal } from "@/lib/client/use-create-deal";
 import { useSignAs } from "@/lib/client/use-sign-as";
@@ -165,7 +166,7 @@ function RequestCard({ r, side, getToken }: { r: RentalRequest; side: "incoming"
       <Button variant="outline" onClick={() => decide("reject")} disabled={!!busy}>Từ chối</Button>
     </div>}
     {side === "incoming" && r.status === "APPROVED" && (r.dealId
-      ? <p className="text-sm">Đã tạo hợp đồng <Link href={`/rooms/${r.dealId}`} className="font-semibold text-primary underline">#{r.dealId}</Link>. Chờ người thuê gửi cọc.</p>
+      ? <DealProgress dealId={r.dealId} side="incoming" />
       : signed
         ? <Button onClick={retryBind} disabled={!!busy}>{busy === "approve" && <Loader2 className="animate-spin" aria-hidden="true" />}Gắn lại hợp đồng #{signed.dealId}</Button>
         : <div className="space-y-2"><p className="text-sm text-muted-foreground">Đã duyệt nhưng chưa ký hợp đồng lên chuỗi.</p>
@@ -176,8 +177,41 @@ function RequestCard({ r, side, getToken }: { r: RentalRequest; side: "incoming"
       <Button variant="outline" size="sm" onClick={() => decide("cancel")} disabled={!!busy}>{busy === "cancel" ? "Đang hủy…" : "Hủy yêu cầu"}</Button>
     </div>}
     {side === "outgoing" && r.status === "APPROVED" && (r.dealId
-      ? <Button asChild size="lg" className="w-full"><Link href={`/rooms/${r.dealId}`}>Xem hợp đồng và gửi cọc</Link></Button>
+      ? <DealProgress dealId={r.dealId} side="outgoing" />
       : <p className="text-sm text-muted-foreground">Chủ trọ đã duyệt, đang ký hợp đồng lên chuỗi. Trang tự cập nhật.</p>)}
     {side === "outgoing" && r.status === "REJECTED" && <p className="text-sm text-muted-foreground">Bạn có thể chọn ngày khác hoặc <Link href="/rooms" className="text-primary underline">tìm phòng khác</Link>.</p>}
   </article>;
+}
+
+/**
+ * Hợp đồng đã tạo từ yêu cầu: đọc trạng thái thật trên chuỗi (GET /deals/:id), không đoán.
+ * Chưa cọc: người thuê đi gửi cọc. Đã cọc trở đi: cả hai bên mở trang hợp đồng (ảnh nhận/trả phòng, đề xuất, biên nhận).
+ */
+function DealProgress({ dealId, side }: { dealId: number; side: "incoming" | "outgoing" }) {
+  const q = useQuery({ queryKey: ["deal", dealId], queryFn: () => fetchDeal(dealId), refetchInterval: 15_000 });
+  const state = q.data?.onchain.state;
+  if (!state) return <p className="text-sm text-muted-foreground">Đã tạo hợp đồng #{dealId}. Đang đọc trạng thái…</p>;
+
+  if (state === "OPEN") {
+    return side === "outgoing"
+      ? <Button asChild size="lg" className="w-full"><Link href={`/rooms/${dealId}`}>Xem hợp đồng và gửi cọc</Link></Button>
+      : <p className="text-sm">Đã tạo hợp đồng <Link href={`/deals/${dealId}`} className="font-semibold text-primary underline">#{dealId}</Link>. Chờ người thuê gửi cọc.</p>;
+  }
+  const STEP: Partial<Record<typeof state, string>> = {
+    RESERVED: "Người thuê đã gửi cọc, đang chờ ảnh nhận phòng.",
+    ACTIVE: "Người thuê đang ở.",
+    CHECKED_OUT: "Người thuê đã trả phòng và gửi ảnh. Chủ trọ đề xuất mức trừ trong hợp đồng.",
+    PROPOSED: "Chủ trọ đã đề xuất mức trừ, chờ người thuê trả lời.",
+    DISPUTED: "Đang kháng nghị, chờ bồi thẩm.",
+    SETTLED: "Đã kết thúc và chia tiền.",
+    REFUNDED: "Đã hoàn cọc cho người thuê.",
+    CANCELLED: "Hợp đồng đã hủy.",
+    MISMATCH_REPORTED: "Người thuê báo phòng sai mô tả.",
+    ABANDON_REPORTED: "Chủ trọ báo người thuê bỏ ngang.",
+  };
+  const text = `Hợp đồng #${dealId}: ${STEP[state] ?? "đang chạy."}`;
+  return <div className="space-y-2">
+    <p className="text-sm">{text}</p>
+    <Button asChild size="lg" variant="secondary" className="w-full"><Link href={`/deals/${dealId}`}>Mở hợp đồng (ảnh nhận và trả phòng)</Link></Button>
+  </div>;
 }

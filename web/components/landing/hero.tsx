@@ -29,7 +29,6 @@ export function Hero() {
         </div>
         <p className="text-sm text-muted-foreground">
           <span data-when-guest>Đăng nhập bằng Google là dùng được, không cần cài thêm gì.</span>
-          <span data-when-session>Bạn đã đăng nhập. Vào app để xem hợp đồng và việc cần làm.</span>
           <br />
           <strong className="font-semibold text-foreground">Bản thử nghiệm:</strong> chỉ dùng tiền thử.
         </p>

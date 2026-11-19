@@ -45,11 +45,6 @@ function Header() {
           <ShieldCheck className="size-7 shrink-0" aria-hidden="true" />
           <span className="text-lg font-extrabold tracking-tight">Két Cọc Trọ</span>
         </a>
-        <nav aria-label="Trên trang này" className="hidden items-center gap-1 lg:flex">
-          {[["#hanh-trinh", "Cách hoạt động"]].map(([href, label]) => (
-            <a key={href} href={href} className="rounded-lg px-3 py-2 text-[0.95rem] font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-primary">{label}</a>
-          ))}
-        </nav>
         <AuthCta guest="Đăng nhập" size="default" variant="outline" memberVariant="default" arrow={false} />
       </div>
     </header>
@@ -196,7 +191,7 @@ function Journey({ photos }: { photos: Record<string, boolean> }) {
                   <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-muted">
                     {photos[`${p.id}-checkin`] ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={`/landing/${p.id}-checkin.webp`} alt={`${p.name}, lúc nhận phòng (ảnh minh họa)`} loading="lazy" className="size-full object-contain" />
+                      <img src={`/landing/${p.id}-checkin.webp`} alt={`${p.name}, lúc nhận phòng (ảnh minh họa)`} loading="lazy" className="size-full object-cover" />
                     ) : (
                       <RoomPlate id={p.id} className="size-full" />
                     )}
@@ -280,7 +275,6 @@ function Close() {
           <AuthCta className="min-h-16 px-8 text-lg" />
           <p className="text-sm text-muted-foreground">
             <span data-when-guest>Đăng nhập bằng Google là dùng được, không cần cài thêm gì.</span>
-            <span data-when-session>Bạn đã đăng nhập. Vào app để xem hợp đồng và việc cần làm.</span>
           </p>
         </div>
       </div>

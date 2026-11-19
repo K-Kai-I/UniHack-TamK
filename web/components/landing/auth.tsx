@@ -71,8 +71,8 @@ export function LoginButton({ children = "Bắt đầu với Google", variant = 
   );
 }
 
-/** Nút hành động chính: khách thấy nút đăng nhập, người đã đăng nhập thấy "Vào app". CSS chọn theo <html data-session>. */
-export function AuthCta({ guest = "Bắt đầu với Google", member = "Vào app", variant = "default", memberVariant, size = "lg", className, arrow = true }: {
+/** Nút hành động chính: khách thấy nút đăng nhập, người đã đăng nhập thấy nút cùng chữ "Đăng nhập" (bấm là vào app). CSS chọn theo <html data-session>. */
+export function AuthCta({ guest = "Bắt đầu với Google", member = "Đăng nhập", variant = "default", memberVariant, size = "lg", className, arrow = true }: {
   guest?: string;
   member?: string;
   variant?: Variant;
