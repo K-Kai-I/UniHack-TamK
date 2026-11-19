@@ -36,8 +36,13 @@ export async function postJson(url: string, headers: Record<string, string>, bod
       : status === 401 || status === 403 ? "Kiểm tra API key và quyền truy cập model."
       : "Kiểm tra model và định dạng yêu cầu.";
     const delay = retryDelay(response.headers.get("retry-after"));
+    // Chỉ lấy lý do ngắn Google trả (error.status + error.message, cắt 200 ký tự), không lấy body thô.
+    // Không có dòng này thì 403 không biết là sai khóa, khóa bị giới hạn hay chưa bật API.
+    const reason = await response.json().then((b: { error?: { status?: string; message?: string } }) =>
+      [b?.error?.status, b?.error?.message].filter(Boolean).join(": ").slice(0, 200)).catch(() => "");
+    if (reason) console.warn(`[ai] HTTP ${status}: ${reason}`);
     // Không thử sớm hơn Retry-After; trả lỗi nếu thời gian chờ vượt ngân sách.
-    throw new AiRequestError(`Dịch vụ AI trả HTTP ${status}. ${hint}`,
+    throw new AiRequestError(`Dịch vụ AI trả HTTP ${status}${reason ? ` (${reason})` : ""}. ${hint}`,
       [408, 429, 500, 502, 503, 504].includes(status) && delay <= 10_000, delay);
   }
   try { return await response.json() as unknown; }

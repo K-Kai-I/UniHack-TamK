@@ -30,6 +30,7 @@ import { DealStatusBadge } from "@/components/deal-status-badge";
 import { EvidencePhoto } from "@/components/evidence-photo";
 import { NetworkBanner } from "@/components/network-banner";
 import { PageHeader } from "@/components/page-header";
+import { PokeButton } from "@/components/poke-button";
 import { PageColumns, PageShell } from "@/components/page-shell";
 import { RoomCover } from "@/components/room-cover";
 import { fetchDamageAi, startDamageAi, type DamageAiResponse } from "@/lib/client/ai-report-api";
@@ -70,6 +71,9 @@ export function DamageReportScreen({ dealId, previewAs }: { dealId: string; prev
     // AI chạy nền trên server (thường dưới 1 phút): hỏi lại mỗi 3 giây tới khi xong hoặc lỗi.
     refetchInterval: (q) => (q.state.data?.status === "processing" ? 3000 : false),
   });
+
+  // Quá hạn thì contract từ chối đề xuất/trả lời: thay form bằng nút xử lý quá hạn, khỏi ký giao dịch chắc chắn lỗi.
+  const { passed: overdue } = useCountdown(deal.data?.onchain.deadline ?? null);
 
   if (id === null || deal.error instanceof NotFoundError) {
     return <Blocked back="/" header="Báo cáo AI" title="Không tìm thấy hợp đồng này" text="Đường dẫn có thể bị sai." />;
@@ -112,7 +116,9 @@ export function DamageReportScreen({ dealId, previewAs }: { dealId: string; prev
         onRetryAi={() => ai.refetch()}
         onExpire={() => deal.refetch()}
         action={
-          proposing ? (
+          (proposing || responding) && overdue ? (
+            <OverduePanel deal={d} role={role} />
+          ) : proposing ? (
             // Không cần key: ProposeView tự điền theo aiAmount khi AI xong và giữ chữ chủ trọ đã gõ.
             <ProposePanel
               deal={d}
@@ -208,6 +214,21 @@ export function ReportLayout({
 
 // ------------------------------------------------------------------ hạn chót
 
+function OverduePanel({ deal, role }: { deal: DealView; role: Role }) {
+  const info = deadlineInfo(deal.onchain.state, true);
+  return (
+    <section aria-labelledby="overdue-title" className="space-y-3 rounded-2xl border border-destructive/20 bg-destructive/5 p-5">
+      <h2 id="overdue-title" className="text-lg font-bold">Đã quá hạn {role === "landlord" ? "đề xuất" : "trả lời"}</h2>
+      <p className="text-sm text-foreground/80">
+        Contract không nhận {role === "landlord" ? "đề xuất" : "câu trả lời"} sau hạn chót nữa.
+        {info ? ` Theo luật đã chốt: ${info.onTimeout}` : ""}
+      </p>
+      <p className="text-sm text-muted-foreground">Bấm nút dưới để chốt, hoặc chờ bot của app tự xử lý trong vài phút.</p>
+      <PokeButton deal={deal} receiptHref={`/deals/${deal.dealId}/receipt`} />
+    </section>
+  );
+}
+
 function DeadlineLine({ deal, onExpire }: { deal: DealView; onExpire: () => void }) {
   const info = deadlineInfo(deal.onchain.state, true);
   const { passed, msLeft } = useCountdown(deal.onchain.deadline, onExpire);
@@ -215,18 +236,20 @@ function DeadlineLine({ deal, onExpire }: { deal: DealView; onExpire: () => void
   return (
     <div
       className={cn(
-        "flex items-center gap-3 rounded-2xl px-4 py-3 ring-1",
+        "space-y-2 rounded-2xl px-5 py-4 ring-1",
         passed ? "bg-destructive/5 ring-destructive/20" : "bg-warning/10 ring-warning/30",
       )}
     >
-      <Hourglass className="size-5 shrink-0 text-primary" aria-hidden="true" />
-      <div className="min-w-0 flex-1">
-        <p className="text-sm text-foreground/80">{info.waiting}</p>
-        <p className="text-xs text-muted-foreground">Hết hạn: {info.onTimeout}</p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="flex min-w-0 items-center gap-2 text-sm font-semibold">
+          <Hourglass className="size-4 shrink-0 text-primary" aria-hidden="true" />
+          {info.waiting}
+        </p>
+        <p className={cn("shrink-0 text-lg font-extrabold tabular-nums", passed ? "text-destructive" : "text-primary")}>
+          {passed ? "Quá hạn" : formatDuration(msLeft)}
+        </p>
       </div>
-      <p className={cn("text-lg font-extrabold tabular-nums", passed ? "text-destructive" : "text-primary")}>
-        {passed ? "Quá hạn" : formatDuration(msLeft)}
-      </p>
+      <p className="text-sm text-muted-foreground">Nếu hết hạn: {info.onTimeout}</p>
     </div>
   );
 }
