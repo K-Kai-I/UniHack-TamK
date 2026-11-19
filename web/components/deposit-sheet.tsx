@@ -148,6 +148,15 @@ export function DepositSheetView({ deal, open, onOpenChange, state, signingStep 
             <div className="mt-4 border-t border-border pt-3 text-sm">
               <dt>Phí giữ chỗ đã gồm trong cọc</dt><dd className="mt-1 font-bold tabular-nums">{vnd(fee)}</dd>
             </div>
+            {/* Số dư đặt ngay cạnh số tiền phải gửi: biết đủ hay thiếu trước khi bấm. */}
+            <div className="mt-3 flex items-baseline justify-between gap-3 border-t border-border pt-3 text-sm">
+              <dt>Bạn đang có</dt>
+              <dd className="text-right font-bold tabular-nums">
+                {balanceState === "ready" && balance !== undefined
+                  ? <>{vnd(balance)} <span className={short ? "text-warning-foreground" : "text-success"}>{short ? "· chưa đủ" : "· đủ"}</span></>
+                  : balanceState === "error" ? "Không đọc được" : "Đang đọc…"}
+              </dd>
+            </div>
           </dl>
           <p className="text-sm font-semibold">Bạn chỉ gửi {rate === null ? exactToken(amount) : vnd(amount)} tiền cọc. Phí giữ chỗ không cộng thêm.</p>
           <div className="space-y-2 text-sm">

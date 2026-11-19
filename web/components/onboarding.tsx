@@ -4,9 +4,13 @@ import { useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { usePrivy } from "@privy-io/react-auth";
-import { useAccount } from "wagmi";
+import { useAccount, useReadContract } from "wagmi";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, ChevronRight, FileText, Gavel, Inbox, LogOut, ShieldCheck } from "lucide-react";
+import { ArrowRight, ChevronRight, FileText, Gavel, House, Inbox, LogOut, Search, ShieldCheck } from "lucide-react";
+import { isAddressEqual, zeroAddress } from "viem";
+import { addresses, chain, usdcAbi } from "@/lib/chain";
+import { amountToVnd, formatVnd } from "@/lib/client/money";
+import { useVndRate } from "@/lib/client/use-vnd-rate";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ActionArea } from "@/components/action-area";
@@ -47,14 +51,14 @@ export function Onboarding() {
       ready={ready && authenticated} authenticated={authenticated}
       email={user?.google?.email ?? user?.email?.address}
       role={role} onRoleChange={setRole} onLogin={login} onLogout={logout}
-      wallet={<WalletChip address={address} />} faucet={<FaucetButton />}
+      wallet={<WalletChip address={address} />} faucet={<FaucetButton />} balance={<TestBalance address={address} />}
       jurorEntry={address ? <JurorEntry address={address} /> : null}
     />
   );
 }
 
 /** Trang mẫu dùng cùng phần trình bày, không giả phiên đăng nhập sản phẩm. */
-export function OnboardingView({ ready, authenticated, email, role, onRoleChange, onLogin, onLogout, wallet, faucet, jurorEntry }: {
+export function OnboardingView({ ready, authenticated, email, role, onRoleChange, onLogin, onLogout, wallet, faucet, balance, jurorEntry }: {
   ready: boolean;
   authenticated: boolean;
   email?: string;
@@ -64,6 +68,7 @@ export function OnboardingView({ ready, authenticated, email, role, onRoleChange
   onLogout: () => void;
   wallet: ReactNode;
   faucet: ReactNode;
+  balance?: ReactNode;
   jurorEntry?: ReactNode;
 }) {
   return (
@@ -112,7 +117,6 @@ export function OnboardingView({ ready, authenticated, email, role, onRoleChange
             <p className="text-sm text-muted-foreground">Chưa có ví, hệ thống sẽ tạo khi bạn đăng nhập.</p>
             <ActionArea>
               <Button size="lg" className="w-full" onClick={onLogin}>Đăng nhập bằng Google</Button>
-              <p className="text-center text-sm text-muted-foreground">Đã có ví? Chọn “Ví” trong cửa sổ đăng nhập.</p>
             </ActionArea>
           </aside>
         </PageColumns>
@@ -131,31 +135,28 @@ export function OnboardingView({ ready, authenticated, email, role, onRoleChange
                 {jurorEntry}
               </section>
               <section aria-label="Bắt đầu với một căn phòng" className="space-y-4 border-t pt-6">
-                <fieldset className="min-w-0 space-y-4">
-                  <legend className="text-xl font-bold">Bắt đầu với một căn phòng</legend>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <RoleChoice role="tenant" active={role === "tenant"} onChange={onRoleChange} title="Tôi thuê phòng" text="Tìm phòng, chọn ngày dọn vào và gửi yêu cầu cho chủ trọ." />
-                    <RoleChoice role="landlord" active={role === "landlord"} onChange={onRoleChange} title="Tôi cho thuê" text="Đăng phòng, đặt tiền cọc và bảng giá; duyệt yêu cầu thuê." />
-                  </div>
-                </fieldset>
-                <p className="text-sm text-muted-foreground">Một tài khoản dùng được cả hai vai. Bạn có thể đổi lựa chọn bất cứ lúc nào.</p>
+                <h2 className="text-xl font-bold">Bắt đầu với một căn phòng</h2>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <RoleCard role="tenant" active={role === "tenant"} onPick={onRoleChange} icon={Search} title="Tôi thuê phòng" text="Tìm phòng, chọn ngày dọn vào và gửi yêu cầu cho chủ trọ." />
+                  <RoleCard role="landlord" active={role === "landlord"} onPick={onRoleChange} icon={House} title="Tôi cho thuê" text="Đăng phòng, đặt tiền cọc và bảng giá; duyệt yêu cầu thuê." />
+                </div>
+                <p className="text-sm text-muted-foreground">Một tài khoản dùng được cả hai vai. Chạm vào ô là đi tiếp.</p>
               </section>
             </div>
             <aside aria-labelledby="account-title" className="space-y-4 border-t pt-6 lg:self-start lg:rounded-2xl lg:border lg:p-6">
-              <h2 id="account-title" className="text-lg font-bold">Ví và tiền thử nghiệm</h2>
-              <TestnetNote />
-              <div className="space-y-2 [&_button]:min-h-11 [&_button]:shadow-none">
-                <p className="text-sm text-muted-foreground">Địa chỉ ví của bạn</p>
-                {wallet}
-              </div>
-              <p className="text-sm text-muted-foreground">Cần tiền thử để gửi cọc hoặc trả phí giao dịch? Nhận tại đây.</p>
+              <h2 id="account-title" className="text-lg font-bold">Tiền thử của bạn</h2>
+              {balance}
               {faucet}
+              <TestnetNote />
+              {/* Địa chỉ ví chỉ cho người cần đối chiếu trên Snowtrace (dev, giám khảo). */}
+              <details className="border-t pt-1 text-sm">
+                <summary className="min-h-11 cursor-pointer py-3 font-semibold text-muted-foreground">Chi tiết kỹ thuật</summary>
+                <div className="space-y-2 pb-2 [&_button]:min-h-11 [&_button]:shadow-none">
+                  <p className="text-muted-foreground">Địa chỉ ví của bạn trên Avalanche Fuji</p>
+                  {wallet}
+                </div>
+              </details>
             </aside>
-            <ActionArea>
-              {role ? (
-                <Button asChild size="lg" className="w-full"><Link href={ROLE_HOME[role]}>{role === "tenant" ? "Tìm phòng trọ" : "Đăng phòng mới"} <ArrowRight aria-hidden="true" /></Link></Button>
-              ) : <Button size="lg" className="w-full" disabled>Chọn vai trò để tiếp tục</Button>}
-            </ActionArea>
           </PageColumns>
         </>
       )}
@@ -188,11 +189,33 @@ function JurorEntry({ address }: { address: Address }) {
   return <Entry href="/jury" icon={Gavel} title="Bạn là bồi thẩm" text={n > 0 ? n + " vụ đang chờ phiếu của bạn" : "Chưa có vụ nào chờ phiếu"} />;
 }
 
-function RoleChoice({ role, active, onChange, title, text }: { role: UiRole; active: boolean; onChange: (role: UiRole) => void; title: string; text: string }) {
+/** Chọn vai không tốn tiền và đổi lại được, nên chạm là đi luôn: nhớ vai rồi mở màn của vai đó. */
+function RoleCard({ role, active, onPick, icon: Icon, title, text }: { role: UiRole; active: boolean; onPick: (role: UiRole) => void; icon: typeof FileText; title: string; text: string }) {
   return (
-    <label className={cn("flex min-w-0 cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors hover:bg-secondary", active ? "border-primary bg-secondary" : "border-input")}>
-      <input type="radio" name="onboarding-role" value={role} checked={active} onChange={() => onChange(role)} className="mt-1 size-5 shrink-0 accent-primary" />
-      <span className="min-w-0 space-y-1"><span className="block font-semibold">{title}</span><span className="block text-sm text-muted-foreground">{text}</span></span>
-    </label>
+    <Link href={ROLE_HOME[role]} onClick={() => onPick(role)}
+      className={cn("group flex min-w-0 items-center gap-3 rounded-2xl border p-5 transition-colors hover:border-primary hover:bg-secondary", active ? "border-primary/60" : "border-input")}>
+      <span className="grid size-11 shrink-0 place-items-center rounded-full bg-secondary text-primary group-hover:bg-background"><Icon className="size-5" aria-hidden="true" /></span>
+      <span className="min-w-0 flex-1 space-y-1"><span className="block font-bold text-primary">{title}</span><span className="block text-sm text-muted-foreground">{text}</span></span>
+      <ArrowRight className="size-5 shrink-0 text-primary transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+    </Link>
+  );
+}
+
+/** Số dư mUSDC đổi ra VND: người dùng cần biết mình có bao nhiêu tiền, không cần địa chỉ ví. */
+function TestBalance({ address }: { address?: Address }) {
+  const rate = useVndRate();
+  const live = !isAddressEqual(addresses.token, zeroAddress);
+  const bal = useReadContract({
+    address: addresses.token, abi: usdcAbi, functionName: "balanceOf",
+    args: address ? [address] : undefined, chainId: chain.id,
+    query: { enabled: !!address && live, refetchInterval: 10_000 },
+  });
+  return (
+    <div>
+      <p className="text-3xl font-extrabold tracking-tight text-primary tabular-nums">
+        {bal.data !== undefined ? formatVnd(amountToVnd(bal.data, rate)) : bal.isError ? "Chưa đọc được" : "…"}
+      </p>
+      <p className="text-sm text-muted-foreground">Dùng để gửi cọc trong bản thử nghiệm.</p>
+    </div>
   );
 }

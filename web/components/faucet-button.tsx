@@ -42,18 +42,21 @@ export function FaucetButton() {
 export function FaucetView({ phase, onClaim }: { phase: FaucetPhase; onClaim: () => void }) {
   const loading = phase.name === "loading";
   const done = phase.name === "done";
-  const retryLabel = phase.name === "error" && phase.error.retryable ? "Thử nhận lại" : "Nhận tiền test";
+  // Đã nhận trong 24 giờ không phải lỗi: người dùng đã có tiền. Hiện như ghi chú xám, không khung đỏ.
+  const rated = phase.name === "error" && phase.error.kind === "rate";
+  const retryLabel = phase.name === "error" && phase.error.retryable ? "Thử nhận lại" : "Nhận thêm tiền thử";
 
   return (
     <div className="min-w-0 space-y-3">
-      <Button variant="secondary" size="lg" className="w-full" disabled={loading || done} onClick={onClaim} aria-busy={loading}>
-        {loading ? <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden="true" /> : done ? <Check aria-hidden="true" /> : <Droplets aria-hidden="true" />}
-        {loading ? "Đang nhận tiền test…" : done ? "Đã nhận tiền test" : retryLabel}
+      <Button variant="secondary" size="lg" className="w-full" disabled={loading || done || rated} onClick={onClaim} aria-busy={loading}>
+        {loading ? <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden="true" /> : done || rated ? <Check aria-hidden="true" /> : <Droplets aria-hidden="true" />}
+        {loading ? "Đang nhận tiền thử…" : done ? "Đã nhận tiền thử" : rated ? "Hôm nay bạn đã nhận rồi" : retryLabel}
       </Button>
+      {rated && <p role="status" className="text-sm text-muted-foreground">Mỗi ví nhận 1 lần mỗi 24 giờ. Số dư ở trên đã gồm lần nhận trước.</p>}
 
       {loading && (
         <p role="status" className="text-sm text-muted-foreground">
-          Máy chủ đang gửi AVAX và mUSDC vào ví của bạn. Thường mất vài giây; đừng bấm lại.
+          Đang gửi tiền thử và một ít phí mạng vào tài khoản của bạn. Thường mất vài giây; đừng bấm lại.
         </p>
       )}
 
@@ -70,11 +73,11 @@ export function FaucetView({ phase, onClaim }: { phase: FaucetPhase; onClaim: ()
         </div>
       )}
 
-      {phase.name === "error" && (
+      {phase.name === "error" && !rated && (
         <div role="alert" className="flex items-start gap-3 rounded-xl bg-destructive/10 p-3 text-sm text-destructive">
           <XCircle className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
           <div className="min-w-0 space-y-0.5">
-            <p className="font-semibold break-words">Chưa nhận được tiền test</p>
+            <p className="font-semibold break-words">Chưa nhận được tiền thử</p>
             <p className="break-words text-foreground/80">{phase.error.message}</p>
           </div>
         </div>
