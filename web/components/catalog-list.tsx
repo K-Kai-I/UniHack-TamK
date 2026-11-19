@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { ArrowRight, MapPin, RefreshCw, Search, WifiOff } from "lucide-react";
+import { ArrowRight, MapPin, Search, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -59,15 +59,6 @@ export function CatalogList() {
         <div className="min-w-0 space-y-2">
           <h1 className="text-2xl font-bold tracking-tight text-primary">Tìm phòng trọ</h1>
           <p className="max-w-prose text-muted-foreground">Chọn phòng, chọn ngày dọn vào rồi gửi yêu cầu. Chủ trọ duyệt xong bạn mới cần gửi cọc.</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/requests">Yêu cầu thuê của tôi</Link>
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => void refetch()} disabled={isFetching}>
-            <RefreshCw aria-hidden="true" className={isFetching ? "animate-spin motion-reduce:animate-none" : undefined} />
-            Tải lại
-          </Button>
         </div>
       </div>
 

@@ -3,9 +3,8 @@
 // Chữ do lib/client/tx-view.ts quyết định; ở đây chỉ vẽ. Hash luôn còn trên màn ở mọi pha có hash, kể cả khi lỗi,
 // để người dùng tự kiểm chứng trước khi ký lại.
 import { useEffect, useState } from "react";
-import { Check, CheckCircle2, Copy, ExternalLink, Loader2, XCircle } from "lucide-react";
+import { CheckCircle2, ExternalLink, Loader2, XCircle } from "lucide-react";
 import { explorerTxUrl } from "@/lib/chain";
-import { shortAddress } from "@/lib/client/money";
 import { describeTx, SLOW_PENDING_SECONDS, type TxTone } from "@/lib/client/tx-view";
 import type { TxState } from "@/lib/client/use-tx";
 import type { Hash } from "@/lib/types";
@@ -30,48 +29,18 @@ function useSlowPending(state: TxState): boolean {
   return slow;
 }
 
+/** Một lối kiểm chứng duy nhất: mở giao dịch trên Snowtrace (mã giao dịch nằm sẵn trong link). */
 export function HashActions({ hash }: { hash: Hash }) {
-  const [copied, setCopied] = useState<"yes" | "no" | null>(null);
-  useEffect(() => {
-    if (!copied) return;
-    const id = window.setTimeout(() => setCopied(null), 2500);
-    return () => window.clearTimeout(id);
-  }, [copied]);
-
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(hash);
-      setCopied("yes");
-    } catch {
-      setCopied("no"); // trình duyệt chặn clipboard: hash vẫn đọc được ở dòng trên
-    }
-  }
-
   return (
-    <div className="space-y-1 pt-1 text-foreground">
-      <p className="text-xs text-muted-foreground">
-        Mã giao dịch <span className="font-mono break-all text-foreground">{shortAddress(hash, 10, 8)}</span>
-      </p>
-      <div className="flex flex-wrap gap-x-4">
-        <a
-          href={explorerTxUrl + hash}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-primary underline underline-offset-2"
-        >
-          Xem trên Snowtrace <ExternalLink className="size-3.5" aria-hidden="true" />
-          <span className="sr-only">(mở tab mới)</span>
-        </a>
-        <button
-          type="button"
-          onClick={copy}
-          className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-primary underline underline-offset-2"
-        >
-          {copied === "yes" ? <Check className="size-3.5" aria-hidden="true" /> : <Copy className="size-3.5" aria-hidden="true" />}
-          {copied === "yes" ? "Đã sao chép" : copied === "no" ? "Không sao chép được" : "Sao chép mã"}
-        </button>
-      </div>
-    </div>
+    <a
+      href={explorerTxUrl + hash}
+      target="_blank"
+      rel="noreferrer"
+      className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-primary underline underline-offset-2"
+    >
+      Xem giao dịch trên Snowtrace <ExternalLink className="size-3.5" aria-hidden="true" />
+      <span className="sr-only">(mở tab mới)</span>
+    </a>
   );
 }
 

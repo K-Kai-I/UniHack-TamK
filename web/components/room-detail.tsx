@@ -171,7 +171,6 @@ export function RoomDetailView({ deal, loading = false, fetching = false, error 
                   <ActionArea>
                     <p className="text-sm font-semibold tabular-nums">Cọc {vnd(deal.onchain.deposit)} · Phí giữ chỗ {vnd(deal.onchain.reserveFee)} đã gồm trong cọc.</p>
                     <p className="text-sm">{deadline ? <>Hạn gửi cọc và ảnh nhận phòng: <time className="font-semibold tabular-nums" dateTime={deadline}>{formatDateTime(deadline)}</time> (giờ Việt Nam).</> : "Chưa tải được hạn. Cần tải lại cấu hình trước khi gửi cọc."}</p>
-                    <p className="text-sm text-muted-foreground">Mạng thử nghiệm Fuji · dùng token thử, không phải tiền thật.</p>
                     {action}
                   </ActionArea>
                 </div>
