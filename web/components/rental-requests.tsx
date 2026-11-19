@@ -19,6 +19,7 @@ import { confirmOnchain } from "@/lib/client/listings-api";
 import { shortAddress } from "@/lib/client/money";
 import { approveRequest, decideRequest, fetchRequests, type RentalRequest, type RequestStatus } from "@/lib/client/rooms-api";
 import { isUnresolved, signOrResume, useCreateDeal } from "@/lib/client/use-create-deal";
+import type { Hash } from "@/lib/types";
 
 const STATUS: Record<RequestStatus, { label: string; tone: string }> = {
   PENDING: { label: "Chờ chủ trọ duyệt", tone: "bg-warning/15 text-warning-foreground" },
@@ -85,6 +86,9 @@ function RequestCard({ r, side, getToken }: { r: RentalRequest; side: "incoming"
   const deal = useCreateDeal();
   const [busy, setBusy] = useState<null | "approve" | "reject" | "cancel">(null);
   const [error, setError] = useState<string | null>(null);
+  // Hợp đồng vừa lên chuỗi nhưng chưa gắn được vào yêu cầu. Còn giá trị này thì KHÔNG cho ký lại (ký lại = tạo deal thứ hai),
+  // chỉ cho gắn lại.
+  const [signed, setSigned] = useState<{ listingId: string; dealId: number; txHash: Hash } | null>(null);
   const s = STATUS[r.status];
   const refresh = () => qc.invalidateQueries({ queryKey: ["requests"] });
 
@@ -108,13 +112,34 @@ function RequestCard({ r, side, getToken }: { r: RentalRequest; side: "incoming"
           if (isUnresolved(res)) setError("Giao dịch đã gửi nhưng chưa biết kết quả. Đừng ký lại, bấm “Ký hợp đồng” để kiểm tra.");
           return;
         }
-        try { await confirmOnchain(a.listingId, { dealId: Number(res.dealId), txHash: res.txHash }, token); }
-        catch { /* hợp đồng đã lên chuỗi; server tự gắn tin đăng sau ít phút (link-listings) */ }
+        const done = { listingId: a.listingId, dealId: Number(res.dealId), txHash: res.txHash };
+        setSigned(done);
+        await bind(done, token);
+        return;
       }
       await refresh();
     } catch (e) {
       setError(e instanceof ApiClientError ? e.message : "Có lỗi, thử lại sau.");
     } finally { setBusy(null); }
+  }
+
+  // Gắn hợp đồng đã lên chuỗi vào yêu cầu. Lỗi thì báo rõ, giữ nút "Gắn lại" thay cho nút ký.
+  async function bind(done: { listingId: string; dealId: number; txHash: Hash }, token?: string | null) {
+    setError(null);
+    try {
+      await confirmOnchain(done.listingId, { dealId: done.dealId, txHash: done.txHash }, token ?? (await getToken()));
+      setSigned(null);
+      await refresh();
+    } catch (e) {
+      const why = e instanceof ApiClientError ? e.message : "Không kết nối được máy chủ.";
+      setError(`Hợp đồng #${done.dealId} đã lên chuỗi nhưng chưa gắn được vào yêu cầu: ${why} Đừng ký lại, bấm “Gắn lại”.`);
+    }
+  }
+
+  async function retryBind() {
+    if (!signed) return;
+    setBusy("approve");
+    try { await bind(signed); } finally { setBusy(null); }
   }
 
   return <article className="space-y-3 rounded-2xl border border-border p-5 [overflow-wrap:anywhere]">
@@ -136,7 +161,9 @@ function RequestCard({ r, side, getToken }: { r: RentalRequest; side: "incoming"
     </div>}
     {side === "incoming" && r.status === "APPROVED" && (r.dealId
       ? <p className="text-sm">Đã tạo hợp đồng <Link href={`/rooms/${r.dealId}`} className="font-semibold text-primary underline">#{r.dealId}</Link>. Chờ người thuê gửi cọc.</p>
-      : <div className="space-y-2"><p className="text-sm text-muted-foreground">Đã duyệt nhưng chưa ký hợp đồng lên chuỗi.</p>
+      : signed
+        ? <Button onClick={retryBind} disabled={!!busy}>{busy === "approve" && <Loader2 className="animate-spin" aria-hidden="true" />}Gắn lại hợp đồng #{signed.dealId}</Button>
+        : <div className="space-y-2"><p className="text-sm text-muted-foreground">Đã duyệt nhưng chưa ký hợp đồng lên chuỗi.</p>
           <Button onClick={approve} disabled={!!busy}>{busy === "approve" && <Loader2 className="animate-spin" aria-hidden="true" />}Ký hợp đồng</Button></div>)}
 
     {side === "outgoing" && r.status === "PENDING" && <div className="flex flex-wrap items-center justify-between gap-2">

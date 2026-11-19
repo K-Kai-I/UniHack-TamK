@@ -7,6 +7,7 @@ import { hashJson } from "@/lib/hash";
 import { requireWallet } from "@/lib/server/auth";
 import { readTimeouts } from "@/lib/server/chain";
 import { ApiErr, json, route } from "@/lib/server/http";
+import { linkOrphanListings } from "@/lib/server/link-listings";
 import { getListing, getRequest, getRoom, insertListing, setRequestStatus } from "@/lib/server/repo";
 import { createDealArgsOf, termsWithDates } from "@/lib/server/terms-builder";
 
@@ -34,8 +35,14 @@ export const POST = route(async (req: Request, ctx: { params: Promise<{ requestI
 
   // approve: đã duyệt trước đó mà chưa lên chuỗi (vd từ chối ký giữa chừng) thì trả lại đúng tin đăng cũ.
   if (q.status === "APPROVED" && q.listing_id) {
-    const old = await getListing(q.listing_id);
+    let old = await getListing(q.listing_id);
     if (!old) throw new ApiErr("NOT_FOUND", "Không thấy tin đăng của yêu cầu này");
+    // Chống tạo deal thứ hai: lần ký trước có thể đã lên chuỗi mà chưa gắn (mạng lỗi lúc gọi /onchain).
+    // Dò chuỗi một lượt trước khi bảo frontend ký lại.
+    if (!old.deal_id) {
+      await linkOrphanListings().catch((e) => console.error("[approve] link", (e as Error).message?.split("\n")[0]));
+      old = (await getListing(q.listing_id)) ?? old;
+    }
     return json({ listingId: old.id, dealId: old.deal_id ? Number(old.deal_id) : null, termsHash: old.terms_hash,
       createDealArgs: createDealArgsOf(old.terms, old.terms_hash) });
   }
