@@ -75,21 +75,6 @@
 .seg { transition: stroke 0.35s ease, stroke-dasharray 0.35s ease, opacity 0.35s ease; }
 .split { transition: stroke-width 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease; }
 
-/* ---------- Dưới mặt nước ---------- */
-.deep {
-  background: var(--ink);
-  color: #fff;
-}
-.deep ::selection { background: #fff; color: var(--ink); }
-.deep a:focus-visible { outline-color: #fff; }
-.deepMuted { color: #cfc6e2; }
-.deepRule { border-color: rgb(255 255 255 / 0.16); }
-
-/* ---------- Hỏi đáp ---------- */
-.faq summary { list-style: none; }
-.faq summary::-webkit-details-marker { display: none; }
-.faq details[open] .chev { transform: rotate(45deg); }
-
 @media (prefers-reduced-motion: reduce) {
   .draw { stroke-dashoffset: 0; animation: none; }
   .appear { opacity: 1; animation: none; }
