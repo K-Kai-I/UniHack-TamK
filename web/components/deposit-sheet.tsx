@@ -172,10 +172,7 @@ export function DepositSheetView({ deal, open, onOpenChange, state, signingStep 
               <div><dt className="text-muted-foreground">Số dư ví</dt><dd className="tabular-nums">{balanceState === "error" ? "Không đọc được số dư" : balanceState === "loading" ? "Đang đọc số dư…" : balance !== undefined ? `${vnd(balance)} · ${exactToken(balance)}` : "Chưa có số dư"}</dd></div>
             </dl>
           </details>
-          <div className="text-sm">
-            <p className="font-semibold">Ví sẽ hỏi bạn hai bước</p>
-            <ol className="mt-2 list-decimal space-y-1 pl-5"><li>Ký cho phép dùng đúng số tiền cọc. Chưa chuyển tiền ở bước này.</li><li>Xác nhận một giao dịch gửi cọc. Có thể cần AVAX thử để trả phí mạng.</li></ol>
-          </div>
+          <p className="text-sm">Bấm nút dưới, ví sẽ hỏi bạn xác nhận <span className="font-semibold">một lần</span> để gửi cọc.</p>
           <label className="flex min-h-11 items-start gap-3 rounded-xl border p-3">
             <input type="checkbox" className="mt-1 size-5 shrink-0 accent-primary" checked={wantYield && yieldAvailable} disabled={!yieldAvailable || busy || unresolved} onChange={e => onWantYield(e.target.checked)} />
             <span><span className="block font-semibold">Cho cọc sinh lãi</span><span className="mt-1 block text-sm text-muted-foreground">{yieldAvailable
@@ -206,7 +203,7 @@ export function DepositSheetView({ deal, open, onOpenChange, state, signingStep 
 function DepositProgress({ state, signingStep }: { state: TxState; signingStep: "permit" | "transaction" }) {
   if (state.phase === "idle") return null;
   const unresolved = state.phase === "error" && !!state.hash && !state.reverted;
-  const title = state.phase === "signing" ? signingStep === "permit" ? "Bước 1/2 · Chờ ký cho phép dùng tiền cọc" : "Bước 2/2 · Chờ xác nhận giao dịch trong ví"
+  const title = state.phase === "signing" ? signingStep === "permit" ? "Đang chuẩn bị gửi cọc…" : "Chờ bạn xác nhận gửi cọc trong ví"
     : state.phase === "pending" ? "Đã gửi giao dịch · đang chờ xác nhận"
     : state.phase === "success" ? "Gửi cọc thành công" : unresolved ? "Chưa đọc được kết quả gửi cọc" : "Chưa gửi cọc thành công";
   const tone = state.phase === "success" ? "bg-success/10 text-success" : state.phase === "error" ? "bg-destructive/10 text-destructive" : "bg-info/10 text-info";

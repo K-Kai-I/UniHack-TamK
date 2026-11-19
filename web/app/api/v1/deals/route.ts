@@ -1,5 +1,6 @@
 // GET /api/v1/deals?wallet=0x...: các hợp đồng mà ví này là chủ trọ hoặc người thuê.
 // Người thuê chỉ có trên chuỗi, nên đọc mọi deal đã gắn tin đăng rồi lọc.
+import { zeroHash } from "viem";
 import { requireWallet } from "@/lib/server/auth";
 import { readDeals } from "@/lib/server/chain";
 import { ApiErr, json, photoUrl, route } from "@/lib/server/http";
@@ -10,7 +11,7 @@ export const GET = route(async (req: Request) => {
   const wallet = (new URL(req.url).searchParams.get("wallet") ?? caller).toLowerCase();
   if (!/^0x[0-9a-f]{40}$/.test(wallet)) throw new ApiErr("BAD_REQUEST", "wallet không hợp lệ");
 
-  const rows = await listBoundListings();
+  const rows = await listBoundListings({ includePrivate: true });
   const deals = await readDeals(rows.map((r) => BigInt(r.deal_id!)));
   const items = rows
     .map((r, i) => ({ r, d: deals[i] }))
@@ -24,6 +25,8 @@ export const GET = route(async (req: Request) => {
       title: r.terms.room.title,
       address: r.terms.room.address,
       depositAmount: d.deposit.toString(),
+      // Cho màn Home đếm "việc cần bạn": RESERVED đã có ảnh nhận phòng thì người thuê không còn việc.
+      hasCheckIn: d.checkInHash !== zeroHash,
       coverUrl: r.terms.listingPhotos[0] ? photoUrl(req, r.terms.listingPhotos[0].photoId) : null,
     }));
   return json({ items });

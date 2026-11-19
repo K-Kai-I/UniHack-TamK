@@ -98,9 +98,13 @@ export async function bindListing(id: string, dealId: bigint, txHash: string): P
   ]);
 }
 
-export async function listBoundListings(): Promise<ListingRow[]> {
+/**
+ * Tin đăng đã gắn hợp đồng. Mặc định bỏ tin riêng sinh từ yêu cầu thuê (request_id) vì danh sách phòng công khai
+ * không được hiện chúng; "Hợp đồng của tôi" và danh sách tranh chấp thì cần cả hai (includePrivate).
+ */
+export async function listBoundListings(opts: { includePrivate?: boolean } = {}): Promise<ListingRow[]> {
   const rows = await (await db()).query<ListingRow>(
-    "SELECT * FROM listings WHERE deal_id IS NOT NULL AND request_id IS NULL ORDER BY deal_id DESC LIMIT 200",
+    `SELECT * FROM listings WHERE deal_id IS NOT NULL${opts.includePrivate ? "" : " AND request_id IS NULL"} ORDER BY deal_id DESC LIMIT 200`,
   );
   return rows.map(fixListing);
 }

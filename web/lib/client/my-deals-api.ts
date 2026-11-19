@@ -17,6 +17,17 @@ export interface MyDealItem {
   address: string;
   depositAmount: Amount;
   coverUrl: string | null;
+  /** Đã có ảnh nhận phòng trên chuỗi (checkInHash khác 0). Bản API cũ không có thì coi là chưa biết. */
+  hasCheckIn?: boolean;
+}
+
+/** Hợp đồng này đang chờ chính người xem làm gì đó trước hạn (dùng cho chấm đỏ ở Home). */
+export function needsMe(d: MyDealItem, now: number): boolean {
+  if (d.deadline && now > Date.parse(d.deadline)) return false;
+  if (d.role === "tenant") {
+    return (d.state === "RESERVED" && d.hasCheckIn === false) || d.state === "PROPOSED" || d.state === "ABANDON_REPORTED";
+  }
+  return d.state === "CHECKED_OUT" || d.state === "MISMATCH_REPORTED" || (d.state === "RESERVED" && d.hasCheckIn === true);
 }
 
 /** Các hợp đồng mà ví đang đăng nhập là chủ trọ hoặc người thuê. Server lấy ví từ token, không tin ví client gửi. */

@@ -5,7 +5,8 @@
 // contract tự "approve" ngay trong deposit, nên người dùng chỉ thấy một lần xác nhận giao dịch.
 import { useCallback, useMemo, useState } from "react";
 import { useAccount, usePublicClient, useSignTypedData } from "wagmi";
-import { parseSignature } from "viem";
+import { useSignTypedData as usePrivySignTypedData, useWallets } from "@privy-io/react-auth";
+import { isAddressEqual, parseSignature, type Hex } from "viem";
 import { addresses, chain, escrowAbi, usdcAbi } from "@/lib/chain";
 import type { Amount } from "@/lib/types";
 import { friendlyTxError } from "./tx-errors";
@@ -18,6 +19,8 @@ export function useDeposit() {
   const { address } = useAccount();
   const publicClient = usePublicClient({ chainId: chain.id });
   const { signTypedDataAsync } = useSignTypedData();
+  const { signTypedData: privySignTypedData } = usePrivySignTypedData();
+  const { wallets } = useWallets();
   const [stage, setStage] = useState<"idle" | "permit">("idle");
   const [permitError, setPermitError] = useState<string | undefined>();
 
@@ -49,20 +52,40 @@ export function useDeposit() {
         }
 
         const permitDeadline = BigInt(Math.floor(Date.now() / 1000) + PERMIT_VALID_SECONDS);
-        const signature = await signTypedDataAsync({
-          domain: { name: domain[1], version: domain[2], chainId: Number(domain[3]), verifyingContract: domain[4] },
-          types: {
-            Permit: [
-              { name: "owner", type: "address" },
-              { name: "spender", type: "address" },
-              { name: "value", type: "uint256" },
-              { name: "nonce", type: "uint256" },
-              { name: "deadline", type: "uint256" },
-            ],
-          },
-          primaryType: "Permit",
-          message: { owner: address, spender: addresses.escrow, value, nonce, deadline: permitDeadline },
-        });
+        const permitDomain = { name: domain[1], version: domain[2], chainId: Number(domain[3]), verifyingContract: domain[4] };
+        const permitTypes = {
+          Permit: [
+            { name: "owner", type: "address" },
+            { name: "spender", type: "address" },
+            { name: "value", type: "uint256" },
+            { name: "nonce", type: "uint256" },
+            { name: "deadline", type: "uint256" },
+          ],
+        };
+        const embedded = wallets.find((w) => w.walletClientType === "privy" && isAddressEqual(w.address as Hex, address));
+        let signature: Hex;
+        if (embedded) {
+          // Ví Privy: ký "cho phép dùng tiền cọc" mà không hiện hộp ký (người dùng nhìn hộp domain/nonce/deadline không hiểu gì).
+          // An toàn vì app tự dựng đúng số tiền cọc, người được dùng là contract giữ cọc, hiệu lực 20 phút;
+          // người dùng vẫn xác nhận một lần ở hộp "Gửi cọc" ngay sau đó, và chưa có tiền nào chuyển ở bước này.
+          const res = await privySignTypedData(
+            {
+              domain: permitDomain,
+              types: permitTypes,
+              primaryType: "Permit",
+              message: { owner: address, spender: addresses.escrow, value: value.toString(), nonce: nonce.toString(), deadline: permitDeadline.toString() },
+            },
+            { address: embedded.address, uiOptions: { showWalletUIs: false } },
+          );
+          signature = res.signature as Hex;
+        } else {
+          signature = await signTypedDataAsync({
+            domain: permitDomain,
+            types: permitTypes,
+            primaryType: "Permit",
+            message: { owner: address, spender: addresses.escrow, value, nonce, deadline: permitDeadline },
+          });
+        }
         const { r, s, v, yParity } = parseSignature(signature);
         const vByte = Number(v ?? BigInt(27 + (yParity ?? 0)));
 
@@ -81,7 +104,7 @@ export function useDeposit() {
         setStage("idle");
       }
     },
-    [address, publicClient, signTypedDataAsync, tx],
+    [address, publicClient, signTypedDataAsync, privySignTypedData, wallets, tx],
   );
 
   // Gộp bước ký permit vào cùng 3 trạng thái của giao dịch để UI chỉ cần một TxStatus.
