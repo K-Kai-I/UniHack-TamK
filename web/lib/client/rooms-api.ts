@@ -22,6 +22,8 @@ export interface CatalogRoomDetail extends CatalogRoom {
   positions: { id: string; name: string; instruction: string; exampleUrl: string }[];
   priceList: { id: string; item: string; unit: string; priceAmount: string }[];
   yieldEnabled: boolean;
+  /** Khoảng ngày đã có người thuê (GET /rooms/:roomId). */
+  bookedRanges?: { moveInDate: string; leaseEnd: string }[];
 }
 
 export type RoomSort = "newest" | "price_asc" | "price_desc";

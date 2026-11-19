@@ -125,9 +125,6 @@ function DealOverview({
           <RoomPhotos deal={deal} />
           <TermsAndParties deal={deal} />
           <ChainProof deal={deal} />
-          <p className="max-w-[70ch] text-sm text-muted-foreground">
-            Trạng thái đọc trực tiếp từ smart contract. Không ai, kể cả app, tự rút được tiền cọc.
-          </p>
         </div>
 
         <ActionBar deal={deal} role={role} previewAs={previewAs} />

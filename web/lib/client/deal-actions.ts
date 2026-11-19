@@ -78,7 +78,8 @@ export function actionsFor(deal: DealView, role: Role, now: number, checkOutGrac
         // submitCheckIn và reportMismatch chỉ hợp lệ trước deadline (contract-spec). Quá hạn thì chỉ còn poke.
         return hasCheckIn || deadlinePassed
           ? []
-          : [act("checkin", "Chụp ảnh nhận phòng", "primary", "P0"), act("mismatch", "Phòng không đúng mô tả", "secondary", "P1")];
+          // Một nút: chụp ảnh xong mới chọn "đúng mô tả, nhận phòng" hay "không giống, cho AI so" (cùng bộ ảnh).
+          : [act("checkin", "Gửi ảnh nhận phòng", "primary", "P0")];
       case "ACTIVE":
         return [act("checkout", "Trả phòng", "primary", "P0")];
       case "ABANDON_REPORTED":

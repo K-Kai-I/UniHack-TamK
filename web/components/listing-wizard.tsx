@@ -287,7 +287,7 @@ export function ListingWizardView({
                   : returnTo !== null ? "Xong, về xem lại" : "Tiếp tục"}
               </Button>
             </div>
-            {last && <p className="text-xs text-muted-foreground">{unresolved ? "Giao dịch đã gửi đi. Chỉ kiểm tra kết quả, không ký lại." : "Chưa cần ký. Bạn ký hợp đồng khi duyệt yêu cầu của người thuê."}</p>}
+            {last && unresolved && <p className="text-xs text-muted-foreground">Giao dịch đã gửi đi. Chỉ kiểm tra kết quả, không ký lại.</p>}
           </ActionArea>
         </aside>
       </div>

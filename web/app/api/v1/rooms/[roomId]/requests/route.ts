@@ -1,6 +1,7 @@
 // POST /api/v1/rooms/:roomId/requests: người thuê gửi yêu cầu thuê kèm ngày dọn vào và ngày hết hạn.
 import { requireWallet } from "@/lib/server/auth";
 import { ApiErr, json, readJson, route } from "@/lib/server/http";
+import { assertDatesFree } from "@/lib/server/booking";
 import { getRoom, hasPendingRequest, insertRequest } from "@/lib/server/repo";
 import { bad, checkDates, iso } from "@/lib/server/terms-builder";
 
@@ -22,6 +23,8 @@ export const POST = route(async (req: Request, ctx: { params: Promise<{ roomId: 
   if (leaseEnd.getTime() - moveIn.getTime() > 5 * 366 * 86400_000) throw bad("Thời hạn thuê tối đa 5 năm");
   const note = typeof b.note === "string" && b.note.trim() ? b.note.trim().slice(0, 500) : null;
   if (await hasPendingRequest(roomId, tenant)) throw new ApiErr("WRONG_STATE", "Bạn đã có một yêu cầu đang chờ duyệt cho phòng này");
+  // Trùng khoảng ngày đã có người thuê (yêu cầu đã duyệt, hợp đồng còn giữ phòng) thì không nhận.
+  await assertDatesFree(roomId, moveIn, leaseEnd);
 
   const requestId = await insertRequest({ roomId, tenant, moveIn, leaseEnd, note });
   return json({ requestId, status: "PENDING" }, 201);

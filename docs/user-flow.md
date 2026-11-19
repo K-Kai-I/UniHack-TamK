@@ -119,7 +119,7 @@ Edge case: hai người cọc cùng lúc → giao dịch sau revert, không mấ
 | 2 | Người thuê | "Gửi ảnh nhận phòng" (ký) | `POST /deals/:id/photo-sets` (`kind=checkin`) → `submitCheckIn(id, setHash)` |
 | 3 | Chủ trọ | Có `checkInObjection` để phản đối; im lặng là đồng ý | `poke` → ACTIVE |
 
-Nhánh C (người thuê bấm "Phòng không đúng mô tả", trước khi gửi ảnh nhận phòng): chụp thực tế (`purpose=mismatch`, `kind=mismatch`) → `POST /deals/:id/ai/mismatch` → `reportMismatch(id, verdict, evidenceHash, reportHash, aiSig)`.
+Nhánh C (từ 19/11: một nút "Gửi ảnh nhận phòng"; chụp xong người thuê chọn "Phòng đúng mô tả · Nhận phòng" hoặc "Phòng không giống mô tả"): chọn không giống thì app dùng lại đúng bộ ảnh vừa chụp (tải lên lại với `purpose=mismatch`, `kind=mismatch`, không chụp lại) → `POST /deals/:id/ai/mismatch` → `reportMismatch(id, verdict, evidenceHash, reportHash, aiSig)`. AI đã so thì không chụp lại ảnh thực tế; AI thấy giống thì quay lại nhận phòng với cùng bộ ảnh.
 
 | AI kết luận | Xử lý |
 | --- | --- |

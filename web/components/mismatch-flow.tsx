@@ -49,6 +49,7 @@ import { PositionStrip, Review, ShootStep, SubmitProgress, type Shot } from "@/c
 import { PokeButton, useCanPoke } from "@/components/poke-button";
 import { TxStatus } from "@/components/tx-status";
 import { addresses, escrowAbi } from "@/lib/chain";
+import { handOffShots, takeShots } from "@/lib/client/shot-handoff";
 import { ApiClientError } from "@/lib/client/api";
 import { deadlineInfo, roleOf, TERMINAL_STATES, type Role } from "@/lib/client/deal-actions";
 import { DEALS_MOCK, fetchDealView, NotFoundError, type DealView } from "@/lib/client/deals-data";
@@ -290,8 +291,10 @@ function ReportFlow({ deal, back }: { deal: DealView; back: string }) {
   const prior = deal.photoSets.mismatch;
   const resume = !!prior?.photoSetId && deal.aiStatus.mismatch !== null;
 
-  const [shots, setShots] = useState<Record<string, Shot>>({});
-  const [step, setStep] = useState(0); // 0..n-1 = vị trí đang chụp, n = kiểm tra lại
+  // Đi từ màn "Gửi ảnh nhận phòng": dùng đúng bộ ảnh vừa chụp, không bắt chụp lại, và cho AI so ngay.
+  const [handed] = useState(() => (resume ? null : takeShots(deal.dealId)));
+  const [shots, setShots] = useState<Record<string, Shot>>(() => handed ?? {});
+  const [step, setStep] = useState(handed ? n : 0); // 0..n-1 = vị trí đang chụp, n = kiểm tra lại
   const [phase, setPhase] = useState<Phase>(resume ? "result" : "idle");
   const [uploadedCount, setUploadedCount] = useState(0);
   const [apiError, setApiError] = useState("");
@@ -342,13 +345,15 @@ function ReportFlow({ deal, back }: { deal: DealView; back: string }) {
     });
   }
 
-  /** Bỏ kết quả cũ, chụp lại từ đầu. */
-  function restart() {
-    setSealed(null);
-    setPhase("idle");
-    setStep(0);
-    setApiError("");
-  }
+
+  // Có bộ ảnh chuyển sang thì chạy AI luôn (một lần khi mở màn).
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (!handed || autoStarted.current) return;
+    autoStarted.current = true;
+    void submit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function submit() {
     setApiError("");
@@ -407,6 +412,7 @@ function ReportFlow({ deal, back }: { deal: DealView; back: string }) {
         setHash={sealed.setHash}
         actualUrls={Object.fromEntries(Object.entries(shots).map(([pid, s]) => [pid, s.previewUrl]))}
         back={back}
+        onCheckin={() => { if (Object.keys(shots).length === n) handOffShots(deal.dealId, shots); }}
         onReloadAi={() => ai.refetch()}
         onRetryAi={async () => {
           // Lỗi ném tiếp cho ResultStep hiện lý do; dù sao cũng hỏi lại GET để thấy trạng thái mới nhất.
@@ -416,7 +422,6 @@ function ReportFlow({ deal, back }: { deal: DealView; back: string }) {
             ai.refetch();
           }
         }}
-        onRestart={restart}
       />
     );
   }
@@ -531,7 +536,7 @@ function ResultStep({
   back,
   onReloadAi,
   onRetryAi,
-  onRestart,
+  onCheckin,
 }: {
   deal: DealView;
   ai: MismatchAiResponse | undefined;
@@ -542,7 +547,8 @@ function ResultStep({
   back: string;
   onReloadAi: () => void;
   onRetryAi: () => Promise<void>;
-  onRestart: () => void;
+  /** AI thấy giống: mang bộ ảnh vừa chụp sang màn nhận phòng (AI đã so thì không chụp lại ảnh thực tế nữa). */
+  onCheckin?: () => void;
 }) {
   const rate = useVndRate();
   const tx = useTx();
@@ -594,7 +600,7 @@ function ResultStep({
         onSign={sign}
         onRetryAi={retryAi}
         onReloadAi={onReloadAi}
-        onRestart={onRestart}
+        onCheckin={onCheckin}
       />
     </>
   );
@@ -616,7 +622,7 @@ export function MismatchResultView({
   onSign,
   onRetryAi,
   onReloadAi,
-  onRestart,
+  onCheckin,
 }: {
   deal: DealView;
   rate: number;
@@ -633,7 +639,8 @@ export function MismatchResultView({
   onSign: () => void;
   onRetryAi: () => void;
   onReloadAi: () => void;
-  onRestart: () => void;
+  /** AI thấy giống: mang bộ ảnh vừa chụp sang màn nhận phòng (AI đã so thì không chụp lại ảnh thực tế nữa). */
+  onCheckin?: () => void;
 }) {
   const vnd = (a: string) => formatVnd(amountToVnd(a, rate));
   const { passed } = useCountdown(deal.onchain.deadline);
@@ -770,10 +777,7 @@ export function MismatchResultView({
                 ) : (
                   <>
                     <Button asChild size="lg" className="w-full text-base">
-                      <Link href={checkinHref(back)}>Chụp ảnh nhận phòng</Link>
-                    </Button>
-                    <Button size="lg" variant="outline" className="w-full text-base" onClick={onRestart}>
-                      <RefreshCw aria-hidden /> Chụp lại ảnh thực tế
+                      <Link href={checkinHref(back)} onClick={onCheckin}>Quay lại nhận phòng</Link>
                     </Button>
                   </>
                 )}
@@ -784,11 +788,6 @@ export function MismatchResultView({
                   {busy ? <Loader2 className="animate-spin" aria-hidden /> : <Lock aria-hidden />}
                   {signLabel}
                 </Button>
-                {!busy && !passed && (
-                  <Button size="lg" variant="outline" className="w-full text-base" onClick={onRestart}>
-                    <RefreshCw aria-hidden /> Chụp lại ảnh thực tế
-                  </Button>
-                )}
                 {passed && (
                   <Button asChild size="lg" variant="outline" className="w-full text-base">
                     <Link href={back}>Về hợp đồng</Link>
