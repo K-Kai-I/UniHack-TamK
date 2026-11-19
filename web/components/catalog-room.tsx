@@ -101,7 +101,7 @@ export function CatalogRoom({ roomId }: { roomId: string }) {
             <p className="text-sm text-muted-foreground">Chỉ dùng để xem xét hư hỏng khi trả phòng, không trừ tiền thuê hay điện nước.</p>
           </section>
         </div>
-        <div><RequestForm roomId={room.roomId} landlord={room.landlord} /></div>
+        <div><RequestForm roomId={room.roomId} landlord={room.landlord} booked={room.bookedRanges ?? []} /></div>
       </PageColumns>
     </PageShell>
   </>;
@@ -116,7 +116,7 @@ function Row({ label, value, strong }: { label: string; value: string; strong?: 
   return <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><dt className="text-muted-foreground">{label}</dt><dd className={strong ? "text-lg font-bold text-primary" : "font-semibold"}>{value}</dd></div>;
 }
 
-function RequestForm({ roomId, landlord }: { roomId: string; landlord: string }) {
+function RequestForm({ roomId, landlord, booked }: { roomId: string; landlord: string; booked: { moveInDate: string; leaseEnd: string }[] }) {
   const { ready, authenticated, login, getAccessToken } = usePrivy();
   const { address } = useAccount();
   const [moveIn, setMoveIn] = useState("");
@@ -134,6 +134,10 @@ function RequestForm({ roomId, landlord }: { roomId: string; landlord: string })
     if (busy) return;
     if (!moveIn) { setError("Chọn ngày dọn vào."); return; }
     if (moveIn < min) { setError("Ngày dọn vào sớm nhất là ngày mai."); return; }
+    // Chặn sớm ở máy khách cho đỡ mất công; server vẫn kiểm tra lại (lib/server/booking.ts).
+    const from = Date.parse(dateToIso(moveIn)), to = Date.parse(dateToIso(leaseEnd));
+    const clash = booked.find((b) => Date.parse(b.moveInDate) < to && Date.parse(b.leaseEnd) > from);
+    if (clash) { setError(`Phòng đã có người thuê từ ${formatDate(clash.moveInDate)} đến ${formatDate(clash.leaseEnd)}. Hãy chọn ngày khác.`); return; }
     setBusy(true); setError(null);
     try {
       const token = await getAccessToken();
@@ -163,6 +167,11 @@ function RequestForm({ roomId, landlord }: { roomId: string; landlord: string })
         <p className="text-sm text-muted-foreground">Đây là phòng của bạn. Yêu cầu của người thuê nằm trong mục “Yêu cầu thuê”.</p>
         <Button asChild className="w-full"><Link href="/requests">Xem yêu cầu thuê</Link></Button>
       </> : <form onSubmit={submit} className="space-y-4" noValidate>
+        {booked.length > 0 && <div className="rounded-xl bg-background p-3 text-sm">
+          <p className="font-semibold">Đã có người thuê</p>
+          <ul className="mt-1 space-y-0.5 text-muted-foreground">{booked.map((b) => <li key={b.moveInDate}>{formatDate(b.moveInDate)} – {formatDate(b.leaseEnd)}</li>)}</ul>
+          <p className="mt-1 text-muted-foreground">Chọn ngày không trùng các khoảng trên.</p>
+        </div>}
         <div className="space-y-1.5">
           <label htmlFor="req-movein" className="text-sm font-medium">Ngày dọn vào</label>
           <Input id="req-movein" type="date" min={min} value={moveIn} onChange={(e) => { setMoveIn(e.target.value); setError(null); }} className="h-11" aria-invalid={!!error && !moveIn} />

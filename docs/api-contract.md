@@ -158,7 +158,7 @@ Contract không đổi. Ngày vẫn bị khóa trong `termsHash` như cũ, chỉ
                "landlord": "0x...", "createdAt": "2026-11-19T02:00:00Z" } ] }
 ```
 
-`GET /rooms/:roomId`: như một item ở trên, thêm `listingPhotoUrls`, `positions` (`id`, `name`, `instruction`, `exampleUrl`), `priceList`, `yieldEnabled`.
+`GET /rooms/:roomId`: như một item ở trên, thêm `listingPhotoUrls`, `positions` (`id`, `name`, `instruction`, `exampleUrl`), `priceList`, `yieldEnabled`, `bookedRanges` (`[{ "moveInDate", "leaseEnd" }]`: khoảng ngày đã có người thuê).
 
 `POST /rooms/:roomId/requests`:
 
@@ -166,7 +166,7 @@ Contract không đổi. Ngày vẫn bị khóa trong `termsHash` như cũ, chỉ
 { "moveInDate": "2026-12-01T02:00:00Z", "leaseEnd": "2027-06-01T02:00:00Z", "note": "Em là sinh viên" }
 ```
 
-Ngày dọn vào phải sau lúc gửi ít nhất 1 giờ, thời hạn tối đa 5 năm, mỗi người thuê chỉ một yêu cầu đang chờ cho mỗi phòng (`409 WRONG_STATE`), chủ trọ không gửi cho phòng của mình (`403`). Trả `201 { "requestId": "rq_...", "status": "PENDING" }`.
+Ngày dọn vào phải sau lúc gửi ít nhất 1 giờ, thời hạn tối đa 5 năm, mỗi người thuê chỉ một yêu cầu đang chờ cho mỗi phòng (`409 WRONG_STATE`), không trùng khoảng ngày đã có người thuê (`409 WRONG_STATE`), chủ trọ không gửi cho phòng của mình (`403`). Trả `201 { "requestId": "rq_...", "status": "PENDING" }`.
 
 `GET /requests` trả `{ "incoming": [...], "outgoing": [...] }`, mỗi phần tử:
 
@@ -179,6 +179,8 @@ Ngày dọn vào phải sau lúc gửi ít nhất 1 giờ, thời hạn tối đ
 `status`: `PENDING` | `APPROVED` | `REJECTED` | `CANCELLED`. `dealId` có khi tin đăng của yêu cầu đã gắn hợp đồng trên chuỗi.
 
 `POST /requests/:id/approve` (chủ trọ của phòng): trả `201` như `POST /listings` (`listingId`, `termsHash`, `createDealArgs`) và `dealId: null`. Gọi lại khi đã duyệt mà chưa lên chuỗi thì trả đúng tin đăng cũ (không tạo deal thứ hai); đã lên chuỗi thì `dealId` có giá trị. Ngày dọn vào cộng `moveInGrace` đã qua (hoặc còn dưới 10 phút) thì `409 WRONG_STATE`: người thuê gửi yêu cầu mới. Tin đăng sinh ra có `request_id`, không hiện ở `GET /listings` nhưng `GET /deals/:dealId` vẫn đọc được.
+
+Chống đặt trùng ngày: một yêu cầu `APPROVED` giữ khoảng ngày của nó cho tới khi hợp đồng của nó `CANCELLED`, `SETTLED`, `REFUNDED`, hoặc còn `OPEN` mà đã quá `moveInDate + moveInGrace` (đọc trạng thái từ chuỗi). Duyệt một yêu cầu trùng khoảng đang giữ thì `409 WRONG_STATE`; duyệt thành công thì các yêu cầu `PENDING` trùng ngày của cùng phòng chuyển `REJECTED`.
 
 Giới hạn đã biết: contract cho bất kỳ ai gửi cọc vào deal OPEN. Tin đăng riêng chỉ được che khỏi danh sách công khai, chưa chặn trên chuỗi.
 

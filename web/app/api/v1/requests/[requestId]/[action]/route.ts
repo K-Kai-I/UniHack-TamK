@@ -7,8 +7,9 @@ import { hashJson } from "@/lib/hash";
 import { requireWallet } from "@/lib/server/auth";
 import { readTimeouts } from "@/lib/server/chain";
 import { ApiErr, json, route } from "@/lib/server/http";
+import { assertDatesFree } from "@/lib/server/booking";
 import { linkOrphanListings } from "@/lib/server/link-listings";
-import { getListing, getRequest, getRoom, insertListing, setRequestStatus } from "@/lib/server/repo";
+import { getListing, getRequest, getRoom, insertListing, rejectPendingOverlapping, setRequestStatus } from "@/lib/server/repo";
 import { createDealArgsOf, termsWithDates } from "@/lib/server/terms-builder";
 
 const ACTIONS = ["approve", "reject", "cancel"] as const;
@@ -55,11 +56,15 @@ export const POST = route(async (req: Request, ctx: { params: Promise<{ requestI
   }
   const room = await getRoom(q.room_id);
   if (!room) throw new ApiErr("NOT_FOUND", "Không có phòng này");
+  // Đã duyệt một yêu cầu khác trùng ngày (hợp đồng còn giữ phòng) thì không duyệt thêm.
+  await assertDatesFree(q.room_id, new Date(q.move_in), new Date(q.lease_end), q.id);
   const terms = termsWithDates(room.template, new Date(q.move_in), new Date(q.lease_end));
   const termsHash = hashJson(terms);
   const listingId = await insertListing(room.landlord, terms, termsHash, q.id);
   if (!(await setRequestStatus(q.id, "PENDING", "APPROVED", listingId))) {
     throw new ApiErr("WRONG_STATE", "Yêu cầu vừa được xử lý ở nơi khác, tải lại trang");
   }
+  // Các yêu cầu đang chờ trùng ngày không thể được duyệt nữa: từ chối luôn để người thuê biết mà chọn ngày khác.
+  await rejectPendingOverlapping(q.room_id, new Date(q.move_in), new Date(q.lease_end), q.id);
   return json({ listingId, dealId: null, termsHash, createDealArgs: createDealArgsOf(terms, termsHash) }, 201);
 });

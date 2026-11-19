@@ -366,6 +366,33 @@ export async function hasPendingRequest(roomId: string, tenant: Address): Promis
   return rows.length > 0;
 }
 
+/** Yêu cầu ĐÃ DUYỆT của phòng có khoảng ngày chồng lên [moveIn, leaseEnd) (kèm deal_id nếu đã lên chuỗi). */
+export async function listApprovedOverlapping(roomId: string, moveIn: Date, leaseEnd: Date, excludeId: string | null = null): Promise<RequestRow[]> {
+  const rows = await (await db()).query<RequestRow>(
+    `${REQUEST_SELECT} WHERE q.room_id = $1 AND q.status = 'APPROVED' AND q.move_in < $3 AND q.lease_end > $2
+       AND ($4::text IS NULL OR q.id <> $4) ORDER BY q.move_in`,
+    [roomId, moveIn.toISOString(), leaseEnd.toISOString(), excludeId],
+  );
+  return rows.map(fixRequest);
+}
+
+/** Mọi yêu cầu đã duyệt của phòng (để hiện các khoảng ngày đã có người thuê). */
+export async function listApprovedForRoom(roomId: string): Promise<RequestRow[]> {
+  const rows = await (await db()).query<RequestRow>(
+    `${REQUEST_SELECT} WHERE q.room_id = $1 AND q.status = 'APPROVED' ORDER BY q.move_in`, [roomId]);
+  return rows.map(fixRequest);
+}
+
+/** Duyệt một yêu cầu thì các yêu cầu đang chờ trùng ngày của cùng phòng bị từ chối luôn. Trả số yêu cầu bị từ chối. */
+export async function rejectPendingOverlapping(roomId: string, moveIn: Date, leaseEnd: Date, keepId: string): Promise<number> {
+  const rows = await (await db()).query<{ id: string }>(
+    `UPDATE rental_requests SET status = 'REJECTED', decided_at = now()
+     WHERE room_id = $1 AND status = 'PENDING' AND id <> $4 AND move_in < $3 AND lease_end > $2 RETURNING id`,
+    [roomId, moveIn.toISOString(), leaseEnd.toISOString(), keepId],
+  );
+  return rows.length;
+}
+
 /** Đổi trạng thái, chỉ khi đang ở `from` (tránh hai thao tác chồng nhau). Trả true nếu đổi được. */
 export async function setRequestStatus(id: string, from: RequestStatus, to: RequestStatus, listingId: string | null = null) {
   const rows = await (await db()).query<{ id: string }>(
