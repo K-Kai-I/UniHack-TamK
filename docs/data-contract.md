@@ -180,10 +180,17 @@ Khóa nào cũng chỉ nằm trong `.env` trên máy và trong cài đặt của
 | `AI_SIGNER_PRIVATE_KEY` | API | Ví ký con dấu; địa chỉ của nó là `aiSigner` trong constructor |
 | `KEEPER_PRIVATE_KEY` | API | Ví gọi `poke` và gửi AVAX faucet |
 | `KEEPER_SECRET` | API | Giá trị header `x-keeper-secret` |
-| `AI_API_KEY` | API | Khóa của mô hình AI |
-| `DATABASE_URL`, `STORAGE_KEY` | API | Database và kho ảnh |
+| `AI_MODEL`, `AI_API_KEY` | API | Mô hình so ảnh (`gemini-3.5-flash-lite`; `mock` để chạy không cần AI) và khóa Google AI Studio |
+| `OPENAI_MODEL`, `OPENAI_API_KEY` | API | Không bắt buộc: lời giải thích tiếng Việt, chỉ tham khảo, không nằm trong báo cáo đã ký |
+| `DATABASE_URL`, `SUPABASE_URL`, `STORAGE_KEY` | API | Database và kho ảnh (bucket `photos`, private). Bỏ trống `DATABASE_URL` thì dùng PGlite (`PGLITE_DIR`) |
 | `PRIVY_APP_SECRET` | API | Kiểm tra access token |
+| `VND_PER_TOKEN`, `FEE_BPS` | API | Tỉ giá hiển thị, phí sàn (trả qua `GET /config`) |
+| `FAUCET_AVAX` | API | AVAX faucet gửi cho ví gần hết gas |
+| `LOGS_CHUNK`, `EXPLORER_API_URL` | API | Đọc sự kiện cho lịch sử: số khối mỗi lần gọi RPC, API Routescan để đuổi kịp lịch sử cũ |
+| `AUTH_DEV_BYPASS` | API | Chỉ máy local: nhận header `x-dev-wallet`. Vercel luôn bỏ qua |
 | `NEXT_PUBLIC_PRIVY_APP_ID` | Frontend | Công khai được |
+| `NEXT_PUBLIC_SPONSOR_GAS` | Frontend | `1` = Privy trả gas hộ cho ví Google |
+| `NEXT_PUBLIC_MOCK_API` | Frontend | `0` = gọi API thật |
 
 ## Kiểm tra chéo trước G1
 

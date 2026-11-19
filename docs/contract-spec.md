@@ -248,8 +248,8 @@ Frontend chỉ hiện nút khi contract đang ở đúng trạng thái. Nút "X�
 | Trạng thái | Người thuê thấy | Chủ trọ thấy |
 | --- | --- | --- |
 | OPEN | Gửi cọc | Gỡ phòng |
-| RESERVED, chưa có ảnh | Chụp ảnh nhận phòng; Phòng không đúng mô tả | Đếm ngược hạn dọn vào |
-| RESERVED, đã có ảnh | Đếm ngược tới khi bắt đầu ở | Phản đối ảnh (P2) |
+| RESERVED, chưa có ảnh | Gửi ảnh nhận phòng (chụp xong chọn: phòng đúng mô tả → `submitCheckIn`, hoặc không giống → `reportMismatch`) | Đếm ngược hạn dọn vào |
+| RESERVED, đã có ảnh | Đếm ngược tới khi bắt đầu ở; hết hạn thì app tự chuyển sang Đang ở (không hiện "Xử lý quá hạn") | Phản đối ảnh (P2) |
 | MISMATCH_REPORTED | Đếm ngược | Phản đối |
 | ACTIVE | Trả phòng | Báo người thuê bỏ đi; Trả phòng thay (sau hạn) |
 | ABANDON_REPORTED | Tôi vẫn đang ở | Đếm ngược |
