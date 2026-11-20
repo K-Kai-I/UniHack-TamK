@@ -209,7 +209,7 @@ export function nextStepFor(deal: DealView, role: Role, deadlinePassed: boolean)
       case "CHECKED_OUT":
         return deadlinePassed
           ? status("Đã quá hạn đề xuất", "Hạn đề xuất đã qua; hợp đồng chờ được xử lý quá hạn.")
-          : todo("Đề xuất mức trừ", "Xem báo cáo AI rồi đề xuất. Không đề xuất tới hạn thì người thuê nhận lại đủ cọc.");
+          : todo("Đề xuất mức trừ", "Xem kết quả AI dưới từng cặp ảnh rồi đề xuất. Không đề xuất tới hạn thì người thuê nhận lại đủ cọc.");
       case "PROPOSED":
         return status("Chờ người thuê trả lời", "Người thuê đồng ý, kháng nghị hoặc im lặng (khi đó chia theo đề xuất của bạn).");
       case "DISPUTED":

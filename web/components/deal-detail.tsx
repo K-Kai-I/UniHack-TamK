@@ -9,7 +9,8 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useAccount, useReadContract } from "wagmi";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Check, Clock, Gavel, Loader2, Minus, RefreshCw, SearchX, Sparkles } from "lucide-react";
-import { fetchDamageAi } from "@/lib/client/ai-report-api";
+import { fetchDamageAi, startDamageAi } from "@/lib/client/ai-report-api";
+import { VERDICT } from "@/components/damage-report";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -46,7 +47,7 @@ import { amountToVnd, formatToken, formatVnd } from "@/lib/client/money";
 import { formatDuration, useCountdown } from "@/lib/client/use-countdown";
 import { useCheckOutGrace } from "@/lib/client/use-config";
 import { useVndRate } from "@/lib/client/use-vnd-rate";
-import type { Amount } from "@/lib/types";
+import type { Amount, DamageReport } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const ROLE_LABEL: Record<Role, string> = { tenant: "Người thuê", landlord: "Chủ trọ", viewer: "Người xem" };
@@ -116,14 +117,14 @@ function DealOverview({
         {/* Một cây DOM: mobile xếp tóm tắt trước, desktop đặt sang cột phải (không nhân đôi nội dung). */}
         <div className="min-w-0 space-y-6 lg:col-start-2 lg:row-start-1">
           <StatusPanel deal={deal} role={role} onExpire={onExpire} />
-          <AiPanel deal={deal} vnd={vnd} previewAs={previewAs} />
+          <AiPanel deal={deal} role={role} vnd={vnd} />
           <MoneyPanel deal={deal} vnd={vnd} />
           <ProposalPanel deal={deal} role={role} vnd={vnd} />
         </div>
 
         <div className="min-w-0 space-y-10 lg:col-start-1 lg:row-span-2 lg:row-start-1">
           <MilestoneList deal={deal} />
-          <PhotoPairs deal={deal} />
+          <PhotoPairs deal={deal} vnd={vnd} />
           <RoomPhotos deal={deal} />
           <TermsAndParties deal={deal} />
           <ChainProof deal={deal} />
@@ -423,8 +424,17 @@ function MilestoneList({ deal }: { deal: DealView }) {
 }
 
 /** Cặp ảnh cùng vị trí: "Lúc nhận phòng" cạnh "Lúc trả phòng". Ảnh contain, có lối xem ảnh gốc, không crop. */
-function PhotoPairs({ deal }: { deal: DealView }) {
+function PhotoPairs({ deal, vnd }: { deal: DealView; vnd: (a: Amount) => string }) {
   const { checkin, checkout } = deal.photoSets;
+  // Có ảnh trả phòng thì AI đã tự chạy: kết luận hiện ngay dưới từng cặp ảnh, không cần mở màn báo cáo.
+  const ai = useQuery({
+    queryKey: ["damage-ai", deal.dealId],
+    queryFn: () => fetchDamageAi(deal.dealId),
+    enabled: checkout !== null,
+    refetchInterval: (q) => (q.state.data?.status === "processing" || q.state.data?.status === "none" ? 3000 : false),
+  });
+  const report = ai.data?.status === "done" ? ai.data.report : null;
+  const aiWaiting = checkout !== null && !report && ai.data?.status !== "failed";
   if (!checkin && !checkout) return null;
   const s = deal.onchain.state;
   const missingCheckout = ["RESERVED", "MISMATCH_REPORTED", "ACTIVE", "ABANDON_REPORTED"].includes(s)
@@ -440,6 +450,7 @@ function PhotoPairs({ deal }: { deal: DealView }) {
         </h2>
         <p className="max-w-[65ch] text-sm text-muted-foreground">
           Mỗi vị trí chụp ở cùng góc khi nhận và trả phòng. Ảnh hiện đủ khung, không cắt.
+          {checkout && " Kết luận của AI nằm ngay dưới mỗi cặp ảnh."}
         </p>
       </div>
       <ul className="space-y-6">
@@ -464,6 +475,7 @@ function PhotoPairs({ deal }: { deal: DealView }) {
                   empty={checkout ? (outItem ? null : "Không có ảnh vị trí này") : missingCheckout}
                 />
               </div>
+              {checkout && <AiVerdictLine deal={deal} positionId={p.id} report={report} waiting={aiWaiting} vnd={vnd} />}
             </li>
           );
         })}
@@ -829,9 +841,9 @@ function useConfirmCheckIn(deal: DealView, ready: boolean) {
 
 /**
  * Kết luận AI ngay trên trang hợp đồng (từ lúc trả phòng tới khi chia tiền): AI tự chạy sau khi trả phòng,
- * người dùng mở hợp đồng là thấy, không phải bấm "Xem báo cáo AI". Đang so thì hiện "AI đang so ảnh…" và tự cập nhật.
+ * người dùng mở hợp đồng là thấy, không phải bấm nút nào; chi tiết từng vị trí nằm dưới cặp ảnh (AiVerdictLine).
  */
-function AiPanel({ deal, vnd, previewAs }: { deal: DealView; vnd: (a: Amount) => string; previewAs?: Role }) {
+function AiPanel({ deal, role, vnd }: { deal: DealView; role: Role; vnd: (a: Amount) => string }) {
   const show = deal.photoSets.checkout !== null && ["CHECKED_OUT", "PROPOSED", "DISPUTED"].includes(deal.onchain.state);
   const ai = useQuery({
     queryKey: ["damage-ai", deal.dealId],
@@ -839,27 +851,75 @@ function AiPanel({ deal, vnd, previewAs }: { deal: DealView; vnd: (a: Amount) =>
     enabled: show,
     refetchInterval: (q) => (q.state.data?.status === "processing" || q.state.data?.status === "none" ? 3000 : false),
   });
+  const { getAccessToken } = usePrivy();
+  const canStart = (role === "tenant" || role === "landlord") && deal.onchain.state === "CHECKED_OUT";
+  const [starting, setStarting] = useState(false);
+  async function start() {
+    setStarting(true);
+    try { await startDamageAi(deal.dealId, await getAccessToken()); } catch { /* lỗi hiện qua status failed */ }
+    finally { setStarting(false); void ai.refetch(); }
+  }
+  // Lệnh gọi AI lúc trả phòng bị mất (chưa có việc AI nào): tự gọi một lần khi mở hợp đồng, không bắt bấm.
+  const auto = useRef(false);
+  useEffect(() => {
+    if (ai.data?.status !== "none" || !canStart || auto.current) return;
+    auto.current = true;
+    void start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ai.data?.status, canStart]);
   if (!show) return null;
-  const href = `/deals/${deal.dealId}/report${previewAs ? `?as=${previewAs}` : ""}`;
   const r = ai.data?.report;
   const newDamage = r ? r.positions.filter((p) => p.verdict === "NEW_DAMAGE").length : 0;
   return (
-    <Link href={href} className="block space-y-2 rounded-2xl border p-5 transition-colors hover:border-primary hover:bg-secondary/50">
+    <section aria-label="Kết luận của AI" className="space-y-2 rounded-2xl border p-5">
       <p className="flex items-center gap-2 font-bold"><Sparkles className="size-4 text-primary" aria-hidden="true" /> Kết luận của AI</p>
       {ai.data?.status === "done" && r ? (
         <>
           <p className="text-2xl font-extrabold tabular-nums text-primary">{vnd(r.totalAmount)}</p>
           <p className="text-sm text-muted-foreground">
-            {newDamage > 0 ? `Mức trừ AI tính cho ${newDamage} hư hỏng mới theo bảng giá.` : "AI không thấy hư hỏng mới."} Chạm để xem từng vị trí.
+            {newDamage > 0 ? `Mức trừ AI tính cho ${newDamage} hư hỏng mới theo bảng giá.` : "AI không thấy hư hỏng mới."} Chi tiết nằm dưới từng cặp ảnh.
           </p>
         </>
       ) : ai.data?.status === "failed" ? (
-        <p className="text-sm text-muted-foreground">AI chưa so được ảnh. Chạm để xem lý do và chạy lại.</p>
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground">AI chưa so được ảnh{ai.data?.error ? `: ${ai.data.error}` : "."} Chủ trọ vẫn đề xuất được, chỉ không có con dấu AI.</p>
+          {canStart && (
+            <Button size="sm" variant="outline" disabled={starting} onClick={() => void start()}>
+              {starting ? <Loader2 className="animate-spin" aria-hidden="true" /> : <RefreshCw aria-hidden="true" />} Thử lại AI
+            </Button>
+          )}
+        </div>
       ) : (
         <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="size-4 motion-safe:animate-spin" aria-hidden="true" /> AI đang so ảnh trước và sau…
         </p>
       )}
-    </Link>
+    </section>
+  );
+}
+
+/** Kết luận AI cho một vị trí, đặt ngay dưới cặp ảnh trước/sau của vị trí đó. */
+function AiVerdictLine({ deal, positionId, report, waiting, vnd }: {
+  deal: DealView; positionId: string; report: DamageReport | null; waiting: boolean; vnd: (a: Amount) => string;
+}) {
+  if (waiting) {
+    return <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 motion-safe:animate-spin" aria-hidden="true" /> AI đang so vị trí này…</p>;
+  }
+  const pos = report?.positions.find((x) => x.positionId === positionId);
+  if (!pos) return null;
+  const v = VERDICT[pos.verdict];
+  const item = pos.priceItemId ? deal.terms.priceList.find((i) => i.id === pos.priceItemId) : null;
+  const charged = BigInt(pos.amount) > BigInt(0);
+  return (
+    <div className="space-y-1.5 rounded-xl bg-secondary/60 p-3 text-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold", v.cls)}>
+          <v.Icon className="size-3.5" aria-hidden="true" /> AI: {v.label}
+        </span>
+        {charged && <span className="font-bold tabular-nums">{vnd(pos.amount)}</span>}
+      </div>
+      <p className="text-foreground/80">{pos.description}</p>
+      {charged && item && <p className="text-muted-foreground">Theo bảng giá: {item.item} × {pos.quantity} {item.unit}</p>}
+    </div>
   );
 }
