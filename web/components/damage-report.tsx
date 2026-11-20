@@ -5,7 +5,7 @@
 // Phần hành động ở cuối màn đổi theo vai và trạng thái contract:
 //   chủ trọ + CHECKED_OUT → đề xuất mức trừ (proposeDeduction), điền sẵn bằng aiAmount;
 //   người thuê + PROPOSED → đồng ý (acceptProposal) hoặc kháng nghị (disputeProposal).
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { useAccount } from "wagmi";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -333,6 +333,15 @@ function AiStatusBox({
     }
   }
 
+  // Chưa có việc AI nào (lệnh gọi lúc trả phòng bị mất): tự chạy một lần khi mở màn, không bắt người dùng bấm.
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (status !== "none" || !canStart || loadFailed || autoStarted.current) return;
+    autoStarted.current = true;
+    void start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, canStart, loadFailed]);
+
   const noSealNote =
     role === "landlord" && deal.onchain.state === "CHECKED_OUT"
       ? "Bạn vẫn đề xuất được, nhưng đề xuất sẽ không có con dấu AI."
@@ -363,10 +372,10 @@ function AiStatusBox({
     <InfoBox
       icon={<AlertTriangle className="size-5" />}
       tone="warning"
-      title={status === "failed" ? "AI chưa so được ảnh" : "Chưa chạy AI so ảnh"}
+      title={status === "failed" ? "AI chưa so được ảnh" : starting ? "Đang nhờ AI so ảnh…" : "Chưa chạy AI so ảnh"}
     >
       <p>
-        {status === "failed" ? (error ? `${error} ` : "Máy chủ AI gặp lỗi. ") : "Chưa có ai bấm chạy AI. "}
+        {status === "failed" ? (error ? `${error} ` : "Máy chủ AI gặp lỗi. ") : starting ? "" : "Chưa gọi được AI. "}
         {noSealNote}
       </p>
       {canStart && (

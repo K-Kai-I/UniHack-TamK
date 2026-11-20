@@ -13,7 +13,7 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useAccount } from "wagmi";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Check, Circle, ExternalLink, Hourglass, Loader2, Lock, RefreshCw, Sparkles, X } from "lucide-react";
+import { ArrowRight, Check, ExternalLink, Hourglass, Loader2, Lock, RefreshCw, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ActionArea } from "@/components/action-area";
@@ -153,10 +153,8 @@ function Flow({ deal, kind, back }: { deal: DealView; kind: CaptureKind; back: s
   const [step, setStep] = useState(handed ? n : 0); // 0..n-1 = vị trí đang chụp, n = màn kiểm tra lại
   const [phase, setPhase] = useState<Phase>("idle");
   const router = useRouter();
-  const [failedAt, setFailedAt] = useState<Phase | null>(null); // bước đang chạy khi lỗi, để đánh dấu đúng bước hỏng
   const [uploadedCount, setUploadedCount] = useState(0);
   const [apiError, setApiError] = useState("");
-  const [aiNote, setAiNote] = useState("");
   const phaseNow = useRef<Phase>("idle");
 
   function go(p: Phase) {
@@ -164,7 +162,6 @@ function Flow({ deal, kind, back }: { deal: DealView; kind: CaptureKind; back: s
     setPhase(p);
   }
   function fail() {
-    setFailedAt(phaseNow.current);
     go("error");
   }
 
@@ -200,7 +197,6 @@ function Flow({ deal, kind, back }: { deal: DealView; kind: CaptureKind; back: s
     delete uploaded.current[pos.id];
     sealed.current = null;
     if (phase === "error") {
-      setFailedAt(null);
       go("idle");
     }
   }
@@ -217,7 +213,6 @@ function Flow({ deal, kind, back }: { deal: DealView; kind: CaptureKind; back: s
 
   async function submit() {
     setApiError("");
-    setFailedAt(null);
     tx.reset();
     try {
       const token = await getAccessToken();
@@ -267,12 +262,8 @@ function Flow({ deal, kind, back }: { deal: DealView; kind: CaptureKind; back: s
       //    chủ trọ vẫn đề xuất được với chữ ký rỗng (nhánh H), và bấm "Xem báo cáo AI" sẽ thử lại.
       if (kind === "checkout") {
         go("ai");
-        try {
-          await startDamageAi(deal.dealId, token);
-          setAiNote("AI đang so ảnh trước và sau. Kết quả hiện trong hợp đồng sau ít phút.");
-        } catch {
-          setAiNote("Chưa gọi được AI. Ảnh đã lên chuỗi an toàn; mở báo cáo AI trong hợp đồng để thử lại.");
-        }
+        // Lỗi gọi AI không báo ở đây: màn báo cáo AI (mở ngay sau màn thành công) tự gọi lại nếu chưa có việc AI nào.
+        await startDamageAi(deal.dealId, token).catch(() => undefined);
       }
 
       go("done");
@@ -346,22 +337,24 @@ function Flow({ deal, kind, back }: { deal: DealView; kind: CaptureKind; back: s
             <Review deal={deal} shots={shots} kind={kind} onPick={picker} sent={done} />
             <div>
               <ActionArea>
-                <SubmitSteps
-                  phase={phase}
-                  failedAt={failedAt}
-                  uploaded={uploadedCount}
-                  total={n}
-                  withAi={kind === "checkout"}
-                  apiError={apiError}
-                  aiNote={aiNote}
-                />
-                {tx.state.phase !== "idle" && <TxStatus state={tx.state} doneText={COPY[kind].done} />}
+                <SubmitSteps phase={phase} uploaded={uploadedCount} total={n} apiError={apiError} />
+                {tx.state.phase === "error" && <TxStatus state={tx.state} doneText={COPY[kind].done} />}
                 {done ? (
-                  <SuccessScreen
-                    title={COPY[kind].done}
-                    text={kind === "checkin" ? "Ảnh đã được khóa trên blockchain. Lúc trả phòng sẽ đối chiếu với bộ ảnh này." : "Ảnh đã được khóa trên blockchain. Chủ trọ sẽ xem và đề xuất mức trừ."}
-                    href={back}
-                  />
+                  kind === "checkin" ? (
+                    <SuccessScreen
+                      title={COPY[kind].done}
+                      text="Ảnh đã được khóa trên blockchain. Lúc trả phòng sẽ đối chiếu với bộ ảnh này."
+                      href={back}
+                    />
+                  ) : (
+                    // Trả phòng xong: AI đã tự chạy, mở thẳng báo cáo AI (đang so thì màn đó tự cập nhật), không bắt bấm thêm.
+                    <SuccessScreen
+                      title={COPY[kind].done}
+                      text="AI đang tự so ảnh trước và sau. Kết quả hiện ở màn tiếp theo."
+                      href={back.replace(/(\/deals\/\d+)/, "$1/report")}
+                      label="Xem kết quả AI"
+                    />
+                  )
                 ) : (
                   <>
                     {!busy && blockReason && (
@@ -377,7 +370,7 @@ function Flow({ deal, kind, back }: { deal: DealView; kind: CaptureKind; back: s
                       onClick={submit}
                     >
                       {busy ? <Loader2 className="animate-spin" aria-hidden /> : <Lock aria-hidden />}
-                      {phase === "error" ? "Thử lại" : kind === "checkin" ? "Phòng đúng mô tả · Nhận phòng" : COPY[kind].submit}
+                      {busy ? "Đang gửi…" : phase === "error" ? "Thử lại" : kind === "checkin" ? "Phòng đúng mô tả · Nhận phòng" : COPY[kind].submit}
                     </Button>
                     {kind === "checkin" && !busy && phase !== "error" && missing.length === 0 && !lateCheckIn && (
                       // Cùng bộ ảnh này: AI so với ảnh lúc đăng phòng. Bắt đầu so rồi thì không chụp lại được nữa.
@@ -667,40 +660,21 @@ export function PositionStrip({
 
 // ------------------------------------------------------------------ tiến độ gửi
 
-/** Tiến độ gửi theo từng bước: tải ảnh → khóa bộ ảnh → ký → (trả phòng) AI. Bước hỏng được đánh dấu riêng. */
+/**
+ * Gửi ảnh: người dùng chỉ thấy nút "Đang gửi…", hộp xác nhận của ví, rồi màn thành công. Các bước phía máy chủ
+ * (tải ảnh, khóa hash, gọi AI) không hiện ra màn hình; chỉ đọc cho trình đọc màn hình và báo lỗi khi có lỗi.
+ */
 function SubmitSteps({
   phase,
-  failedAt,
   uploaded,
   total,
-  withAi,
   apiError,
-  aiNote,
 }: {
   phase: Phase;
-  failedAt: Phase | null;
   uploaded: number;
   total: number;
-  withAi: boolean;
   apiError: string;
-  aiNote: string;
 }) {
-  const steps: { key: Phase; label: string }[] = [
-    { key: "uploading", label: `Tải ${total} ảnh lên` },
-    { key: "sealing", label: "Khóa bộ ảnh (mã hash)" },
-    { key: "signing", label: "Ký giao dịch trong ví" },
-    ...(withAi ? [{ key: "ai" as Phase, label: "Nhờ AI so ảnh" }] : []),
-  ];
-  const idx = (p: Phase | null) => steps.findIndex((s) => s.key === p);
-  const cur = phase === "done" ? steps.length : idx(phase);
-  const failIdx = idx(failedAt);
-
-  const statusOf = (i: number): "done" | "active" | "failed" | "pending" => {
-    if (phase === "done") return "done";
-    if (phase === "error") return i < failIdx ? "done" : i === failIdx ? "failed" : "pending";
-    return i < cur ? "done" : i === cur ? "active" : "pending";
-  };
-
   if (phase === "idle" && !apiError) return null;
 
   const live =
@@ -726,60 +700,6 @@ function SubmitSteps({
           {apiError}
         </p>
       )}
-      {phase !== "idle" && (
-        <ol aria-label="Tiến độ gửi ảnh" className="space-y-1 rounded-xl bg-secondary/60 p-3 text-sm">
-          {steps.map((s, i) => {
-            const st = statusOf(i);
-            return (
-              <li key={s.key} className="space-y-1">
-                <div
-                  className={cn(
-                    "flex items-center gap-2",
-                    st === "pending" && "text-muted-foreground",
-                    st === "failed" && "font-medium text-destructive",
-                    st === "active" && "font-medium text-foreground",
-                  )}
-                  aria-current={st === "active" ? "step" : undefined}
-                >
-                  {st === "done" ? (
-                    <Check className="size-4 shrink-0 text-success" aria-hidden />
-                  ) : st === "active" ? (
-                    <Loader2 className="size-4 shrink-0 animate-spin text-info" aria-hidden />
-                  ) : st === "failed" ? (
-                    <X className="size-4 shrink-0" aria-hidden />
-                  ) : (
-                    <Circle className="size-4 shrink-0" aria-hidden />
-                  )}
-                  <span className="min-w-0">
-                    {s.label}
-                    {s.key === "uploading" && st === "active" && (
-                      <span className="tabular-nums"> ({uploaded}/{total})</span>
-                    )}
-                    {st === "failed" && " — chưa xong"}
-                  </span>
-                </div>
-                {s.key === "uploading" && st === "active" && (
-                  <div
-                    role="progressbar"
-                    aria-label="Đã tải lên"
-                    aria-valuemin={0}
-                    aria-valuemax={total}
-                    aria-valuenow={uploaded}
-                    className="ml-6 h-1.5 overflow-hidden rounded-full bg-muted"
-                  >
-                    <div className="h-full bg-primary transition-[width]" style={{ width: `${(uploaded / Math.max(total, 1)) * 100}%` }} />
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ol>
-      )}
-      {aiNote && (
-        <p className="flex items-start gap-2 rounded-xl bg-secondary/60 p-3 text-sm text-foreground/80">
-          <Sparkles className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden /> {aiNote}
-        </p>
-      )}
     </div>
   );
 }
@@ -798,10 +718,11 @@ export function SubmitProgress({
   apiError: string;
   aiNote: string;
 }) {
+  // Không kể từng bước máy chủ (tải ảnh, khóa hash): chỉ một dòng "đang gửi", và báo AI đang so vì đó là việc người dùng chờ.
   let text = "";
-  if (phase === "uploading") text = `Đang tải ảnh lên (${uploaded}/${total})…`;
-  else if (phase === "sealing") text = "Đang khóa bộ ảnh…";
-  else if (phase === "ai") text = "Đang gửi ảnh cho AI so sánh…";
+  if (phase === "uploading" || phase === "sealing") text = "Đang gửi ảnh…";
+  else if (phase === "ai") text = "AI đang so ảnh…";
+  void uploaded; void total;
 
   if (apiError) {
     return (

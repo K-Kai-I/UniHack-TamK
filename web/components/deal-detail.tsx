@@ -8,7 +8,8 @@ import Link from "next/link";
 import { usePrivy } from "@privy-io/react-auth";
 import { useAccount, useReadContract } from "wagmi";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Check, Clock, Gavel, Loader2, Minus, RefreshCw, SearchX } from "lucide-react";
+import { AlertTriangle, Check, Clock, Gavel, Loader2, Minus, RefreshCw, SearchX, Sparkles } from "lucide-react";
+import { fetchDamageAi } from "@/lib/client/ai-report-api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -115,6 +116,7 @@ function DealOverview({
         {/* Một cây DOM: mobile xếp tóm tắt trước, desktop đặt sang cột phải (không nhân đôi nội dung). */}
         <div className="min-w-0 space-y-6 lg:col-start-2 lg:row-start-1">
           <StatusPanel deal={deal} role={role} onExpire={onExpire} />
+          <AiPanel deal={deal} vnd={vnd} previewAs={previewAs} />
           <MoneyPanel deal={deal} vnd={vnd} />
           <ProposalPanel deal={deal} role={role} vnd={vnd} />
         </div>
@@ -823,4 +825,41 @@ function useConfirmCheckIn(deal: DealView, ready: boolean) {
         window.setTimeout(() => void qc.invalidateQueries({ queryKey: ["deal-view", deal.dealId] }), 4000);
       });
   }, [ready, deal.dealId, qc]);
+}
+
+/**
+ * Kết luận AI ngay trên trang hợp đồng (từ lúc trả phòng tới khi chia tiền): AI tự chạy sau khi trả phòng,
+ * người dùng mở hợp đồng là thấy, không phải bấm "Xem báo cáo AI". Đang so thì hiện "AI đang so ảnh…" và tự cập nhật.
+ */
+function AiPanel({ deal, vnd, previewAs }: { deal: DealView; vnd: (a: Amount) => string; previewAs?: Role }) {
+  const show = deal.photoSets.checkout !== null && ["CHECKED_OUT", "PROPOSED", "DISPUTED"].includes(deal.onchain.state);
+  const ai = useQuery({
+    queryKey: ["damage-ai", deal.dealId],
+    queryFn: () => fetchDamageAi(deal.dealId),
+    enabled: show,
+    refetchInterval: (q) => (q.state.data?.status === "processing" || q.state.data?.status === "none" ? 3000 : false),
+  });
+  if (!show) return null;
+  const href = `/deals/${deal.dealId}/report${previewAs ? `?as=${previewAs}` : ""}`;
+  const r = ai.data?.report;
+  const newDamage = r ? r.positions.filter((p) => p.verdict === "NEW_DAMAGE").length : 0;
+  return (
+    <Link href={href} className="block space-y-2 rounded-2xl border p-5 transition-colors hover:border-primary hover:bg-secondary/50">
+      <p className="flex items-center gap-2 font-bold"><Sparkles className="size-4 text-primary" aria-hidden="true" /> Kết luận của AI</p>
+      {ai.data?.status === "done" && r ? (
+        <>
+          <p className="text-2xl font-extrabold tabular-nums text-primary">{vnd(r.totalAmount)}</p>
+          <p className="text-sm text-muted-foreground">
+            {newDamage > 0 ? `Mức trừ AI tính cho ${newDamage} hư hỏng mới theo bảng giá.` : "AI không thấy hư hỏng mới."} Chạm để xem từng vị trí.
+          </p>
+        </>
+      ) : ai.data?.status === "failed" ? (
+        <p className="text-sm text-muted-foreground">AI chưa so được ảnh. Chạm để xem lý do và chạy lại.</p>
+      ) : (
+        <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="size-4 motion-safe:animate-spin" aria-hidden="true" /> AI đang so ảnh trước và sau…
+        </p>
+      )}
+    </Link>
+  );
 }
