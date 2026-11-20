@@ -146,3 +146,15 @@ CREATE INDEX IF NOT EXISTS rental_requests_tenant ON rental_requests (tenant, cr
 
 ALTER TABLE rooms           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE rental_requests ENABLE ROW LEVEL SECURITY;
+
+-- Lý do kèm đề xuất mức trừ (chủ trọ) và kháng nghị (người thuê), cho bên kia và bồi thẩm đọc.
+-- Ngoài chuỗi: chỉ sửa được trước khi giao dịch tương ứng lên chuỗi (API kiểm tra trạng thái), sau đó khóa.
+CREATE TABLE IF NOT EXISTS deal_notes (
+  deal_id     BIGINT NOT NULL,
+  kind        TEXT NOT NULL CHECK (kind IN ('proposal', 'dispute')),
+  author      TEXT NOT NULL,
+  text        TEXT NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (deal_id, kind)
+);
+ALTER TABLE deal_notes ENABLE ROW LEVEL SECURITY;

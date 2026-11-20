@@ -34,10 +34,13 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { ActionArea } from "@/components/action-area";
-import { InfoBox, Row, Rows } from "@/components/deal-bits";
+import { InfoBox, NoteQuote, Row, Rows } from "@/components/deal-bits";
 import { Field, MoneyInput } from "@/components/listing-fields";
 import { SuccessScreen } from "@/components/success-screen";
 import { TxStatus } from "@/components/tx-status";
+import { usePrivy } from "@privy-io/react-auth";
+import { ApiClientError } from "@/lib/client/api";
+import { saveNote } from "@/lib/client/notes-api";
 import { addresses, escrowAbi } from "@/lib/chain";
 import type { DamageAiResponse } from "@/lib/client/ai-report-api";
 import { deductionAiSide } from "@/lib/client/deal-actions";
@@ -109,7 +112,20 @@ export function ProposePanel({
   // nếu không chủ trọ kẹt tới hạn và bị poke hoàn đủ cọc.
   const waitingAi = aiLoading || ai?.status === "processing";
 
-  async function submit(amount: bigint) {
+  const { getAccessToken } = usePrivy();
+  const [noteError, setNoteError] = useState("");
+
+  async function submit(amount: bigint, reason: string) {
+    // Lý do lưu trước khi ký (sau khi đề xuất lên chuỗi thì khóa). Lưu lỗi thì dừng, không ký.
+    setNoteError("");
+    if (reason.trim()) {
+      try {
+        await saveNote(deal.dealId, "proposal", reason.trim(), await getAccessToken());
+      } catch (e) {
+        setNoteError(e instanceof ApiClientError ? e.message : "Chưa lưu được lý do. Kiểm tra mạng rồi thử lại.");
+        return;
+      }
+    }
     const receipt = await tx.run({
       address: addresses.escrow,
       abi: escrowAbi,
@@ -142,6 +158,7 @@ export function ProposePanel({
       tx={tx.state}
       back={back}
       onSubmit={submit}
+      noteError={noteError}
     />
   );
 }
@@ -155,6 +172,7 @@ export function ProposeView({
   tx,
   back,
   onSubmit,
+  noteError = "",
 }: {
   deal: DealView;
   rate: number;
@@ -164,10 +182,13 @@ export function ProposeView({
   passed: boolean;
   tx: TxState;
   back: string;
-  onSubmit: (amount: bigint) => void;
+  onSubmit: (amount: bigint, reason: string) => void;
+  noteError?: string;
 }) {
   const vnd = (a: Amount | bigint) => formatVnd(amountToVnd(a, rate));
   const C = BigInt(deal.onchain.deposit);
+  // Lý do cho người thuê và bồi thẩm đọc (nhất là khi khác số AI). Không bắt buộc.
+  const [reason, setReason] = useState("");
 
   // touched = false: ô hiện aiAmount quy ra VND và số gửi lên chuỗi là đúng aiAmount. Không cần dựng lại form
   // khi AI xong: số điền sẵn tự theo aiAmount, còn chữ đã gõ thì giữ nguyên.
@@ -284,6 +305,15 @@ export function ProposeView({
               )}
             </div>
 
+            <ReasonField
+              id="propose-reason"
+              label="Lý do (người thuê và bồi thẩm sẽ đọc)"
+              hint={diff !== null ? "Bạn đang đề xuất khác số AI: nên ghi rõ vì sao." : "Ví dụ: vết nứt gạch cạnh giường, ảnh 3 lúc trả phòng."}
+              value={reason}
+              onChange={setReason}
+            />
+            {noteError && <p role="alert" className="text-sm font-medium text-destructive">{noteError}</p>}
+
             {amount !== null && !tooBig && (
               <div className="space-y-2">
                 <Rows>
@@ -379,7 +409,7 @@ export function ProposeView({
             size="lg"
             className="w-full text-base"
             disabled={busy || passed || waitingAi || amount === null || tooBig}
-            onClick={() => amount !== null && onSubmit(amount)}
+            onClick={() => amount !== null && onSubmit(amount, reason)}
           >
             {busy && <Loader2 className="animate-spin" />}
             {passed
@@ -409,6 +439,7 @@ export function RespondPanel({ deal, back }: { deal: DealView; back: string }) {
   const qc = useQueryClient();
   const router = useRouter();
   const { passed } = useCountdown(deal.onchain.deadline);
+  const { getAccessToken } = usePrivy();
 
   async function accept() {
     const receipt = await acceptTx.run({
@@ -422,7 +453,11 @@ export function RespondPanel({ deal, back }: { deal: DealView; back: string }) {
     router.push(back.replace(/(\/deals\/\d+)/, "$1/receipt"));
   }
 
-  async function dispute(counter: bigint) {
+  async function dispute(counter: bigint, reason: string) {
+    if (reason.trim()) {
+      // Lỗi lưu lý do ném ra để màn kháng nghị hiện; chưa ký giao dịch.
+      await saveNote(deal.dealId, "dispute", reason.trim(), await getAccessToken());
+    }
     const receipt = await disputeTx.run({
       address: addresses.escrow,
       abi: escrowAbi,
@@ -465,7 +500,7 @@ export function RespondView({
   acceptTx: TxState;
   onAccept: () => void;
   disputeTx: TxState;
-  onDispute: (counter: bigint) => void;
+  onDispute: (counter: bigint, reason: string) => Promise<void> | void;
   onDisputeReset: () => void;
   back: string;
 }) {
@@ -501,6 +536,7 @@ export function RespondView({
             sub={onchain.yieldGross !== "0" ? "Chưa tính phần lãi" : undefined}
           />
         </Rows>
+        <NoteQuote who="chủ trọ" text={deal.notes?.proposal?.text} />
         <p className="text-sm text-muted-foreground">{ESTIMATE_NOTE}</p>
 
         {onchain.hasAiSeal && D > AI && (
@@ -631,13 +667,23 @@ function DisputeDrawer({
   open: boolean;
   onClose: () => void;
   tx: TxState;
-  onSubmit: (counter: bigint) => void;
+  onSubmit: (counter: bigint, reason: string) => Promise<void> | void;
   onReset: () => void;
   back: string;
 }) {
   const vnd = (a: Amount | bigint) => formatVnd(amountToVnd(a, rate));
   // Giữ chữ đã gõ khi đóng/mở lại hoặc khi giao dịch lỗi: state nằm ở đây, không nằm trong DrawerContent.
   const [text, setText] = useState("");
+  const [reason, setReason] = useState("");
+  const [noteError, setNoteError] = useState("");
+  async function send(c: bigint) {
+    setNoteError("");
+    try {
+      await onSubmit(c, reason);
+    } catch (e) {
+      setNoteError(e instanceof ApiClientError ? e.message : "Chưa lưu được lý do. Kiểm tra mạng rồi thử lại.");
+    }
+  }
 
   const { onchain } = deal;
   const C = BigInt(onchain.deposit);
@@ -766,6 +812,14 @@ function DisputeDrawer({
                     phiếu thì lấy trung bình hai con số.
                   </p>
                 )}
+                <ReasonField
+                  id="dispute-reason"
+                  label="Lý do kháng nghị (chủ trọ và bồi thẩm sẽ đọc)"
+                  hint="Ví dụ: vết bẩn có từ lúc nhận phòng, xem ảnh nhận phòng vị trí 2."
+                  value={reason}
+                  onChange={setReason}
+                />
+                {noteError && <p role="alert" className="text-sm font-medium text-destructive">{noteError}</p>}
                 <p className="text-sm text-muted-foreground">{ESTIMATE_NOTE}</p>
               </fieldset>
             )}
@@ -788,7 +842,7 @@ function DisputeDrawer({
                 size="lg"
                 className="w-full text-base"
                 disabled={busy || counter === null || tooBig}
-                onClick={() => counter !== null && onSubmit(counter)}
+                onClick={() => counter !== null && void send(counter)}
               >
                 {busy && <Loader2 className="animate-spin" />}
                 {tx.phase === "error" ? "Thử lại" : "Ký gửi kháng nghị"}
@@ -798,5 +852,24 @@ function DisputeDrawer({
         </div>
       </DrawerContent>
     </Drawer>
+  );
+}
+
+/** Ô lý do (tối đa 500 ký tự), dùng cho đề xuất mức trừ và kháng nghị. */
+function ReasonField({ id, label, hint, value, onChange }: { id: string; label: string; hint: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="space-y-1.5">
+      <label htmlFor={id} className="text-sm font-semibold">{label}</label>
+      <textarea
+        id={id}
+        value={value}
+        maxLength={500}
+        rows={3}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-xl border border-input bg-background px-3 py-2 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        aria-describedby={`${id}-hint`}
+      />
+      <p id={`${id}-hint`} className="text-xs text-muted-foreground">{hint} Không bắt buộc. {value.length}/500</p>
+    </div>
   );
 }

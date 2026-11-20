@@ -29,7 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { VERDICT } from "@/components/damage-report";
 import { DealStatusBadge } from "@/components/deal-status-badge";
-import { Blocked, InfoBox, Row, Rows } from "@/components/deal-bits";
+import { Blocked, InfoBox, NoteQuote, Row, Rows } from "@/components/deal-bits";
 import { ActionArea } from "@/components/action-area";
 import { EvidencePhoto } from "@/components/evidence-photo";
 import { KIND_LABEL } from "@/components/jury-list";
@@ -694,6 +694,14 @@ function Sides({
     </>
   );
 
+  // Lý do hai bên tự ghi (ngoài chuỗi) giúp bồi thẩm hiểu vì sao mỗi bên đưa ra con số của mình.
+  const reasons = kind === "DEDUCTION" && (deal.notes?.proposal || deal.notes?.dispute) ? (
+    <div className="space-y-2">
+      <NoteQuote who="chủ trọ" text={deal.notes?.proposal?.text} />
+      <NoteQuote who="người thuê" text={deal.notes?.dispute?.text} />
+    </div>
+  ) : null;
+
   const note = (
     <p className="max-w-[65ch] text-sm text-muted-foreground">
       Dự kiến. Tiền chỉ về ví khi đủ 2 phiếu và contract chia xong.{hasYield && " Chưa tính phần lãi."}
@@ -713,6 +721,7 @@ function Sides({
             </div>
           ))}
         </div>
+        {reasons}
         {note}
       </section>
     );
@@ -759,6 +768,7 @@ function Sides({
           );
         })}
       </div>
+      {reasons}
       {note}
       <p className="text-sm text-muted-foreground">Mỗi bồi thẩm một phiếu. Ký xong không đổi được.</p>
     </fieldset>
@@ -822,7 +832,7 @@ function Notices({
     if (passed && (access === "juror" || access === "voted" || access === "not-juror")) {
       items.push(
         <InfoBox key="late" icon={<CircleAlert className="size-5" aria-hidden="true" />} tone="danger" title="Không bỏ phiếu được nữa">
-          Tiền sẽ chia theo quy tắc hết hạn ở trên khi có người bấm “Xử lý quá hạn”.
+          Hết hạn thì hợp đồng tự chia tiền theo quy tắc ở trên.
         </InfoBox>,
       );
     }
