@@ -180,6 +180,7 @@ Khóa nào cũng chỉ nằm trong `.env` trên máy và trong cài đặt của
 | `AI_SIGNER_PRIVATE_KEY` | API | Ví ký con dấu; địa chỉ của nó là `aiSigner` trong constructor |
 | `KEEPER_PRIVATE_KEY` | API | Ví gọi `poke` và gửi AVAX faucet |
 | `KEEPER_SECRET` | API | Giá trị header `x-keeper-secret` |
+| *(bảng `deal_notes`)* | Database | Lý do kèm đề xuất / kháng nghị: `deal_id`, `kind` (proposal, dispute), `author`, `text` ≤ 500 ký tự; khóa khi giao dịch lên chuỗi |
 | `AI_MODEL`, `AI_API_KEY` | API | Mô hình so ảnh (`gemini-3.5-flash-lite`; `mock` để chạy không cần AI) và khóa Google AI Studio |
 | `OPENAI_MODEL`, `OPENAI_API_KEY` | API | Không bắt buộc: lời giải thích tiếng Việt, chỉ tham khảo, không nằm trong báo cáo đã ký |
 | `DATABASE_URL`, `SUPABASE_URL`, `STORAGE_KEY` | API | Database và kho ảnh (bucket `photos`, private). Bỏ trống `DATABASE_URL` thì dùng PGlite (`PGLITE_DIR`) |

@@ -406,3 +406,22 @@ export async function setRequestStatus(id: string, from: RequestStatus, to: Requ
   );
   return rows.length > 0;
 }
+
+// ---------- Lý do kèm đề xuất / kháng nghị ----------
+
+export type NoteKind = "proposal" | "dispute";
+export interface NoteRow { deal_id: string; kind: NoteKind; author: string; text: string; created_at: string }
+
+/** Ghi (hoặc thay) lý do. Route chỉ gọi khi giao dịch tương ứng chưa lên chuỗi. */
+export async function upsertNote(dealId: bigint, kind: NoteKind, author: string, text: string): Promise<void> {
+  await (await db()).query(
+    `INSERT INTO deal_notes (deal_id, kind, author, text) VALUES ($1, $2, $3, $4)
+     ON CONFLICT (deal_id, kind) DO UPDATE SET text = EXCLUDED.text, author = EXCLUDED.author, created_at = now()`,
+    [dealId.toString(), kind, author.toLowerCase(), text],
+  );
+}
+
+export async function listNotes(dealId: bigint): Promise<NoteRow[]> {
+  const rows = await (await db()).query<NoteRow>("SELECT * FROM deal_notes WHERE deal_id = $1", [dealId.toString()]);
+  return rows.map((r) => ({ ...r, deal_id: String(r.deal_id), created_at: new Date(r.created_at).toISOString() }));
+}

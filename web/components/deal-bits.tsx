@@ -115,3 +115,14 @@ export function Blocked({
 export function BottomBar({ children }: { children: React.ReactNode }) {
   return <ActionArea>{children}</ActionArea>;
 }
+
+/** Lý do mỗi bên ghi kèm đề xuất / kháng nghị (ngoài chuỗi). Không có lý do thì không hiện gì. */
+export function NoteQuote({ who, text }: { who: string; text?: string | null }) {
+  if (!text) return null;
+  return (
+    <blockquote className="space-y-1 rounded-xl border-l-4 border-primary/40 bg-secondary/60 px-4 py-3 text-sm [overflow-wrap:anywhere]">
+      <p className="font-semibold">Lý do của {who}</p>
+      <p className="whitespace-pre-line text-foreground/85">{text}</p>
+    </blockquote>
+  );
+}

@@ -5,7 +5,7 @@ import { onchainView } from "@/lib/server/chain";
 import { dealContext } from "@/lib/server/deal-context";
 import { dealHistory, syncEventsSoon } from "@/lib/server/events";
 import { json, parseDealId, photoUrl, route } from "@/lib/server/http";
-import { getAiReport, getLatestPhotoSet, getPhotoSetByHash, type PhotoSetRow } from "@/lib/server/repo";
+import { getAiReport, getLatestPhotoSet, getPhotoSetByHash, listNotes, type PhotoSetRow } from "@/lib/server/repo";
 import type { DamageReport, MismatchReport } from "@/lib/types";
 
 const ZERO_HASH = `0x${"0".repeat(64)}`;
@@ -16,7 +16,7 @@ export const GET = route(async (req: Request, ctx: { params: Promise<{ dealId: s
   // Đọc thêm sự kiện mới cho history, có giới hạn tần suất và thời gian chờ để trang không bị chậm.
   await syncEventsSoon();
 
-  const [canPoke, checkin, checkout, mismatch, damageRow, mismatchRow, history] = await Promise.all([
+  const [canPoke, checkin, checkout, mismatch, damageRow, mismatchRow, history, notes] = await Promise.all([
     readCanPoke(dealId),
     deal.checkInHash !== ZERO_HASH ? getPhotoSetByHash(dealId, deal.checkInHash) : null,
     deal.checkOutHash !== ZERO_HASH ? getPhotoSetByHash(dealId, deal.checkOutHash) : null,
@@ -24,6 +24,7 @@ export const GET = route(async (req: Request, ctx: { params: Promise<{ dealId: s
     getAiReport(dealId, "damage"),
     getAiReport(dealId, "mismatch"),
     dealHistory(dealId).catch(() => []),
+    listNotes(dealId).catch(() => []),
   ]);
 
   const setView = (s: PhotoSetRow | null) =>
@@ -53,5 +54,7 @@ export const GET = route(async (req: Request, ctx: { params: Promise<{ dealId: s
     // Lời giải thích của OpenAI (nếu có): chỉ để tham khảo, không nằm trong báo cáo đã ký.
     explanation: damageRow?.status === "done" ? (damageRow.explanation ?? null) : null,
     history,
+    // Lý do kèm đề xuất / kháng nghị (ngoài chuỗi, khóa khi giao dịch tương ứng đã lên chuỗi).
+    notes: Object.fromEntries(notes.map((n) => [n.kind, { text: n.text, author: n.author, at: n.created_at }])),
   });
 });

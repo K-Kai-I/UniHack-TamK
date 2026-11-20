@@ -77,7 +77,7 @@ export function quickTxCopy(id: QuickTxId, timeouts: Timeouts | null): QuickTxCo
         text: `Người thuê có ${wait} để bấm “Tôi vẫn đang ở”. Họ im lặng tới hạn thì bạn nhận toàn bộ tiền cọc. Chỉ báo khi người thuê thật sự đã dọn đi mà không trả phòng.`,
         button: "Báo bỏ đi",
         done: "Đã báo. Đang chờ người thuê trả lời",
-        after: `Người thuê có ${wait} để trả lời. Hết hạn mà họ im lặng, bấm “Xử lý quá hạn” (hoặc chờ bot) để contract chuyển cọc cho bạn.`,
+        after: `Người thuê có ${wait} để trả lời. Hết hạn mà họ im lặng, hợp đồng tự chuyển cọc cho bạn theo luật đã chốt.`,
         danger: false,
       };
     case "contestAbandon":

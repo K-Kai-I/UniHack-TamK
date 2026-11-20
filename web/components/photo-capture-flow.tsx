@@ -541,13 +541,13 @@ export function ShootStep({
 export function Review({
   deal,
   shots,
-  kind,
   onPick,
   sent = false,
 }: {
   deal: DealView;
   shots: Record<string, Shot>;
-  kind: ShotKind;
+  /** Giữ để các màn gọi không phải đổi; không còn dùng (đã bỏ câu giải thích khóa hash). */
+  kind?: ShotKind;
   onPick?: (i: number) => void;
   /** Đã gửi và ký xong: ảnh không còn đổi được, nhãn chuyển từ "Chưa gửi" sang "Đã gửi". */
   sent?: boolean;
@@ -585,7 +585,7 @@ export function Review({
               </p>
               <p className={cn("flex items-center gap-1 text-xs", !s ? "text-destructive" : sent ? "text-success" : "text-muted-foreground")}>
                 {s ? <Check className="size-3.5" aria-hidden /> : <X className="size-3.5" aria-hidden />}
-                {!s ? "Chưa chụp" : sent ? "Đã gửi" : "Chưa gửi"}
+                {!s ? "Chưa chụp" : sent ? "Đã gửi" : "Đã chụp"}
               </p>
             </li>
           );
@@ -593,21 +593,7 @@ export function Review({
       </ul>
       {missing > 0 ? (
         <p className="text-sm text-destructive">Còn {missing} vị trí chưa chụp. Chạm vào ô đỏ để chụp.</p>
-      ) : sent ? null : (
-        <div className="flex items-start gap-3 rounded-2xl bg-secondary/60 p-4 text-sm">
-          <Lock className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
-          <p className="max-w-[70ch] text-foreground/80">
-            {kind === "mismatch"
-              ? "Gửi xong, bộ ảnh được khóa bằng một mã hash và AI so với ảnh chủ trọ đăng tin. Bước này chưa ký gì lên chuỗi: bạn xem kết quả AI rồi mới quyết định có báo hay không."
-              : "Gửi xong, bộ ảnh được khóa bằng một mã hash ghi lên smart contract. Không ai sửa được, kể cả app."}
-            {kind === "checkin"
-              ? " Chủ trọ có một khoảng thời gian để xem; im lặng là đồng ý."
-              : kind === "checkout"
-                ? " AI sẽ so với ảnh nhận phòng để tính mức trừ."
-                : ""}
-          </p>
-        </div>
-      )}
+      ) : null}
     </section>
   );
 }

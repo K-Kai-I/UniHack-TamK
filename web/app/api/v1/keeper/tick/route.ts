@@ -1,6 +1,6 @@
 // POST /api/v1/keeper/tick: cron gọi mỗi phút với header x-keeper-secret.
 // Duyệt các deal chưa kết thúc, deal nào canPoke thì ví keeper gửi poke. Ví keeper không nhận được tiền.
-// Bot dừng thì tiền không kẹt: ai cũng gọi được poke (nút "Xử lý quá hạn" trên app).
+// Bot dừng thì tiền không kẹt: trang hợp đồng tự nhờ server poke (POST /deals/:id/poke), và poke vốn ai cũng gọi được.
 import { timingSafeEqual } from "node:crypto";
 import { addresses, escrowAbi } from "@/lib/chain";
 import { env } from "@/lib/server/env";

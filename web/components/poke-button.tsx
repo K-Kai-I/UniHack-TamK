@@ -1,6 +1,6 @@
 "use client";
-// Nút "Xử lý quá hạn" (poke): hiện cho MỌI người khi canPoke = true (contract-spec > Nút trên app theo trạng thái).
-// Bot keeper gọi poke mỗi phút; nút này là đường dự phòng khi bot ngừng (user-flow > Nguyên tắc), nên tiền không kẹt.
+// Hết hạn (canPoke = true): từ 21/11 app không còn nút "Xử lý quá hạn". AutoPoke nhờ server (ví keeper) poke ngay khi
+// mở trang; bot keeper chạy định kỳ là đường dự phòng. PokeSheet/PokeDrawer giữ lại cho trang xem thử /dev.
 //
 // canPoke lấy từ GET /deals/:id. Nhưng ngay lúc hết hạn, giờ của khối mới nhất trên chuỗi thường chậm hơn đồng hồ
 // điện thoại vài giây, nên API vẫn trả false. Khi đó hỏi thẳng contract `canPoke(id)` mỗi 4 giây tới khi true,
@@ -9,7 +9,7 @@
 // Task UI 18: hộp xác nhận tách thành `PokeSheet` (chỉ trình bày, xem thử được không cần ví) và `PokeDrawer` (ký giao dịch).
 // Bốn kết cục khác nhau, không gộp một câu: (1) chờ contract cho phép, (2) mình bấm và xong, (3) bot/người khác đã xử lý
 // trước nên giao dịch bị từ chối, (4) lỗi thật (mạng, ví, hủy ký) có nút thử lại.
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import { useReadContract } from "wagmi";
@@ -70,30 +70,50 @@ export function PokeTrigger({
   );
 }
 
-export function PokeButton({
-  deal,
-  receiptHref,
-  className,
-  big = true,
-}: {
-  deal: DealView;
-  /** Poke chia tiền xong thì mời mở biên nhận. */
-  receiptHref: string;
-  className?: string;
-  big?: boolean;
-}) {
+/**
+ * Hết hạn thì app tự xử lý, không có nút: nhờ server (ví keeper) gọi poke một lần (POST /deals/:id/poke), rồi tải lại
+ * hợp đồng. Bot keeper vẫn chạy định kỳ làm đường dự phòng. Kết quả do contract quyết theo luật đã chốt.
+ * Giữ tên PokeButton để các màn đang dùng tự đổi sang tự động.
+ */
+export function PokeButton({ deal, receiptHref }: { deal: DealView; receiptHref: string; className?: string; big?: boolean }) {
+  return <AutoPoke deal={deal} receiptHref={receiptHref} />;
+}
+
+export function AutoPoke({ deal, receiptHref }: { deal: DealView; receiptHref: string }) {
   const can = useCanPoke(deal);
-  const [open, setOpen] = useState(false);
-  // Giữ drawer khi đã mở: poke xong thì canPoke về false, nhưng người dùng còn cần thấy kết quả.
-  // Chỉ đúng khi component cha KHÔNG gỡ nút này lúc canPoke về false; cha nào có thể gỡ thì dùng PokeTrigger + PokeDrawer.
-  if (!can && !open) return null;
+  const qc = useQueryClient();
+  const rate = useVndRate();
+  const sent = useRef(false);
+  const [effect] = useState(() => pokeEffect(deal, (a) => formatVnd(amountToVnd(a, rate))));
+  useEffect(() => {
+    if (!can || sent.current || DEALS_MOCK) return;
+    sent.current = true;
+    void fetch(`/api/v1/deals/${deal.dealId}/poke`, { method: "POST" })
+      .catch(() => null)
+      .finally(() => {
+        // Đợi khối mới rồi đọc lại; bot hoặc người khác poke trước cũng ra cùng kết quả.
+        window.setTimeout(() => {
+          void qc.invalidateQueries({ queryKey: ["deal-view", deal.dealId] });
+          void qc.invalidateQueries({ queryKey: ["deal", deal.dealId] });
+        }, 4000);
+      });
+  }, [can, deal.dealId, qc]);
+
+  if (TERMINAL_STATES.includes(deal.onchain.state)) {
+    return PAID_LIKE.includes(deal.onchain.state) ? (
+      <Button asChild size="lg" variant="outline" className="h-12 w-full text-base"><Link href={receiptHref}>Xem biên nhận</Link></Button>
+    ) : null;
+  }
+  if (!can) return null;
   return (
-    <>
-      {can && <PokeTrigger onClick={() => setOpen(true)} className={className} big={big} />}
-      <PokeDrawer deal={deal} open={open} onClose={() => setOpen(false)} receiptHref={receiptHref} />
-    </>
+    <p role="status" className="flex items-start gap-2 rounded-xl bg-secondary p-3 text-sm text-foreground/85">
+      <Loader2 className="mt-0.5 size-4 shrink-0 motion-safe:animate-spin" aria-hidden="true" />
+      <span>Đã hết hạn. Hợp đồng đang tự làm theo luật đã chốt{effect ? `: ${effect}` : "."}</span>
+    </p>
   );
 }
+
+const PAID_LIKE: DealState[] = ["SETTLED", "REFUNDED"];
 
 // ------------------------------------------------------------------ hộp xác nhận (chỉ trình bày)
 

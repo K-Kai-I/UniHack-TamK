@@ -6,7 +6,7 @@ import { addresses, explorerTxUrl } from "@/lib/chain";
 import type { DealView } from "@/lib/client/deals-data";
 import { DEALS_MOCK } from "@/lib/client/deals-data";
 import { formatDateTime } from "@/lib/client/date";
-import { shortAddress } from "@/lib/client/money";
+import { formatToken, shortAddress } from "@/lib/client/money";
 
 /** https://testnet.snowtrace.io/address/ (cùng gốc với link giao dịch). */
 export const explorerAddressUrl = explorerTxUrl.replace(/tx\/$/, "address/");
@@ -85,6 +85,23 @@ export function ChainProof({ deal }: { deal: DealView }) {
           </span>
           <ExternalLink className="size-4 shrink-0 text-primary" aria-label="Mở trên Snowtrace" />
         </a>
+        {/* Chi tiết kỹ thuật dời từ các khung khác vào đây: ví hai bên và số token thật trên chuỗi. */}
+        <dl className="space-y-1.5 text-sm">
+          <div className="flex items-baseline justify-between gap-3">
+            <dt className="text-muted-foreground">Ví chủ trọ</dt>
+            <dd className="font-mono text-xs" title={deal.onchain.landlord}>{shortAddress(deal.onchain.landlord, 10, 6)}</dd>
+          </div>
+          {deal.onchain.tenant && (
+            <div className="flex items-baseline justify-between gap-3">
+              <dt className="text-muted-foreground">Ví người thuê</dt>
+              <dd className="font-mono text-xs" title={deal.onchain.tenant}>{shortAddress(deal.onchain.tenant, 10, 6)}</dd>
+            </div>
+          )}
+          <div className="flex items-baseline justify-between gap-3">
+            <dt className="text-muted-foreground">Tiền cọc trên chuỗi</dt>
+            <dd className="text-xs tabular-nums">{formatToken(deal.onchain.deposit)} (phí giữ chỗ {formatToken(deal.onchain.reserveFee)})</dd>
+          </div>
+        </dl>
         {sets.length > 0 && (
           <dl className="space-y-1.5 text-sm">
             {sets.map((s) => (

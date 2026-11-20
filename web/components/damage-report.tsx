@@ -223,7 +223,7 @@ function OverduePanel({ deal, role }: { deal: DealView; role: Role }) {
         Contract không nhận {role === "landlord" ? "đề xuất" : "câu trả lời"} sau hạn chót nữa.
         {info ? ` Theo luật đã chốt: ${info.onTimeout}` : ""}
       </p>
-      <p className="text-sm text-muted-foreground">Bấm nút dưới để chốt, hoặc chờ bot của app tự xử lý trong vài phút.</p>
+      <p className="text-sm text-muted-foreground">Hợp đồng tự xử lý trong ít giây, bạn không cần làm gì.</p>
       <PokeButton deal={deal} receiptHref={`/deals/${deal.dealId}/receipt`} />
     </section>
   );
@@ -522,7 +522,7 @@ function PositionCard({
         {result && <VerdictBadge verdict={result.verdict} />}
       </div>
 
-      <div className="grid gap-4 min-[30rem]:grid-cols-2">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
         <EvidencePhoto
           label="Lúc nhận phòng"
           url={before?.url}
@@ -665,7 +665,7 @@ function ScreenSkeleton({ back }: { back: string }) {
         </div>
         <div className="space-y-5 lg:col-start-1 lg:row-start-1">
           <Skeleton className="h-6 w-48" />
-          <div className="grid gap-4 min-[30rem]:grid-cols-2">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
             <Skeleton className="aspect-[4/3] rounded-xl" />
             <Skeleton className="aspect-[4/3] rounded-xl" />
           </div>

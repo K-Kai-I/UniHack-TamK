@@ -68,6 +68,8 @@ export interface DealView {
   explanation: string | null;
   /** P1: chưa kịp thì API trả mảng rỗng. */
   history: { event: string; txHash: Hash; at: IsoTime }[];
+  /** Lý do kèm đề xuất (chủ trọ) và kháng nghị (người thuê), ngoài chuỗi. Bản API cũ không có. */
+  notes?: { proposal?: { text: string; author: string; at: IsoTime }; dispute?: { text: string; author: string; at: IsoTime } };
 }
 
 const USE_MOCK = process.env.NEXT_PUBLIC_MOCK_API !== "0";

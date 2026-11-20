@@ -243,7 +243,7 @@ error NothingToPoke();
 
 ## Nút trên app theo trạng thái
 
-Frontend chỉ hiện nút khi contract đang ở đúng trạng thái. Nút "Xử lý quá hạn" hiện cho mọi người khi `canPoke(id)` là true.
+Frontend chỉ hiện nút khi contract đang ở đúng trạng thái. Khi `canPoke(id)` là true, app không hiện nút "Xử lý quá hạn" (từ 21/11): trang hợp đồng tự nhờ server gọi `poke` (`POST /deals/:id/poke`), bot keeper là đường dự phòng; `poke` trong contract vẫn ai cũng gọi được.
 
 | Trạng thái | Người thuê thấy | Chủ trọ thấy |
 | --- | --- | --- |
@@ -253,8 +253,8 @@ Frontend chỉ hiện nút khi contract đang ở đúng trạng thái. Nút "X�
 | MISMATCH_REPORTED | Đếm ngược | Phản đối |
 | ACTIVE | Trả phòng | Báo người thuê bỏ đi; Trả phòng thay (sau hạn) |
 | ABANDON_REPORTED | Tôi vẫn đang ở | Đếm ngược |
-| CHECKED_OUT | Xem báo cáo AI | Xem báo cáo AI; Đề xuất mức trừ |
-| PROPOSED | Đồng ý; Kháng nghị (nhập con số của mình) | Đếm ngược |
+| CHECKED_OUT | Kết luận AI hiện dưới từng cặp ảnh | Kết luận AI dưới từng cặp ảnh; Đề xuất mức trừ (kèm lý do) |
+| PROPOSED | Đồng ý; Kháng nghị (nhập con số của mình, kèm lý do) | Đếm ngược |
 | DISPUTED | Xem phiếu | Xem phiếu |
 | SETTLED, REFUNDED | Biên nhận, link Snowtrace | Biên nhận, link Snowtrace |
 
