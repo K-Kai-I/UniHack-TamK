@@ -145,7 +145,6 @@ export function OnboardingView({ ready, authenticated, email, role, onRoleChange
                   <RoleCard role="tenant" active={role === "tenant"} onPick={onRoleChange} icon={Search} title="Tôi thuê phòng" text="Tìm phòng, chọn ngày dọn vào và gửi yêu cầu cho chủ trọ." />
                   <RoleCard role="landlord" active={role === "landlord"} onPick={onRoleChange} icon={House} title="Tôi cho thuê" text="Đăng phòng, đặt tiền cọc và bảng giá; duyệt yêu cầu thuê." />
                 </div>
-                <p className="text-sm text-muted-foreground">Một tài khoản dùng được cả hai vai. Chạm vào ô là đi tiếp.</p>
               </section>
             </div>
             <aside aria-labelledby="account-title" className="space-y-4 border-t pt-6 lg:self-start lg:rounded-2xl lg:border lg:p-6">

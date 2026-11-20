@@ -8,7 +8,7 @@
 import Link from "next/link";
 import { useAccount, usePublicClient } from "wagmi";
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, CircleAlert, ExternalLink, Loader2, RefreshCw, Undo2 } from "lucide-react";
+import { CheckCircle2, ChevronRight, CircleAlert, ExternalLink, Loader2, RefreshCw, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ActionArea } from "@/components/action-area";
@@ -219,7 +219,6 @@ export function DealReceiptView({
             <div className="rounded-2xl bg-secondary/60 px-5 py-4">
               <p className="text-sm text-muted-foreground">{role === "tenant" ? "Bạn đã nhận lại" : "Bạn đã nhận"}</p>
               <p className="text-3xl font-extrabold tabular-nums break-words text-primary">{vnd(mine)}</p>
-              <p className="text-sm text-muted-foreground tabular-nums">{formatToken(mine)}</p>
             </div>
           )}
         </section>
@@ -230,20 +229,27 @@ export function DealReceiptView({
 
         {tx && <TxLink tx={tx} />}
 
-        <HistorySection deal={deal} />
-
-        <section aria-labelledby="receipt-note" className="space-y-2 text-sm text-muted-foreground">
-          <h2 id="receipt-note" className="sr-only">
-            Ghi chú
-          </h2>
-          <p className="max-w-[70ch]">
-            Số tiền đọc từ sự kiện <code className="font-mono">Paid</code> của smart contract trên Avalanche Fuji, không
-            lấy từ máy chủ của app. Quy đổi ₫ theo tỉ giá hiển thị 1 mUSDC = {formatVnd(Math.round(rate))}; số trên
-            chuỗi tính bằng mUSDC.
-          </p>
-          <p className="max-w-[70ch]">mUSDC là token thử nghiệm trên mạng thử, không phải tiền thật.</p>
-          {DEALS_MOCK && <p>Dữ liệu giả: link Snowtrace không có thật.</p>}
-        </section>
+        {/* Ai muốn tự đối chiếu thì mở: số token trên chuỗi, ví hai bên, contract, các bước đã ghi, cách quy đổi. */}
+        <details className="group rounded-2xl ring-1 ring-foreground/10 [&_summary::-webkit-details-marker]:hidden">
+          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 font-semibold select-none">
+            Chi tiết kỹ thuật
+            <ChevronRight className="size-4 shrink-0 text-muted-foreground transition group-open:rotate-90" aria-hidden="true" />
+          </summary>
+          <div className="space-y-5 border-t px-4 py-4">
+            <TechAmounts deal={deal} status={status} />
+            <ContractLink />
+            <HistorySection deal={deal} />
+            <section aria-labelledby="receipt-note" className="space-y-2 text-sm text-muted-foreground">
+              <h2 id="receipt-note" className="sr-only">Ghi chú</h2>
+              <p className="max-w-[70ch]">
+                Số tiền đọc từ sự kiện <code className="font-mono">Paid</code> của smart contract trên Avalanche Fuji, không
+                lấy từ máy chủ của app. Quy đổi ₫ theo tỉ giá hiển thị 1 mUSDC = {formatVnd(Math.round(rate))}.
+              </p>
+              <p className="max-w-[70ch]">mUSDC là token thử nghiệm trên mạng thử, không phải tiền thật.</p>
+              {DEALS_MOCK && <p>Dữ liệu giả: link Snowtrace không có thật.</p>}
+            </section>
+          </div>
+        </details>
       </div>
       <ActionArea>
         <Button asChild variant="outline" size="lg" className="w-full">
@@ -270,11 +276,10 @@ function PaidSection({
   const { onchain } = deal;
   const vnd = (a: bigint) => formatVnd(amountToVnd(a, rate));
   const you = (r: Role) => (role === r ? " (bạn)" : "");
-  const party = (label: string, r: Role, addr: string | null) => (
+  const party = (label: string, r: Role) => (
     <span>
       {label}
       {you(r)}
-      {addr && <span className="block font-mono text-xs">{shortAddress(addr, 8, 6)}</span>}
     </span>
   );
 
@@ -291,17 +296,16 @@ function PaidSection({
         </h2>
         <Rows>
           <Row
-            label={party("Người thuê", "tenant", onchain.tenant)}
+            label={party("Người thuê", "tenant")}
             value={vnd(paid.toTenant)}
-            sub={formatToken(paid.toTenant)}
             strong
             tone="success"
           />
-          <Row label={party("Chủ trọ", "landlord", onchain.landlord)} value={vnd(paid.toLandlord)} sub={formatToken(paid.toLandlord)} strong />
+          <Row label={party("Chủ trọ", "landlord")} value={vnd(paid.toLandlord)} strong />
           {paid.fee > 0n && (
-            <Row label="Phí nền tảng (trên phần lãi)" value={vnd(paid.fee)} sub={formatToken(paid.fee)} />
+            <Row label="Phí nền tảng (trên phần lãi)" value={vnd(paid.fee)} />
           )}
-          <Row label="Tổng đã chia" value={vnd(total)} sub={formatToken(total)} />
+          <Row label="Tổng đã chia" value={vnd(total)} />
         </Rows>
         {matches ? (
           <p className="text-sm text-muted-foreground">
@@ -406,21 +410,8 @@ function TxLink({ tx }: { tx: PayTx }) {
       >
         <span className="min-w-0">
           <span className="block font-semibold text-primary">Xem giao dịch chia tiền trên Snowtrace</span>
-          <span className="block break-all font-mono text-xs text-muted-foreground">{shortAddress(tx.hash, 10, 6)}</span>
         </span>
         <ExternalLink className="size-4 shrink-0 text-primary" aria-hidden="true" />
-        <span className="sr-only">(mở tab mới)</span>
-      </a>
-      <a
-        href={explorerAddressUrl + addresses.escrow}
-        target="_blank"
-        rel="noreferrer"
-        className="flex min-h-11 items-center justify-between gap-3 rounded-xl px-4 py-2 text-sm text-primary underline-offset-4 hover:underline"
-      >
-        <span className="min-w-0">
-          Contract giữ cọc <span className="font-mono text-xs text-muted-foreground">{shortAddress(addresses.escrow, 8, 6)}</span>
-        </span>
-        <ExternalLink className="size-4 shrink-0" aria-hidden="true" />
         <span className="sr-only">(mở tab mới)</span>
       </a>
     </section>
@@ -436,5 +427,43 @@ function HistorySection({ deal }: { deal: DealView }) {
       </h2>
       <ChainHistory deal={deal} />
     </section>
+  );
+}
+
+function ContractLink() {
+  return (
+      <a
+        href={explorerAddressUrl + addresses.escrow}
+        target="_blank"
+        rel="noreferrer"
+        className="flex min-h-11 items-center justify-between gap-3 rounded-xl px-4 py-2 text-sm text-primary underline-offset-4 hover:underline"
+      >
+        <span className="min-w-0">
+          Contract giữ cọc <span className="font-mono text-xs text-muted-foreground">{shortAddress(addresses.escrow, 8, 6)}</span>
+        </span>
+        <ExternalLink className="size-4 shrink-0" aria-hidden="true" />
+        <span className="sr-only">(mở tab mới)</span>
+      </a>
+  );
+}
+
+/** Số token thật trên chuỗi và ví hai bên (màn chính chỉ hiện VND và vai). */
+function TechAmounts({ deal, status }: { deal: DealView; status: PaidStatus }) {
+  const { onchain } = deal;
+  const rows: [string, string][] = [["Ví chủ trọ", shortAddress(onchain.landlord, 10, 6)]];
+  if (onchain.tenant) rows.push(["Ví người thuê", shortAddress(onchain.tenant, 10, 6)]);
+  if (status.kind === "ready") {
+    rows.push(["Người thuê nhận", formatToken(status.paid.toTenant)], ["Chủ trọ nhận", formatToken(status.paid.toLandlord)]);
+    if (status.paid.fee > BigInt(0)) rows.push(["Phí nền tảng", formatToken(status.paid.fee)]);
+  }
+  return (
+    <dl className="space-y-1.5 text-sm">
+      {rows.map(([k, v]) => (
+        <div key={k} className="flex items-baseline justify-between gap-3">
+          <dt className="text-muted-foreground">{k}</dt>
+          <dd className="font-mono text-xs tabular-nums">{v}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }

@@ -7,7 +7,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePrivy } from "@privy-io/react-auth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, Inbox, Loader2, Send } from "lucide-react";
+import { CalendarDays, ChevronRight, Inbox, Loader2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NetworkBanner } from "@/components/network-banner";
 import { PageHeader } from "@/components/page-header";
@@ -55,13 +55,18 @@ export function RentalRequests() {
   const active = tab ?? (incoming.length > 0 && outgoing.length === 0 ? "incoming" : incoming.some((r) => r.status === "PENDING") ? "incoming" : "outgoing");
   const list = active === "incoming" ? incoming : outgoing;
 
+  const isOld = (r: RentalRequest) => r.status === "CANCELLED" || r.status === "REJECTED";
+  const current = list.filter((r) => !isOld(r));
+  const old = list.filter(isOld);
+
   return <>
     <NetworkBanner />
     <PageShell size="read">
-      <PageHeader href="/home" backLabel="Về trang chủ" title="Yêu cầu thuê" />
+      {/* Một tiêu đề (không lặp ở thanh trên), một câu ngắn. */}
+      <PageHeader href="/home" backLabel="Về trang chủ" />
       <div className="mt-4 space-y-2">
         <h1 className="text-2xl font-bold tracking-tight text-primary">Yêu cầu thuê</h1>
-        <p className="text-muted-foreground">Người thuê chọn ngày và gửi yêu cầu. Chủ trọ duyệt thì ngày đó được khóa vào hợp đồng trên chuỗi, người thuê mới gửi cọc.</p>
+        <p className="text-muted-foreground">Chủ trọ duyệt xong, người thuê mới gửi cọc.</p>
       </div>
       <div role="tablist" aria-label="Loại yêu cầu" className="mt-6 grid grid-cols-2 gap-2 rounded-xl bg-muted p-1">
         {([["outgoing", "Tôi đã gửi", outgoing.length, Send], ["incoming", "Gửi đến phòng của tôi", incoming.filter((r) => r.status === "PENDING").length, Inbox]] as const).map(([id, label, n, Icon]) =>
@@ -78,7 +83,17 @@ export function RentalRequests() {
           {active === "outgoing" ? <>Bạn chưa gửi yêu cầu nào. <Link href="/rooms" className="text-primary underline">Tìm phòng</Link></>
             : <>Chưa có yêu cầu nào gửi đến phòng của bạn. <Link href="/listings/new" className="text-primary underline">Đăng phòng</Link></>}
         </div>}
-        {list.map((r) => <RequestCard key={r.requestId} r={r} side={active} getToken={getAccessToken} />)}
+        {current.map((r) => <RequestCard key={r.requestId} r={r} side={active} getToken={getAccessToken} />)}
+        {/* Yêu cầu đã hủy / bị từ chối không còn việc gì: gom xuống cuối, gập lại. */}
+        {old.length > 0 && <details className="group rounded-2xl border [&_summary::-webkit-details-marker]:hidden">
+          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-5 py-3 text-sm font-semibold text-muted-foreground select-none">
+            Yêu cầu cũ ({old.length})
+            <ChevronRight className="size-4 shrink-0 transition group-open:rotate-90" aria-hidden="true" />
+          </summary>
+          <div className="space-y-4 border-t p-4">
+            {old.map((r) => <RequestCard key={r.requestId} r={r} side={active} getToken={getAccessToken} />)}
+          </div>
+        </details>}
       </div>
     </PageShell>
   </>;
@@ -233,6 +248,10 @@ export function progressOf(d: DealView, side: "incoming" | "outgoing"): { text: 
     text = passed ? "Người thuê đã gửi ảnh nhận phòng. Hợp đồng đang chuyển sang Đang ở." : "Người thuê đã gửi ảnh nhận phòng, chủ trọ đang xem ảnh.";
   }
   if (state === "OPEN" && role === "tenant") return { text, todo: "gửi cọc", href: `/rooms/${d.dealId}` };
+  // Người thuê vừa gửi ảnh nhận phòng: báo chủ trọ xem (phản đối nếu ảnh sai) trước khi hết hạn.
+  if (state === "RESERVED" && hasCheckIn && !passed && role === "landlord") {
+    return { text, todo: "xem ảnh nhận phòng (phản đối nếu ảnh không đúng)", href: `/deals/${d.dealId}` };
+  }
   const first = actionsFor(d, role, Date.now(), null).find((a) => a.variant === "primary");
   return { text, todo: first ? first.label.charAt(0).toLowerCase() + first.label.slice(1) : null, href: `/deals/${d.dealId}` };
 }

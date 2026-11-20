@@ -225,7 +225,7 @@ function VoteSkeleton({ back }: { back: string }) {
         </div>
         <div className="space-y-5 lg:col-start-1 lg:row-start-1">
           <Skeleton className="h-6 w-48" />
-          <div className="grid gap-4 min-[30rem]:grid-cols-2">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
             <Skeleton className="aspect-[4/3] rounded-xl" />
             <Skeleton className="aspect-[4/3] rounded-xl" />
           </div>
@@ -604,7 +604,7 @@ function EvidenceCard({
           </span>
         )}
       </div>
-      <div className="grid gap-4 min-[30rem]:grid-cols-2">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
         <EvidencePhoto
           label={beforeLabel}
           url={item.beforeUrl}

@@ -7,7 +7,7 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useAccount } from "wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { zeroAddress } from "viem";
-import { ChevronRight, FileText, Hourglass, Inbox, Plus, RefreshCw } from "lucide-react";
+import { FileText, Hourglass, Inbox, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DealStatusBadge } from "@/components/deal-status-badge";
@@ -27,8 +27,7 @@ import type { Address, DealState } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 /**
- * Bước đang chờ CHÍNH ví này (bảng "Nút trên app theo trạng thái"). Chỉ dựa vào trạng thái + vai trò có trong
- * danh sách; RESERVED không đưa vào vì cần biết đã có ảnh nhận phòng chưa (màn chi tiết mới có).
+ * Bước đang chờ CHÍNH ví này (bảng "Nút trên app theo trạng thái"). RESERVED xét thêm hasCheckIn trong turnOf.
  */
 const MY_TURN: Record<MyDealItem["role"], Partial<Record<DealState, string>>> = {
   tenant: {
@@ -147,16 +146,6 @@ export function MyDealsView({
           <h1 className="text-2xl font-extrabold tracking-tight text-primary">Hợp đồng của tôi</h1>
           <p className="max-w-prose text-muted-foreground">Phòng bạn thuê và cho thuê, cùng việc cần làm tiếp theo.</p>
         </div>
-        {status === "ready" && items.length > 0 && (
-          <div className="flex flex-wrap items-center gap-3">
-            <Button asChild variant="outline"><Link href="/rooms">Xem phòng trống</Link></Button>
-            <Button asChild variant="secondary"><Link href="/listings/new"><Plus aria-hidden="true" /> Đăng phòng</Link></Button>
-            <Button variant="ghost" onClick={onRetry} disabled={refreshing}>
-              <RefreshCw className={refreshing ? "animate-spin" : undefined} aria-hidden="true" />
-              {refreshing ? "Đang cập nhật…" : "Tải lại"}
-            </Button>
-          </div>
-        )}
       </div>
       {body}
       {mock && <p className="mt-6 text-sm text-muted-foreground">Dữ liệu mẫu · vai trò gán thử để xem giao diện.</p>}
@@ -166,7 +155,7 @@ export function MyDealsView({
 
 /** Việc đến lượt mình lên đầu, rồi hạn chót gần nhất, rồi deal mới nhất. */
 function sortLive(list: MyDealItem[]): MyDealItem[] {
-  const turn = (d: MyDealItem) => (MY_TURN[d.role][d.state] ? 0 : 1);
+  const turn = (d: MyDealItem) => (turnOf(d) ? 0 : 1);
   const due = (d: MyDealItem) => (d.deadline ? Date.parse(d.deadline) : Number.POSITIVE_INFINITY);
   return [...list].sort((a, b) => turn(a) - turn(b) || due(a) - due(b) || b.dealId - a.dealId);
 }
@@ -186,14 +175,13 @@ function DealCard({ item }: { item: MyDealItem }) {
   const rate = useVndRate();
   const ended = TERMINAL_STATES.includes(item.state);
   const { passed, msLeft } = useCountdown(ended ? null : item.deadline);
-  const myTurn = MY_TURN[item.role][item.state];
-  const next = ended ? "Xem hợp đồng đã kết thúc" : passed ? "Xem chi tiết để kiểm tra xử lý quá hạn" : myTurn;
+  const myTurn = turnOf(item);
 
   return (
     <Link
       href={`/deals/${item.dealId}`}
       className={cn(
-        "grid min-w-0 gap-4 rounded-2xl border bg-card p-4 transition-colors hover:bg-secondary/50 lg:grid-cols-[minmax(0,1fr)_160px_280px_20px] lg:items-center lg:gap-6 lg:rounded-none lg:border-0 lg:py-5",
+        "grid min-w-0 gap-4 rounded-2xl border bg-card p-4 transition-colors hover:bg-secondary/50 lg:grid-cols-[minmax(0,1fr)_160px_280px] lg:items-center lg:gap-6 lg:rounded-none lg:border-0 lg:py-5",
         myTurn ? "border-primary/40" : "border-border",
       )}
     >
@@ -220,20 +208,17 @@ function DealCard({ item }: { item: MyDealItem }) {
         )}
       </dl>
       <div className="min-w-0 space-y-2 text-sm [overflow-wrap:anywhere]">
-        {myTurn && !passed && !ended && <p className="font-semibold text-primary">Đến lượt bạn: {myTurn}</p>}
-        {!next && <p className="text-muted-foreground">{item.state === "RESERVED" ? "Xem chi tiết để biết bước nhận phòng" : "Xem tiến độ trong hợp đồng"}</p>}
+        {myTurn && !passed && !ended && <p className="font-semibold text-destructive">Đến lượt bạn: {myTurn}</p>}
         {msLeft !== null && item.deadline && (
           <div className="space-y-1">
             <p className={cn("flex items-start gap-1.5 font-medium tabular-nums", passed ? "text-destructive" : "text-muted-foreground")}>
               <Hourglass className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-              {passed ? "Đã quá hạn · chưa xác nhận xử lý" : `Còn ${formatDuration(msLeft)}`}
+              {passed ? "Đã hết hạn · hợp đồng đang tự xử lý" : `Còn ${formatDuration(msLeft)}`}
             </p>
             <p className="text-muted-foreground">Hạn: <time dateTime={item.deadline}>{formatDateTime(item.deadline)}</time> (giờ VN)</p>
           </div>
         )}
-        <p className="font-semibold text-primary">{ended || passed ? next : "Xem hợp đồng"}<ChevronRight className="ml-1 inline size-4 lg:hidden" aria-hidden="true" /></p>
       </div>
-      <ChevronRight className="hidden size-5 text-muted-foreground lg:block" aria-hidden="true" />
     </Link>
   );
 }
@@ -266,4 +251,14 @@ function Empty({
       {children}
     </div>
   );
+}
+
+/** Việc đang chờ ví này; RESERVED tùy đã có ảnh nhận phòng chưa (GET /deals trả hasCheckIn). */
+function turnOf(d: MyDealItem): string | undefined {
+  if (d.state === "RESERVED") {
+    if (d.role === "tenant" && d.hasCheckIn === false) return "Gửi ảnh nhận phòng";
+    if (d.role === "landlord" && d.hasCheckIn === true) return "Xem ảnh nhận phòng";
+    return undefined;
+  }
+  return MY_TURN[d.role][d.state];
 }

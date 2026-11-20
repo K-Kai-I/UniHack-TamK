@@ -25,7 +25,6 @@ import { AutoPoke, usePokeStage } from "@/components/poke-button";
 import { isQuickTx, QuickTxDrawer, type QuickTxId } from "@/components/quick-tx";
 import { EvidencePhoto } from "@/components/evidence-photo";
 import { RoomCover } from "@/components/room-cover";
-import { WalletChip } from "@/components/wallet-chip";
 import { addresses, chain, escrowAbi } from "@/lib/chain";
 import { vaultAbi } from "@/lib/abi";
 import {
@@ -278,17 +277,17 @@ function MoneyPanel({ deal, vnd }: { deal: DealView; vnd: (a: Amount) => string 
         {finished ? "Tiền cọc đã xử lý xong" : s === "OPEN" ? "Tiền cọc yêu cầu" : "Tiền cọc trong contract"}
       </h2>
       <Rows>
-        <Row label={finished ? "Cọc ban đầu" : "Tiền cọc"} value={vnd(onchain.deposit)} sub={formatToken(onchain.deposit)} strong />
-        <Row label="Trong đó phí giữ chỗ" value={vnd(onchain.reserveFee)} sub={formatToken(onchain.reserveFee)} />
+        {/* Chỉ VND: số token (mUSDC) nằm ở "Kiểm chứng trên chuỗi" cho ai cần đối chiếu. */}
+        <Row label={finished ? "Cọc ban đầu" : "Tiền cọc"} value={vnd(onchain.deposit)} strong />
+        <Row label="Trong đó phí giữ chỗ" value={vnd(onchain.reserveFee)} />
         {onchain.yieldOn && !finished && <YieldRow deal={deal} vnd={vnd} />}
       </Rows>
-      <p className="max-w-[65ch] text-sm text-muted-foreground">
-        {finished
-          ? "Tiền đã được chia theo contract và không còn nằm trong hợp đồng. Số tiền mỗi bên đã nhận nằm ở biên nhận."
-          : s === "OPEN"
+      {/* Đã chia tiền: khung trạng thái ở trên đã nói, không lặp lại ở đây. */}
+      {!finished && <p className="max-w-[65ch] text-sm text-muted-foreground">
+        {s === "OPEN"
             ? "Chưa ai gửi cọc nên chưa có tiền nào trong contract. Phí giữ chỗ nằm trong tiền cọc, không cộng thêm."
             : "Phí giữ chỗ nằm trong tiền cọc, không cộng thêm lần hai."}
-      </p>
+      </p>}
     </section>
   );
 }
@@ -461,7 +460,8 @@ function PhotoPairs({ deal, vnd }: { deal: DealView; vnd: (a: Amount) => string 
           return (
             <li key={p.id} className="space-y-3 border-t pt-4 first:border-t-0 first:pt-0 [overflow-wrap:anywhere]">
               <h3 className="font-semibold">{p.name}</h3>
-              <div className="grid gap-4 min-[30rem]:grid-cols-2">
+              {/* Trước/sau luôn đặt cạnh nhau (cả điện thoại) để so bằng mắt; chạm ảnh để phóng to. */}
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <EvidencePhoto
                   label="Lúc nhận phòng"
                   url={inItem?.url}
@@ -519,6 +519,8 @@ function RoomPhotos({ deal }: { deal: DealView }) {
 
 function TermsAndParties({ deal }: { deal: DealView }) {
   const { terms, onchain } = deal;
+  const { address } = useAccount();
+  const isMe = (a: string) => !!address && a.toLowerCase() === address.toLowerCase();
   return (
     <section aria-labelledby="parties" className="space-y-3">
       <h2 id="parties" className="text-lg font-bold">
@@ -527,22 +529,9 @@ function TermsAndParties({ deal }: { deal: DealView }) {
       <Rows>
         <Row label="Dọn vào" value={formatDate(terms.dates.moveInDate)} />
         <Row label="Hết hạn thuê" value={formatDate(terms.dates.leaseEnd)} />
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-5 py-3">
-          <dt className="text-muted-foreground">Chủ trọ</dt>
-          <dd>
-            <WalletChip address={onchain.landlord} />
-          </dd>
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-5 py-3">
-          <dt className="text-muted-foreground">Người thuê</dt>
-          <dd>
-            {onchain.tenant ? (
-              <WalletChip address={onchain.tenant} />
-            ) : (
-              <span className="text-sm text-muted-foreground">Chưa có ai cọc</span>
-            )}
-          </dd>
-        </div>
+        {/* Không hiện địa chỉ ví (người dùng không hiểu): ví nằm ở "Kiểm chứng trên chuỗi". */}
+        <Row label="Chủ trọ" value={isMe(onchain.landlord) ? "Bạn" : "Chủ phòng (đã ký hợp đồng)"} />
+        <Row label="Người thuê" value={!onchain.tenant ? "Chưa có ai cọc" : isMe(onchain.tenant) ? "Bạn" : "Đã gửi cọc"} />
       </Rows>
     </section>
   );

@@ -66,7 +66,7 @@ export function CatalogList() {
         <div className="relative">
           <label htmlFor="room-q" className="sr-only">Tìm theo tên, địa chỉ, quận</label>
           <Search aria-hidden="true" className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input id="room-q" type="search" value={text} onChange={(e) => setText(e.target.value)} placeholder="Tên, địa chỉ, quận… (gõ không dấu cũng được)" className="h-11 pl-9" />
+          <Input id="room-q" type="search" value={text} onChange={(e) => setText(e.target.value)} placeholder="Tên, địa chỉ, quận" className="h-11 pl-9" />
         </div>
         <div>
           <label htmlFor="room-price" className="sr-only">Giá thuê</label>
