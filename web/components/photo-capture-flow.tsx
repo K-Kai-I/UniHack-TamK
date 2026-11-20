@@ -259,7 +259,7 @@ function Flow({ deal, kind, back }: { deal: DealView; kind: CaptureKind; back: s
       }
 
       // 4. Trả phòng: nhờ server chạy AI ngay khi giao dịch xác nhận. AI lỗi không chặn được gì:
-      //    chủ trọ vẫn đề xuất được với chữ ký rỗng (nhánh H), và bấm "Xem báo cáo AI" sẽ thử lại.
+      //    chủ trọ vẫn đề xuất được với chữ ký rỗng (nhánh H), và trang hợp đồng tự gọi lại AI nếu chưa có việc AI nào.
       if (kind === "checkout") {
         go("ai");
         // Lỗi gọi AI không báo ở đây: màn báo cáo AI (mở ngay sau màn thành công) tự gọi lại nếu chưa có việc AI nào.
@@ -347,12 +347,11 @@ function Flow({ deal, kind, back }: { deal: DealView; kind: CaptureKind; back: s
                       href={back}
                     />
                   ) : (
-                    // Trả phòng xong: AI đã tự chạy, mở thẳng báo cáo AI (đang so thì màn đó tự cập nhật), không bắt bấm thêm.
+                    // Trả phòng xong: AI đã tự chạy; về trang hợp đồng, kết quả hiện ngay dưới từng cặp ảnh trước/sau.
                     <SuccessScreen
                       title={COPY[kind].done}
-                      text="AI đang tự so ảnh trước và sau. Kết quả hiện ở màn tiếp theo."
-                      href={back.replace(/(\/deals\/\d+)/, "$1/report")}
-                      label="Xem kết quả AI"
+                      text="AI đang tự so ảnh trước và sau. Kết quả hiện ngay dưới từng cặp ảnh trong hợp đồng."
+                      href={back}
                     />
                   )
                 ) : (

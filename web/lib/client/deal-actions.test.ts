@@ -39,8 +39,8 @@ test("MISMATCH_REPORTED: chủ trọ chỉ phản đối được trước hạn
 });
 
 test("CHECKED_OUT: quá hạn thì bỏ nút đề xuất, vẫn xem được báo cáo", () => {
-  assert.deepEqual(ids(deal("CHECKED_OUT", { deadline: 5 }), "landlord"), ["propose", "viewReport"]);
-  assert.deepEqual(ids(deal("CHECKED_OUT", { deadline: -1 }), "landlord"), ["viewReport"]);
+  assert.deepEqual(ids(deal("CHECKED_OUT", { deadline: 5 }), "landlord"), ["propose"]);
+  assert.deepEqual(ids(deal("CHECKED_OUT", { deadline: -1 }), "landlord"), []);
   assert.equal(nextStepFor(deal("CHECKED_OUT", { deadline: -1 }), "landlord", true).title, "Đã quá hạn đề xuất");
 });
 

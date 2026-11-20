@@ -86,7 +86,7 @@ export function actionsFor(deal: DealView, role: Role, now: number, checkOutGrac
         // contestAbandon chỉ hợp lệ trước deadline (contract revert DeadlinePassed). Quá hạn thì chỉ còn poke.
         return deadlinePassed ? [] : [act("contestAbandon", "Tôi vẫn đang ở", "primary", "P1")];
       case "CHECKED_OUT":
-        return [act("viewReport", "Xem báo cáo AI", "secondary", "P0")];
+        return []; // Kết quả AI hiện ngay trên trang hợp đồng, cạnh từng cặp ảnh: không cần nút "Xem báo cáo AI".
       case "PROPOSED":
         return [act("respond", "Xem đề xuất và trả lời", "primary", "P0")];
       case "DISPUTED":
@@ -120,8 +120,8 @@ export function actionsFor(deal: DealView, role: Role, now: number, checkOutGrac
       case "CHECKED_OUT":
         // proposeDeduction chỉ hợp lệ trước deadline; quá hạn vẫn xem được báo cáo.
         return deadlinePassed
-          ? [act("viewReport", "Xem báo cáo AI", "secondary", "P0")]
-          : [act("propose", "Đề xuất mức trừ", "primary", "P0"), act("viewReport", "Xem báo cáo AI", "secondary", "P0")];
+          ? []
+          : [act("propose", "Đề xuất mức trừ", "primary", "P0")];
       case "DISPUTED":
         return [act("viewVotes", "Xem phiếu bồi thẩm", "secondary", "P1")];
       case "SETTLED":
