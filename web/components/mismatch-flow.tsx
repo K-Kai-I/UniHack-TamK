@@ -929,9 +929,8 @@ function NextStep({ deal, role, passed }: { deal: DealView; role: Role; passed: 
   if (o.state === "MISMATCH_REPORTED") {
     if (passed) {
       return (
-        <InfoBox icon={<Hourglass className="size-5" />} tone="danger" title="Đã quá hạn phản đối">
-          Chủ trọ không còn phản đối được. Ai cũng bấm được “Xử lý quá hạn”; khi đó người thuê được hoàn đủ cọc (
-          {vnd(o.deposit)}).
+        <InfoBox icon={<Hourglass className="size-5" />} title="Đã hết hạn phản đối">
+          Chủ trọ không còn phản đối được. Hợp đồng đang tự hoàn đủ cọc cho người thuê ({vnd(o.deposit)}).
         </InfoBox>
       );
     }

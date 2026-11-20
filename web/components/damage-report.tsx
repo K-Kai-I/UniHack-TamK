@@ -223,7 +223,7 @@ function OverduePanel({ deal, role }: { deal: DealView; role: Role }) {
         Contract không nhận {role === "landlord" ? "đề xuất" : "câu trả lời"} sau hạn chót nữa.
         {info ? ` Theo luật đã chốt: ${info.onTimeout}` : ""}
       </p>
-      <p className="text-sm text-muted-foreground">Bấm nút dưới để chốt, hoặc chờ bot của app tự xử lý trong vài phút.</p>
+      <p className="text-sm text-muted-foreground">Hợp đồng tự xử lý trong ít giây, bạn không cần làm gì.</p>
       <PokeButton deal={deal} receiptHref={`/deals/${deal.dealId}/receipt`} />
     </section>
   );

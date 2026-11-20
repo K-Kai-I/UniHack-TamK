@@ -52,6 +52,8 @@ Bốn lựa chọn đầu là đề xuất, nhóm chốt trong buổi họp. Gi�
 | `GET /disputes/:dealId` | Bồi thẩm | Bằng chứng của một vụ: chỉ các vị trí bị tranh chấp | P1 | 17/11 |
 | `POST /keeper/tick` | Cron (header bí mật) | Gọi `poke` cho mọi deal có `canPoke == true` | P1 | 17/11 |
 | `POST /deals/:dealId/confirm-checkin` | Mọi người (trang hợp đồng tự gọi) | Hết hạn phản đối ảnh nhận phòng: ví keeper `poke` để sang ACTIVE ngay | P1 | 19/11 |
+| `POST /deals/:dealId/poke` | Mọi người (trang hợp đồng tự gọi) | Hết hạn bất kỳ bước nào: ví keeper `poke` ngay nếu `canPoke`, thay cho nút "Xử lý quá hạn" | P1 | 21/11 |
+| `POST /deals/:dealId/notes` | Chủ trọ / người thuê | Lý do kèm đề xuất mức trừ (`kind: proposal`, khi CHECKED_OUT) hoặc kháng nghị (`kind: dispute`, khi PROPOSED); khóa khi giao dịch đã lên chuỗi | P1 | 21/11 |
 | ~~`POST /ai/quality-check`~~ | — | Không làm endpoint: kiểm tra tối, chói, rung chạy ngay trên máy (`web/lib/client/photo-quality.ts`) | P2 | 18/11 |
 
 Nguyên tắc thứ tự giữa API và chuỗi: frontend gọi API để lấy hash trước, rồi mới ký giao dịch mang hash đó lên contract. Server không bao giờ gửi giao dịch thay người dùng, trừ `poke` (keeper tick, confirm-checkin) và faucet.
@@ -269,6 +271,18 @@ Header `x-keeper-secret`. Server duyệt các deal chưa kết thúc, gọi `can
 ```
 
 Ví keeper chỉ cần AVAX để trả gas. Nó không nhận được tiền từ `poke`.
+
+### POST /deals/:dealId/poke
+
+Không cần đăng nhập, không có body. Chỉ gửi `poke` (ví keeper) khi contract báo `canPoke == true`; kết quả theo luật hết hạn của trạng thái đó. Không đến hạn hoặc vừa có người poke trước thì trả `{ "poked": false, "state": "..." }`. App không còn nút "Xử lý quá hạn": trang hợp đồng tự gọi endpoint này khi `canPoke`; bot keeper vẫn chạy định kỳ.
+
+### POST /deals/:dealId/notes
+
+```
+{ "kind": "proposal", "text": "Gạch nứt cạnh giường, ảnh vị trí 2 lúc trả phòng" }
+```
+
+`kind = proposal`: chỉ chủ trọ, deal phải đang CHECKED_OUT. `kind = dispute`: chỉ người thuê, deal phải đang PROPOSED. `text` 1–500 ký tự. Ghi lại được (ghi đè) cho tới khi giao dịch tương ứng lên chuỗi, sau đó `409 WRONG_STATE`. Frontend gửi lý do trước khi ký. `GET /deals/:dealId` trả thêm `notes: { proposal?: { text, author, at }, dispute?: {...} }` cho hai bên và bồi thẩm đọc. Lý do nằm ngoài chuỗi, không nằm trong con số contract chia.
 
 ### POST /deals/:dealId/confirm-checkin
 

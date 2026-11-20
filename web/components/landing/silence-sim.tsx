@@ -129,7 +129,7 @@ export function SilenceSim() {
         <div className="space-y-2 border-t pt-5">
           <p className="text-xl font-bold text-pretty">{b.note}</p>
           <p className="max-w-[62ch] text-muted-foreground">{b.rule}</p>
-          <p className="text-sm text-muted-foreground">Quá hạn thì ai cũng bấm “Xử lý quá hạn” được, và bot của app cũng tự bấm định kỳ. Không ai phải đi đòi.</p>
+          <p className="text-sm text-muted-foreground">Quá hạn thì hợp đồng tự chạy bước tiếp theo theo luật đã chốt. Không ai phải đi đòi.</p>
         </div>
       </div>
     </div>

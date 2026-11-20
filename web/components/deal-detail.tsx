@@ -1,7 +1,7 @@
 "use client";
 // Màn "Chi tiết hợp đồng" (docs/user-flow.md > Danh sách màn hình, P0, GĐ 1–6), hướng A "Căn phòng qua từng mốc".
 // Bố cục: tên phòng → (mobile: việc cần làm, hạn, tiền → mốc và ảnh) / (desktop: nội dung trái, tóm tắt + hành động phải).
-// Nút theo bảng "Nút trên app theo trạng thái" (lib/client/deal-actions.ts), nút "Xử lý quá hạn" khi canPoke.
+// Nút theo bảng "Nút trên app theo trạng thái" (lib/client/deal-actions.ts). Hết hạn thì tự xử lý (AutoPoke), không có nút.
 // Màn này là "nhà" của một hợp đồng: các màn chụp ảnh, đề xuất, trả lời, biên nhận đều mở từ đây.
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -16,12 +16,12 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ActionArea } from "@/components/action-area";
 import { ChainProof } from "@/components/chain-proof";
-import { InfoBox, Row, Rows } from "@/components/deal-bits";
+import { InfoBox, Row, Rows, NoteQuote } from "@/components/deal-bits";
 import { DealStatusBadge } from "@/components/deal-status-badge";
 import { NetworkBanner } from "@/components/network-banner";
 import { PageHeader } from "@/components/page-header";
 import { PageColumns, PageShell } from "@/components/page-shell";
-import { PokeDrawer, PokeTrigger, usePokeStage } from "@/components/poke-button";
+import { AutoPoke, usePokeStage } from "@/components/poke-button";
 import { isQuickTx, QuickTxDrawer, type QuickTxId } from "@/components/quick-tx";
 import { EvidencePhoto } from "@/components/evidence-photo";
 import { RoomCover } from "@/components/room-cover";
@@ -238,16 +238,14 @@ export function OverdueNote({ stage, overdue, onTimeout }: { stage: OverdueStage
   if (stage === "ready")
     return (
       <p className="text-sm text-foreground/80">
-        Hạn đã qua. Ai cũng bấm được “Xử lý quá hạn” để contract chạy bước tiếp theo: {onTimeout} Bot của app thường
-        xử lý khoảng mỗi phút; nút này là đường dự phòng khi bot chưa kịp hoặc ngừng chạy.
+        Hạn đã qua. Hợp đồng đang tự chạy bước tiếp theo theo luật đã chốt: {onTimeout} Bạn không cần làm gì.
       </p>
     );
   return (
     <p role="status" className="flex items-start gap-2 text-sm text-foreground/80">
       <Loader2 className="mt-0.5 size-4 shrink-0 motion-safe:animate-spin" aria-hidden="true" />
       <span>
-        Hạn đã qua. Đang chờ contract cho phép xử lý (thường vài giây); khi đó nút “Xử lý quá hạn” sẽ tự hiện. Kết quả
-        sẽ là: {onTimeout}
+        Hạn đã qua. Hợp đồng sẽ tự xử lý trong ít giây. Kết quả sẽ là: {onTimeout}
       </span>
     </p>
   );
@@ -353,6 +351,8 @@ function ProposalPanel({ deal, role, vnd }: { deal: DealView; role: Role; vnd: (
           />
         )}
       </Rows>
+      <NoteQuote who="chủ trọ" text={deal.notes?.proposal?.text} />
+      {(disputed || settled) && <NoteQuote who="người thuê" text={deal.notes?.dispute?.text} />}
       {settled && <p className="text-sm text-muted-foreground">Số tiền thực nhận của mỗi bên nằm ở biên nhận.</p>}
       {disputed && (
         <InfoBox icon={<Gavel className="size-5" aria-hidden="true" />} title="Phiếu bồi thẩm (bên nào đủ 2 phiếu thì thắng)">
@@ -590,13 +590,13 @@ function hrefFor(id: ActionId, dealId: number, previewAs?: Role): string | null 
 function ActionBar({ deal, role, previewAs }: { deal: DealView; role: Role; previewAs?: Role }) {
   const { ready, authenticated, login } = usePrivy();
   const [quickTx, setQuickTx] = useState<QuickTxId | null>(null);
-  const [pokeOpen, setPokeOpen] = useState(false);
   const { now } = useCountdown(null);
   const checkOutGrace = useCheckOutGrace();
   const actions = actionsFor(deal, role, now, checkOutGrace);
   const { onchain } = deal;
   const pokeReady = usePokeStage(deal) === "ready";
   const confirming = isConfirmingCheckIn(deal, Date.now());
+  // Hết hạn: không có nút "Xử lý quá hạn". AutoPoke nhờ server poke ngay; bước nhận phòng có câu riêng ở khung trạng thái.
   const canPoke = pokeReady && !confirming;
   useConfirmCheckIn(deal, confirming && pokeReady);
   const receiptHref = hrefFor("receipt", deal.dealId, previewAs)!;
@@ -624,7 +624,7 @@ function ActionBar({ deal, role, previewAs }: { deal: DealView; role: Role; prev
   } else {
     content = (
       <div className="space-y-2">
-        {canPoke && <PokeTrigger onClick={() => setPokeOpen(true)} />}
+        {canPoke && <AutoPoke deal={deal} receiptHref={receiptHref} />}
         {juryLink && (
           <Button asChild size="lg" variant={canPoke ? "outline" : "default"} className="h-14 w-full text-base">
             <Link href={`/jury/${deal.dealId}`}>
@@ -665,7 +665,6 @@ function ActionBar({ deal, role, previewAs }: { deal: DealView; role: Role; prev
       )}
       {/* Nằm ngoài thanh: giao dịch xong thì nút biến mất (deal đổi trạng thái) nhưng drawer vẫn còn để hiện kết quả. */}
       <QuickTxDrawer deal={deal} id={quickTx} onClose={() => setQuickTx(null)} />
-      <PokeDrawer deal={deal} open={pokeOpen} onClose={() => setPokeOpen(false)} receiptHref={receiptHref} />
     </>
   );
 }
