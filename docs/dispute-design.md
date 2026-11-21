@@ -5,7 +5,7 @@ Tài liệu này giải thích vì sao bản MVP dùng danh sách bồi thẩm c
 ## Tóm tắt
 
 - Bồi thẩm là **lớp cuối cùng**, không phải đường chính. Phần lớn hợp đồng kết thúc mà không cần ai phân xử: hai bên đồng ý, hoặc một bên im lặng tới hạn và luật mặc định tự chia tiền.
-- Ở MVP, bồi thẩm là **danh sách cố định do nhóm thêm** (`addJuror`, chỉ owner gọi được). Đây là lựa chọn có chủ đích: chọn bồi thẩm bằng thuật toán chỉ có ý nghĩa khi đã có đủ người dùng để chọn.
+- Ở MVP, bồi thẩm là **2 ví cố định do nhóm đứng ra làm** (thêm bằng `addJuror`, chỉ owner gọi được). Cộng với phiếu AI là 3 phiếu, bên nào đủ 2 phiếu thì thắng. Ngoài thực tế, bồi thẩm sẽ do **thuật toán chọn từ người dùng** (xem lộ trình bên dưới). Đây là lựa chọn có chủ đích: chọn bồi thẩm bằng thuật toán chỉ có ý nghĩa khi đã có đủ người dùng để chọn.
 - Dù bồi thẩm do nhóm chỉ định, **nhóm không lấy được tiền**: contract chỉ chuyển tiền tới người thuê, chủ trọ và phí sàn trên phần lãi.
 - Lộ trình có 3 giai đoạn: cố định (MVP) → người dùng uy tín được chọn ngẫu nhiên (thí điểm) → bồi thẩm đặt cọc, có thưởng và phạt (mở rộng).
 
@@ -21,7 +21,7 @@ Tài liệu này giải thích vì sao bản MVP dùng danh sách bồi thẩm c
 
 ## Giai đoạn 1: bồi thẩm cố định (MVP, hiện tại)
 
-**Cách làm.** Owner thêm ví bồi thẩm lúc deploy (`JUROR_ADDRESSES` trong `contracts/script/Deploy.s.sol`) hoặc gọi `addJuror` / `removeJuror`. Bồi thẩm xem ảnh các vị trí bị tranh chấp và báo cáo AI trong app (màn Bỏ phiếu), rồi gọi `vote(id, side)`.
+**Cách làm.** MVP dùng 2 ví bồi thẩm cố định, do thành viên nhóm đứng ra bỏ phiếu để demo trọn luồng tranh chấp. Owner thêm ví bồi thẩm lúc deploy (`JUROR_ADDRESSES` trong `contracts/script/Deploy.s.sol`) hoặc gọi `addJuror` / `removeJuror`. Bồi thẩm xem ảnh các vị trí bị tranh chấp và báo cáo AI trong app (màn Bỏ phiếu), rồi gọi `vote(id, side)`.
 
 **Vì sao chưa chọn bằng thuật toán.** Khi chưa có người dùng, tập ứng viên rất nhỏ. Chọn ngẫu nhiên từ một tập nhỏ còn dễ thao túng hơn chỉ định: một chủ trọ chỉ cần tạo vài ví là chiếm được phần lớn tập bồi thẩm (tấn công Sybil). Danh sách cố định ít nhất có người chịu trách nhiệm rõ ràng.
 

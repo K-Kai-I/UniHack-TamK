@@ -139,7 +139,7 @@ Mỗi Pull Request tự chạy cả ba nhóm test trên GitHub Actions; đỏ th
 
 ## Giới hạn đã biết
 
-- Bồi thẩm ở MVP là danh sách cố định do nhóm thêm, vì chọn bồi thẩm bằng thuật toán chỉ có ý nghĩa khi đã đủ người dùng. Nhóm vì vậy ảnh hưởng được kết quả tranh chấp (nhưng không lấy được tiền). Lộ trình 3 giai đoạn (cố định → người dùng uy tín chọn ngẫu nhiên → bồi thẩm đặt cọc, có thưởng và phạt) và các luật dự phòng khi bồi thẩm vắng mặt: [`docs/dispute-design.md`](docs/dispute-design.md).
+- Bồi thẩm ở MVP là 2 ví cố định do nhóm đứng ra làm, để demo trọn luồng tranh chấp. Ngoài thực tế, bồi thẩm sẽ do thuật toán chọn từ người dùng; MVP chưa làm vì thuật toán chọn chỉ có ý nghĩa khi đã đủ người dùng. Nhóm vì vậy ảnh hưởng được kết quả tranh chấp (nhưng không lấy được tiền). Lộ trình 3 giai đoạn (cố định → người dùng uy tín chọn ngẫu nhiên → bồi thẩm đặt cọc, có thưởng và phạt) và các luật dự phòng khi bồi thẩm vắng mặt: [`docs/dispute-design.md`](docs/dispute-design.md).
 - AI (gemini-3.5-flash-lite, prompt damage-v2) được thử trên 13 cặp ảnh phòng thật: khớp 10/13, 0 ca báo hư sai ([báo cáo](web/lib/ai/images%20recognition%20report.md)). AI chỉ đề xuất và là một phiếu, người thuê luôn kháng nghị được. AI sập thì vẫn đề xuất được, chỉ không có con dấu.
 - Hợp đồng sinh ra từ yêu cầu thuê chỉ được che khỏi danh sách công khai; contract chưa giới hạn ai được gửi cọc vào một deal.
 - Chống đặt trùng ngày nằm ở API (đọc trạng thái hợp đồng trên chuỗi), chưa nằm trong contract.
