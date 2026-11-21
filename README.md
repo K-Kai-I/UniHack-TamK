@@ -4,6 +4,18 @@ Giữ tiền cọc thuê trọ trong smart contract trên Avalanche, có AI đ�
 
 Dự án dự thi Team1 Vietnam UniHack 2026. App: [unihack-tamk.vercel.app](https://unihack-tamk.vercel.app) (Avalanche Fuji, chỉ dùng tiền thử).
 
+## Đọc nhanh theo tiêu chí chấm
+
+| Tiêu chí | Đã làm | Kiểm chứng ở đâu |
+| --- | --- | --- |
+| Kỹ thuật | Contract 11 trạng thái, 8 hạn chót, chia tiền một chỗ duy nhất (`_payout`); con dấu AI EIP-712 gắn với hash ảnh trên chuỗi; test đơn vị, fuzz và bất biến; CI chặn merge khi đỏ | [`contracts/src/DepositEscrow.sol`](contracts/src/DepositEscrow.sol), [`contracts/test/`](contracts/test/), [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
+| Tích hợp Avalanche | Contract chạy trên Fuji C-Chain, mã nguồn đã verify; stablecoin có permit để gửi cọc trong 1 giao dịch; định hướng L1 riêng dùng stablecoin làm phí gas | [Contract đã deploy](#contract-đã-deploy-avalanche-fuji-chain-id-43113), [Vì sao dùng Avalanche](#vì-sao-dùng-avalanche) |
+| Sáng tạo | Kết hợp két cọc on-chain, bằng chứng ảnh khóa hash, AI là một phiếu có chữ ký, và hạn chót "im lặng thì chịu" | [Giải pháp](#giải-pháp), [`docs/user-flow.md`](docs/user-flow.md) |
+| Tác động | Người thuê trọ (thường là sinh viên) là bên yếu thế khi tiền cọc nằm trong tay chủ trọ và pháp luật không quy định hạn hoàn cọc | [Vấn đề](#vấn-đề) |
+| UI/UX | Đăng nhập Google, ví tạo ngầm, tiền hiện bằng VND, không thuật ngữ crypto trên màn chính | [Trải nghiệm cho người không biết crypto](#trải-nghiệm-cho-người-không-biết-crypto) |
+
+Thiết kế tranh chấp và lộ trình bồi thẩm theo số người dùng: [`docs/dispute-design.md`](docs/dispute-design.md).
+
 ## Vấn đề
 
 Ở Việt Nam, tiền cọc thuê trọ thường do chủ trọ giữ. Khi trả phòng, hai bên dễ bất đồng về hư hỏng, mức trừ và thời điểm hoàn cọc. Số tiền chỉ vài triệu đồng nên hiếm ai kiện ra tòa, và pháp luật không quy định thời hạn hoàn cọc bắt buộc. Người thuê là bên yếu thế: tiền đã nằm trong tay người kia, bằng chứng chỉ là trí nhớ.
@@ -55,7 +67,8 @@ Các nhánh khác (không đến nhận phòng, bỏ ngang, chủ trọ không �
 - C-Chain tương thích EVM: Solidity, OpenZeppelin, viem, Privy dùng như bình thường.
 - Giao dịch chốt trong khoảng 1 đến 2 giây: người thuê đứng trong phòng thấy cọc đã khóa ngay.
 - Phí thấp, phù hợp khoản cọc vài triệu đồng.
-- Hướng mở rộng: một L1 riêng dùng stablecoin làm phí gas, để người thuê không cần biết tới AVAX.
+- Hướng mở rộng: một L1 riêng dùng stablecoin làm phí gas, để người thuê không cần biết tới AVAX và không cần faucet như bản demo trên Fuji.
+- Khi mở bồi thẩm cho cộng đồng: chọn bồi thẩm bằng nguồn ngẫu nhiên kiểm chứng được trên chuỗi ([lộ trình](docs/dispute-design.md)).
 
 ## Kiến trúc
 
@@ -80,7 +93,7 @@ Tiền chỉ đi giữa ví người dùng, contract và vault. API và AI khôn
 | `web/app/api/v1/` | Next.js Route Handlers, zod | Danh mục phòng, yêu cầu thuê, lưu ảnh và điều khoản ngoài chuỗi, tính hash, gọi AI, ký con dấu, faucet, keeper |
 | `web/lib/ai/` | Gemini 3.5 Flash-Lite (so ảnh, prompt `damage-v2`); OpenAI chỉ viết lời giải thích tham khảo | So ảnh, trả kết luận có cấu trúc; số tiền do code nhân đơn giá |
 
-Đặc tả trong [`docs/`](docs/): [contract](docs/contract-spec.md), [API](docs/api-contract.md), [dữ liệu](docs/data-contract.md), [luồng người dùng](docs/user-flow.md).
+Đặc tả trong [`docs/`](docs/): [contract](docs/contract-spec.md), [API](docs/api-contract.md), [dữ liệu](docs/data-contract.md), [luồng người dùng](docs/user-flow.md), [tranh chấp và lộ trình bồi thẩm](docs/dispute-design.md).
 
 ## Contract đã deploy (Avalanche Fuji, chain ID 43113)
 
@@ -126,8 +139,8 @@ Mỗi Pull Request tự chạy cả ba nhóm test trên GitHub Actions; đỏ th
 
 ## Giới hạn đã biết
 
-- Danh sách bồi thẩm do nhóm thêm và bồi thẩm chưa có thưởng, nên nhóm vẫn ảnh hưởng được kết quả tranh chấp (nhưng không lấy được tiền). Hướng sau: bồi thẩm đặt cọc, bỏ phiếu đúng bên thắng thì nhận một phần phí sàn.
-- AI (gemini-3.5-flash-lite, prompt damage-v2) khớp 10/13 cặp ảnh thật, 0 ca báo hư sai ([báo cáo](web/lib/ai/images%20recognition%20report.md)); chưa có ca hao mòn trong bộ test. AI chỉ đề xuất và là một phiếu, người thuê luôn kháng nghị được. AI sập thì vẫn đề xuất được, chỉ không có con dấu.
+- Bồi thẩm ở MVP là 2 ví cố định do nhóm đứng ra làm, để demo trọn luồng tranh chấp. Ngoài thực tế, bồi thẩm sẽ do thuật toán chọn từ người dùng; MVP chưa làm vì thuật toán chọn chỉ có ý nghĩa khi đã đủ người dùng. Nhóm vì vậy ảnh hưởng được kết quả tranh chấp (nhưng không lấy được tiền). Lộ trình 3 giai đoạn (cố định → người dùng uy tín chọn ngẫu nhiên → bồi thẩm đặt cọc, có thưởng và phạt) và các luật dự phòng khi bồi thẩm vắng mặt: [`docs/dispute-design.md`](docs/dispute-design.md).
+- AI (gemini-3.5-flash-lite, prompt damage-v2) được thử trên 13 cặp ảnh phòng thật: khớp 10/13, 0 ca báo hư sai ([báo cáo](web/lib/ai/images%20recognition%20report.md)). AI chỉ đề xuất và là một phiếu, người thuê luôn kháng nghị được. AI sập thì vẫn đề xuất được, chỉ không có con dấu.
 - Hợp đồng sinh ra từ yêu cầu thuê chỉ được che khỏi danh sách công khai; contract chưa giới hạn ai được gửi cọc vào một deal.
 - Chống đặt trùng ngày nằm ở API (đọc trạng thái hợp đồng trên chuỗi), chưa nằm trong contract.
 - Ảnh vẫn có thể bị dàn dựng; camera trong app, thời gian và hash trên chuỗi làm việc giả mạo khó hơn chứ không loại bỏ hẳn.
